@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useSettingsStore } from '../../store/useSettingsStore'
 
 interface SettingsModalProps {
@@ -34,6 +34,15 @@ function Slider({ label, value, min, max, unit, onChange }: {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { fontSize, lineWidth, setFontSize, setLineWidth } = useSettingsStore()
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
