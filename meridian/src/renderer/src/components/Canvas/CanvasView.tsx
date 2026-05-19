@@ -177,6 +177,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
   /* --- Selection -------------------------------------------------- */
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
 
   /* --- Inline editing --------------------------------------------- */
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
@@ -207,12 +208,23 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const shiftDragOriginRef = useRef<string | null>(null)
   const [tempLineEnd, setTempLineEnd] = useState<{ x: number; y: number } | null>(null)
 
-  /* --- Delete selected node --------------------------------------- */
+  /* --- Delete selected node or edge ------------------------------- */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId && !editingNodeId) {
-        // Don't delete when user is typing in an input
-        if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return
+      if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return
+      if (editingNodeId) return
+
+      if (selectedEdgeId) {
+        mutate(prev => ({
+          ...prev,
+          edges: prev.edges.filter(ed => ed.id !== selectedEdgeId),
+        }))
+        setSelectedEdgeId(null)
+        return
+      }
+
+      if (selectedNodeId) {
         mutate(prev => ({
           nodes: prev.nodes.filter(n => n.id !== selectedNodeId),
           edges: prev.edges.filter(
@@ -224,7 +236,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, mutate])
+  }, [selectedNodeId, selectedEdgeId, editingNodeId, mutate])
 
   /* --- Wheel zoom ------------------------------------------------- */
   const handleWheel = useCallback(
@@ -295,6 +307,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     (e: Konva.KonvaEventObject<MouseEvent>) => {
       if (e.target === stageRef.current) {
         setSelectedNodeId(null)
+        setSelectedEdgeId(null)
       }
     },
     [],
@@ -311,6 +324,19 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       }))
     },
     [mutate],
+  )
+
+  /* Live update node position during drag so edges follow */
+  const handleNodeDragMove = useCallback(
+    (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
+      const x = e.target.x()
+      const y = e.target.y()
+      setCanvasData(prev => ({
+        ...prev,
+        nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x, y } : n)),
+      }))
+    },
+    [],
   )
 
   /* --- Shift-drag: edge creation ---------------------------------- */
@@ -456,38 +482,40 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       })
       .filter(Boolean) as { id: string; points: number[] }[]
   }, [canvasData])
-  /* --- Drop handler for files from sidebar (overlay approach) ----- */
+  /* --- Drop handler for files from sidebar (window-level) --------- */
   const [isDraggingFile, setIsDraggingFile] = useState(false)
-  const dragCounterRef = useRef(0)
 
   useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const onEnter = (e: DragEvent) => {
-      if (e.dataTransfer?.types.includes('application/meridian-file')) {
-        dragCounterRef.current++
-        setIsDraggingFile(true)
+    const containerEl = containerRef.current
+
+    const onDragOver = (e: DragEvent) => {
+      if (!e.dataTransfer?.types.includes('application/meridian-file')) return
+      if (!containerEl) return
+      const rect = containerEl.getBoundingClientRect()
+      const isOver = e.clientX >= rect.left && e.clientX <= rect.right &&
+                     e.clientY >= rect.top && e.clientY <= rect.bottom
+      setIsDraggingFile(isOver)
+      if (isOver) {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
       }
     }
-    const onLeave = () => {
-      dragCounterRef.current--
-      if (dragCounterRef.current <= 0) {
-        dragCounterRef.current = 0
-        setIsDraggingFile(false)
-      }
-    }
-    el.addEventListener('dragenter', onEnter)
-    el.addEventListener('dragleave', onLeave)
+
+    const onEnd = () => setIsDraggingFile(false)
+
+    window.addEventListener('dragover', onDragOver)
+    window.addEventListener('dragend', onEnd)
+    window.addEventListener('drop', onEnd)
     return () => {
-      el.removeEventListener('dragenter', onEnter)
-      el.removeEventListener('dragleave', onLeave)
+      window.removeEventListener('dragover', onDragOver)
+      window.removeEventListener('dragend', onEnd)
+      window.removeEventListener('drop', onEnd)
     }
   }, [])
 
   const handleOverlayDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDraggingFile(false)
-    dragCounterRef.current = 0
     const raw = e.dataTransfer.getData('application/meridian-file')
     if (!raw) return
     try {
@@ -642,18 +670,25 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         </Layer>
 
         {/* Edges layer */}
-        <Layer listening={false}>
-          {edgeLines.map(edge => (
-            <Line
-              key={edge.id}
-              points={edge.points}
-              stroke={EDGE_COLOR}
-              strokeWidth={2}
-              opacity={0.6}
-              lineCap="round"
-              listening={false}
-            />
-          ))}
+        <Layer>
+          {edgeLines.map(edge => {
+            const isEdgeSelected = edge.id === selectedEdgeId
+            return (
+              <Line
+                key={edge.id}
+                points={edge.points}
+                stroke={isEdgeSelected ? '#a78bfa' : EDGE_COLOR}
+                strokeWidth={isEdgeSelected ? 3 : 2}
+                opacity={isEdgeSelected ? 1 : 0.6}
+                lineCap="round"
+                hitStrokeWidth={16}
+                onClick={() => {
+                  setSelectedEdgeId(edge.id)
+                  setSelectedNodeId(null)
+                }}
+              />
+            )
+          })}
           {/* Temporary line while shift-dragging */}
           {shiftDragOriginRef.current && tempLineEnd && (() => {
             const originNode = canvasData.nodes.find(n => n.id === shiftDragOriginRef.current)
@@ -689,7 +724,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                 y={node.y}
                 draggable={!spaceHeld && !shiftHeld}
                 onDragEnd={e => handleNodeDragEnd(node.id, e)}
-                onClick={() => setSelectedNodeId(node.id)}
+                onDragMove={e => handleNodeDragMove(node.id, e)}
+                onClick={() => { setSelectedNodeId(node.id); setSelectedEdgeId(null) }}
                 onDblClick={() => {
                   if (node.type === 'text') {
                     setEditingNodeId(node.id)
@@ -733,7 +769,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }}
           onDrop={handleOverlayDrop}
           onDragLeave={() => {
-            dragCounterRef.current = 0
             setIsDraggingFile(false)
           }}
           style={{
