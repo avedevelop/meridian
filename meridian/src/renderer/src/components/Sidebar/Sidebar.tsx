@@ -1,8 +1,23 @@
-import React, { useState } from 'react'
+import React, { useState, Component, ReactNode } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { FileTree } from './FileTree'
 import { SearchPanel } from './SearchPanel'
+import { GraphView } from '../Graph/GraphView'
+
+class GraphErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(e: Error) { return { error: e.message } }
+  render() {
+    if (this.state.error) return (
+      <div style={{ padding: 16, color: '#555', fontSize: 12 }}>
+        <div style={{ marginBottom: 8, color: '#f44' }}>Graph error</div>
+        <div>{this.state.error}</div>
+      </div>
+    )
+    return this.props.children
+  }
+}
 
 type SidebarTab = 'files' | 'search' | 'graph'
 
@@ -73,15 +88,11 @@ export function Sidebar() {
         )}
         {activeTab === 'search' && <SearchPanel />}
         {activeTab === 'graph' && (
-          <GraphViewLazy />
+          <GraphErrorBoundary>
+            <GraphView />
+          </GraphErrorBoundary>
         )}
       </div>
     </div>
   )
-}
-
-// Lazy wrapper to avoid importing D3 until needed
-function GraphViewLazy() {
-  const { GraphView } = require('../Graph/GraphView')
-  return <GraphView />
 }
