@@ -4,16 +4,24 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import remarkRehype from 'remark-rehype'
-import rehypeSanitize from 'rehype-sanitize'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
+
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    span: [...(defaultSchema.attributes?.span ?? []), 'className', 'style', 'dataLink', 'data-link'],
+  },
+}
 
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkBreaks)
-  .use(remarkRehype)
-  .use(rehypeSanitize)
-  .use(rehypeStringify)
+  .use(remarkRehype, { allowDangerousHtml: true })
+  .use(rehypeSanitize, sanitizeSchema)
+  .use(rehypeStringify, { allowDangerousHtml: true })
 
 interface MarkdownPreviewProps {
   content: string

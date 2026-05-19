@@ -36,15 +36,13 @@ export function EditorArea() {
     if (match) openFile(match.path, match.name)
   }, [vaultFiles, openFile])
 
-  // Ref so CodeMirror always calls the latest version even after files change
-  const getFileNamesRef = useRef<() => string[]>(() => [])
-  getFileNamesRef.current = useMemo(() => {
-    const names = flattenVaultFiles(vaultFiles)
-      .filter(f => !f.isDirectory && f.name.endsWith('.md'))
-      .map(f => f.name)
-    return () => names
-  }, [vaultFiles])()
-  const stableGetFileNames = useCallback(() => getFileNamesRef.current(), [])
+  // Stable ref so CodeMirror always gets latest file list even after re-renders
+  const fileNamesRef = useRef<string[]>([])
+  fileNamesRef.current = useMemo(
+    () => flattenVaultFiles(vaultFiles).filter(f => !f.isDirectory && f.name.endsWith('.md')).map(f => f.name),
+    [vaultFiles]
+  )
+  const stableGetFileNames = useCallback(() => fileNamesRef.current, [])
 
   useEffect(() => {
     const handleKeydown = async (e: KeyboardEvent) => {
