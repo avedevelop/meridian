@@ -107,6 +107,7 @@ export function useVaultBridge() {
       await refreshFiles()
     } catch (e) {
       console.error('[Bridge] createFolder error', e)
+      window.alert(`Could not create folder: ${e instanceof Error ? e.message : String(e)}`)
     }
   }, [refreshFiles])
 
