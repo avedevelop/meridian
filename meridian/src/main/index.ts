@@ -60,7 +60,10 @@ function createWindow(): BrowserWindow {
 app.whenReady().then(() => {
   protocol.handle('vault', async (request) => {
     const url = new URL(request.url)
-    const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, '')
+    // Chromium normalizes vault:///a/b.png → vault://a/b.png (host=a, path=/b.png)
+    // Reconstruct full relative path from hostname + pathname
+    const raw = (url.hostname ? url.hostname + url.pathname : url.pathname)
+    const relativePath = decodeURIComponent(raw).replace(/^\/+/, '')
     const vm = getVaultManager()
     if (!vm) return new Response('No vault', { status: 503 })
     const vaultResolved = resolve(vm.vaultPath)
