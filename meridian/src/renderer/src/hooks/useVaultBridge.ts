@@ -17,6 +17,7 @@ declare global {
       openByPath: (path: string) => Promise<VaultConfig | null>
       onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
+      exportHtml: (suggestedName: string, html: string) => Promise<string | null>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
@@ -228,5 +229,62 @@ export function useVaultBridge() {
     }
   }, [refreshFiles])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote, saveImage }
+  const exportNote = useCallback(async () => {
+    const { openTabs, activeTabPath } = useVaultStore.getState()
+    const activeTab = openTabs.find(t => t.path === activeTabPath)
+    if (!activeTab) return
+
+    const { unified } = await import('unified')
+    const { default: remarkParse } = await import('remark-parse')
+    const { default: remarkGfm } = await import('remark-gfm')
+    const { default: remarkRehype } = await import('remark-rehype')
+    const { default: rehypeStringify } = await import('rehype-stringify')
+
+    const processor = unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype)
+      .use(rehypeStringify)
+
+    const bodyHtml = String(processor.processSync(activeTab.content))
+    const title = activeTab.name.replace(/\.md$/i, '')
+    const escapedTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapedTitle}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { max-width: 720px; margin: 0 auto; padding: 48px 24px; font-family: Georgia, serif; line-height: 1.8; color: #1a1a1a; background: #fafaf8; }
+    h1, h2, h3, h4, h5, h6 { font-weight: 700; line-height: 1.3; margin-top: 2em; margin-bottom: 0.5em; }
+    h1 { font-size: 2em; border-bottom: 2px solid #eee; padding-bottom: 0.3em; margin-top: 0; }
+    h2 { font-size: 1.5em; }
+    h3 { font-size: 1.25em; }
+    p { margin: 0 0 1em; }
+    a { color: #7c6af7; text-decoration: underline; }
+    code { background: #f0eff5; padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: 'SF Mono', 'Fira Code', monospace; }
+    pre { background: #f5f4fa; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 1.5em 0; }
+    pre code { background: none; padding: 0; font-size: 0.85em; }
+    blockquote { border-left: 4px solid #ddd; margin: 1.5em 0; padding: 0.5em 1em; color: #555; }
+    img { max-width: 100%; border-radius: 6px; margin: 1em 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1.5em 0; }
+    th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+    th { background: #f5f4fa; font-weight: 600; }
+    hr { border: none; border-top: 2px solid #eee; margin: 2em 0; }
+    ul, ol { padding-left: 1.5em; margin: 0 0 1em; }
+    li { margin-bottom: 0.25em; }
+  </style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`
+
+    await window.vault.exportHtml(`${title}.html`, fullHtml)
+  }, [])
+
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote, saveImage, exportNote }
 }

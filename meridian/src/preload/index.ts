@@ -24,6 +24,9 @@ const vaultAPI = {
   writeBinary: (filePath: string, base64: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_WRITE_BINARY, filePath, base64),
 
+  exportHtml: (suggestedName: string, html: string): Promise<string | null> =>
+    ipcRenderer.invoke(IPC.VAULT_EXPORT_HTML, suggestedName, html),
+
   deleteFile: (filePath: string): Promise<void> =>
     ipcRenderer.invoke(IPC.VAULT_DELETE_FILE, filePath),
 

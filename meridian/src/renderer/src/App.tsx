@@ -35,7 +35,7 @@ export default function App() {
   const vault = useVaultStore(s => s.vault)
   const allFiles = useLinkStore(s => s.allFiles)
   const indexVersion = useLinkStore(s => s.indexVersion)
-  const { openFile, openVault, openDailyNote } = useVaultBridge()
+  const { openFile, openVault, openDailyNote, exportNote } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   useVaultFileWatcher()
@@ -47,11 +47,12 @@ export default function App() {
         if (e.key === 'o') { e.preventDefault(); openVault() }
         if (e.key === ',') { e.preventDefault(); setSettingsOpen(open => !open) }
         if (e.key === 'd') { e.preventDefault(); openDailyNote() }
+        if (e.key === 'e') { e.preventDefault(); exportNote() }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [openVault, openDailyNote])
+  }, [openVault, openDailyNote, exportNote])
 
   const paletteFiles = useMemo(() => (
     allFiles().map(path => ({

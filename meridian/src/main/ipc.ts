@@ -180,6 +180,19 @@ export function registerIpcHandlers(settings: AppSettings): void {
   ipcMain.handle(IPC.SETTINGS_SET, async (_event, key: string, value: unknown) => {
     if (key === 'lastVault') settings.setLastVault(value as string)
   })
+
+  ipcMain.handle(IPC.VAULT_EXPORT_HTML, async (_event, suggestedName: string, html: string) => {
+    const result = await dialog.showSaveDialog({
+      title: 'Export Note as HTML',
+      defaultPath: suggestedName,
+      filters: [{ name: 'HTML Files', extensions: ['html'] }],
+      buttonLabel: 'Export',
+    })
+    if (result.canceled || !result.filePath) return null
+    const { writeFile } = await import('fs/promises')
+    await writeFile(result.filePath, html, 'utf-8')
+    return result.filePath
+  })
 }
 
 export function getVaultManager(): VaultManager | null {
