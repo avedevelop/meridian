@@ -62,7 +62,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Layout
-        sidebar={<Sidebar />}
+        sidebar={<Sidebar key={vault.path} />}
         editor={<EditorArea />}
         rightPanel={<BacklinksPanel />}
       />

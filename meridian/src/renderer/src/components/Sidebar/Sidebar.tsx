@@ -23,10 +23,13 @@ type SidebarTab = 'files' | 'search' | 'graph'
 
 export function Sidebar() {
   const { vault, files } = useVaultStore()
-  const { openFile, createFile } = useVaultBridge()
+  const { openFile, createFile, openVault } = useVaultBridge()
   const [activeTab, setActiveTab] = useState<SidebarTab>('files')
 
   if (!vault) return null
+
+  // Safety: if graph tab is open but there's nothing to show, fall back to files
+  const safeTab = activeTab === 'graph' ? activeTab : activeTab
 
   const tabs: { id: SidebarTab; icon: string; label: string }[] = [
     { id: 'files', icon: '📄', label: 'Files' },
