@@ -49,12 +49,15 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const indexVersion = useLinkStore(s => s.indexVersion)
   const { openFile } = useVaultBridge()
 
+  const [viewMode, setViewMode] = useState<'live' | 'history'>('live')
   const [progress, setProgress] = useState(1)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playDuration, setPlayDuration] = useState(20000)
   const [isRecording, setIsRecording] = useState(false)
 
   progressRef.current = progress
+  const viewModeRef = useRef(viewMode)
+  viewModeRef.current = viewMode
 
   const { birthtimes, minTime, maxTime } = useMemo(() => {
     const bt = new Map<string, number>()
@@ -73,9 +76,26 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 
-  const updateVisibility = useCallback((prog: number) => {
+  const updateVisibility = useCallback((prog: number, mode: 'live' | 'history') => {
     const state = d3Ref.current
     if (!state) return
+
+    if (mode === 'live') {
+      state.nodeG.each(function() {
+        d3.select(this)
+          .transition().duration(300)
+          .attr('opacity', 1)
+          .style('pointer-events', 'auto')
+      })
+
+      state.linkSel.each(function() {
+        d3.select(this).transition().duration(300).attr('opacity', 0.6)
+      })
+
+      state.dateLabel.text('')
+      return
+    }
+
     const ts = minTime + (maxTime - minTime) * prog
 
     state.nodeG.each(function(d) {
@@ -99,7 +119,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     )
   }, [birthtimes, minTime, maxTime])
 
-  useEffect(() => { updateVisibility(progress) }, [progress, updateVisibility])
+  useEffect(() => {
+    updateVisibility(progress, viewMode)
+  }, [progress, viewMode, updateVisibility])
 
   useEffect(() => {
     const el = containerRef.current
@@ -230,7 +252,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       })
 
       d3Ref.current = { sim, nodeG, linkSel, dateLabel, svgEl: svg.node()! }
-      updateVisibility(progressRef.current)
+      updateVisibility(progressRef.current, viewModeRef.current)
     }
 
     const ro = new ResizeObserver(build)
@@ -314,50 +336,99 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     setIsPlaying(false)
   }, [])
 
+  const handleToggleMode = (mode: 'live' | 'history') => {
+    setViewMode(mode)
+    if (mode === 'live') {
+      setIsPlaying(false)
+      if (isRecording) {
+        mediaRecorderRef.current?.stop()
+        setIsRecording(false)
+      }
+    }
+  }
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      {/* Mode Selector */}
+      <div style={{
+        position: 'absolute', top: 12, right: 12,
+        background: 'rgba(22, 22, 22, 0.85)',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid #2a2a2a',
+        borderRadius: 8, padding: 3, display: 'flex', gap: 4,
+        zIndex: 10
+      }}>
+        <button
+          onClick={() => handleToggleMode('live')}
+          style={{
+            background: viewMode === 'live' ? '#7c6af7' : 'transparent',
+            border: 'none', borderRadius: 6,
+            color: viewMode === 'live' ? '#fff' : '#aaa',
+            padding: '6px 12px', cursor: 'pointer', fontSize: 12,
+            fontWeight: 500, transition: 'all 0.2s'
+          }}
+        >
+          Сеть
+        </button>
+        <button
+          onClick={() => handleToggleMode('history')}
+          style={{
+            background: viewMode === 'history' ? '#7c6af7' : 'transparent',
+            border: 'none', borderRadius: 6,
+            color: viewMode === 'history' ? '#fff' : '#aaa',
+            padding: '6px 12px', cursor: 'pointer', fontSize: 12,
+            fontWeight: 500, transition: 'all 0.2s'
+          }}
+        >
+          История
+        </button>
+      </div>
+
       <div ref={containerRef} style={{ flex: 1, position: 'relative' }}>
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
-      <div style={{
-        height: 60, background: '#111', borderTop: '1px solid #2a2a2a',
-        display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 12, color: '#666', minWidth: 136, flexShrink: 0 }}>
-          {formattedDate}
-        </span>
-        <input
-          type="range" min={0} max={1000} value={Math.round(progress * 1000)}
-          onChange={e => { setProgress(Number(e.target.value) / 1000); setIsPlaying(false) }}
-          style={{ flex: 1, accentColor: '#7c6af7', cursor: 'pointer', height: 4 }}
-        />
-        <button
-          onClick={() => { if (progress >= 1) setProgress(0); setIsPlaying(p => !p) }}
-          style={{ background: '#7c6af7', border: 'none', borderRadius: 6, color: '#fff', padding: '5px 14px', cursor: 'pointer', fontSize: 15, flexShrink: 0 }}
-        >
-          {isPlaying ? '⏸' : '▶'}
-        </button>
-        <select
-          value={playDuration}
-          onChange={e => setPlayDuration(Number(e.target.value))}
-          style={{ background: '#1e1e1e', border: '1px solid #3a3a3a', color: '#aaa', borderRadius: 4, padding: '4px 6px', fontSize: 12, cursor: 'pointer' }}
-        >
-          <option value={10000}>10s</option>
-          <option value={20000}>20s</option>
-          <option value={40000}>40s</option>
-          <option value={60000}>60s</option>
-        </select>
-        {isRecording ? (
-          <button onClick={stopRecording} style={{ background: '#c62828', border: 'none', borderRadius: 6, color: '#fff', padding: '5px 14px', cursor: 'pointer', fontSize: 13, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
-            Stop
+
+      {viewMode === 'history' && (
+        <div style={{
+          height: 60, background: '#111', borderTop: '1px solid #2a2a2a',
+          display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 12, color: '#666', minWidth: 136, flexShrink: 0 }}>
+            {formattedDate}
+          </span>
+          <input
+            type="range" min={0} max={1000} value={Math.round(progress * 1000)}
+            onChange={e => { setProgress(Number(e.target.value) / 1000); setIsPlaying(false) }}
+            style={{ flex: 1, accentColor: '#7c6af7', cursor: 'pointer', height: 4 }}
+          />
+          <button
+            onClick={() => { if (progress >= 1) setProgress(0); setIsPlaying(p => !p) }}
+            style={{ background: '#7c6af7', border: 'none', borderRadius: 6, color: '#fff', padding: '5px 14px', cursor: 'pointer', fontSize: 15, flexShrink: 0 }}
+          >
+            {isPlaying ? '⏸' : '▶'}
           </button>
-        ) : (
-          <button onClick={startRecording} title="Record graph animation as WebM video" style={{ background: '#1e1e1e', border: '1px solid #3a3a3a', borderRadius: 6, color: '#ccc', padding: '5px 14px', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>
-            ⏺ Record
-          </button>
-        )}
-      </div>
+          <select
+            value={playDuration}
+            onChange={e => setPlayDuration(Number(e.target.value))}
+            style={{ background: '#1e1e1e', border: '1px solid #3a3a3a', color: '#aaa', borderRadius: 4, padding: '4px 6px', fontSize: 12, cursor: 'pointer' }}
+          >
+            <option value={10000}>10s</option>
+            <option value={20000}>20s</option>
+            <option value={40000}>40s</option>
+            <option value={60000}>60s</option>
+          </select>
+          {isRecording ? (
+            <button onClick={stopRecording} style={{ background: '#c62828', border: 'none', borderRadius: 6, color: '#fff', padding: '5px 14px', cursor: 'pointer', fontSize: 13, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+              Stop
+            </button>
+          ) : (
+            <button onClick={startRecording} title="Record graph animation as WebM video" style={{ background: '#1e1e1e', border: '1px solid #3a3a3a', borderRadius: 6, color: '#ccc', padding: '5px 14px', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>
+              ⏺ Record
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
