@@ -38,12 +38,17 @@ export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }:
     setEditValue(file.name)
   }
 
+  const committingRef = useRef(false)
+
   const commitEdit = (file: VaultFile) => {
+    if (committingRef.current) return  // prevent double-call from blur after Enter
+    committingRef.current = true
+    setEditing(null)
     const newName = editValue.trim()
     if (newName && newName !== file.name && onRename) {
       onRename(file.path, newName)
     }
-    setEditing(null)
+    setTimeout(() => { committingRef.current = false }, 100)
   }
 
   const cancelEdit = () => setEditing(null)
