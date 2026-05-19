@@ -37,13 +37,72 @@ export function TocPanel() {
   const { openTabs, activeTabPath } = useVaultStore()
   const activeTab = openTabs.find(t => t.path === activeTabPath)
 
-  const headings = useMemo(
-    () => parseHeadings(activeTab?.content ?? ''),
-    [activeTab?.content]
-  )
+  const isCanvas = activeTab?.path.endsWith('.canvas')
+
+  const headings = useMemo(() => {
+    if (isCanvas) return []
+    return parseHeadings(activeTab?.content ?? '')
+  }, [activeTab?.content, isCanvas])
+
+  const canvasNodes = useMemo(() => {
+    if (!isCanvas || !activeTab?.content) return []
+    try {
+      const data = JSON.parse(activeTab.content)
+      return (data.nodes || []) as { id: string; text?: string; file?: string; type: string }[]
+    } catch {
+      return []
+    }
+  }, [activeTab?.content, isCanvas])
 
   if (!activeTab) {
     return <div style={{ padding: 12, color: '#444', fontSize: 12 }}>No note open.</div>
+  }
+
+  if (isCanvas) {
+    if (canvasNodes.length === 0) {
+      return <div style={{ padding: 12, color: '#444', fontSize: 12 }}>Canvas is empty.</div>
+    }
+    return (
+      <div style={{ padding: '8px 0', fontSize: 12 }}>
+        {canvasNodes.map(node => {
+          const displayText = node.type === 'file' && node.file ? node.file.split('/').pop() : node.text || 'Untitled'
+          return (
+            <div
+              key={node.id}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('canvas:center-node', { detail: { nodeId: node.id } }))
+              }}
+              title={displayText}
+              style={{
+                padding: '6px 12px',
+                cursor: 'pointer',
+                color: '#ccc',
+                fontSize: 11,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                borderLeft: '2px solid transparent',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = '#fff'
+                e.currentTarget.style.borderLeft = '2px solid #7c6af7'
+                e.currentTarget.style.background = '#1a1a2a'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = '#ccc'
+                e.currentTarget.style.borderLeft = '2px solid transparent'
+                e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              <span style={{ color: '#777', marginRight: 6 }}>
+                {node.type === 'file' ? '📄' : '📝'}
+              </span>
+              {displayText}
+            </div>
+          )
+        })}
+      </div>
+    )
   }
 
   if (headings.length === 0) {

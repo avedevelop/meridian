@@ -238,6 +238,27 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     return () => window.removeEventListener('keydown', handler)
   }, [selectedNodeId, selectedEdgeId, editingNodeId, mutate])
 
+  /* --- Listen for external center requests (e.g. from TOC) --------- */
+  useEffect(() => {
+    const handleCenter = (e: Event) => {
+      const customEvent = e as CustomEvent<{ nodeId: string }>
+      const nodeId = customEvent.detail.nodeId
+      const node = canvasData.nodes.find(n => n.id === nodeId)
+      if (node && containerRef.current) {
+        setSelectedNodeId(nodeId)
+        setSelectedEdgeId(null)
+        // Center camera on this node
+        const { clientWidth, clientHeight } = containerRef.current
+        setStagePos({
+          x: clientWidth / 2 - (node.x + node.width / 2) * stageScale,
+          y: clientHeight / 2 - (node.y + node.height / 2) * stageScale,
+        })
+      }
+    }
+    window.addEventListener('canvas:center-node', handleCenter)
+    return () => window.removeEventListener('canvas:center-node', handleCenter)
+  }, [canvasData.nodes, stageScale])
+
   /* --- Wheel zoom ------------------------------------------------- */
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
@@ -339,9 +360,19 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     [],
   )
 
-  /* --- Shift-drag: edge creation ---------------------------------- */
+  /* --- Shift-drag: edge creation & Z-index ------------------------ */
   const handleNodeMouseDown = useCallback(
     (nodeId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+      // Bring node to front
+      mutate(prev => {
+        const nodeIdx = prev.nodes.findIndex(n => n.id === nodeId)
+        if (nodeIdx === -1 || nodeIdx === prev.nodes.length - 1) return prev
+        const newNodes = [...prev.nodes]
+        const [node] = newNodes.splice(nodeIdx, 1)
+        newNodes.push(node)
+        return { ...prev, nodes: newNodes }
+      })
+
       if (e.evt.shiftKey) {
         shiftDragOriginRef.current = nodeId
         // Initialize temp line at mouse position
@@ -357,7 +388,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         }
       }
     },
-    [stagePos, stageScale],
+    [stagePos, stageScale, mutate],
   )
 
   /* Stage-level mouseMove: update temp line during shift-drag */
