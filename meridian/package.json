@@ -35,7 +35,6 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "chokidar": "^5.0.0",
-    "electron-store": "^8.2.0",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",
     "remark": "^15.0.1",

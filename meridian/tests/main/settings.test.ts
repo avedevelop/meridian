@@ -1,19 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
-// Mock electron-store to use a temp path
-vi.mock('electron-store', () => {
-  return {
-    default: class MockStore {
-      private data: Record<string, unknown> = {}
-      get<T>(key: string, defaultValue: T): T {
-        return (this.data[key] as T) ?? defaultValue
-      }
-      set(key: string, value: unknown) {
-        this.data[key] = value
-      }
-    }
-  }
-})
+// Mock electron app.getPath to use a temp directory
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => mkdtempSync(join(tmpdir(), 'meridian-settings-test-'))),
+  },
+}))
 
 import { AppSettings } from '../../src/main/settings'
 

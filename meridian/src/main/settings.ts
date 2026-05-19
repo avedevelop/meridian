@@ -1,4 +1,6 @@
-import Store from 'electron-store'
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
+import { join } from 'path'
+import { app } from 'electron'
 import { AppConfig } from '../shared/types'
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -8,28 +10,46 @@ const DEFAULT_CONFIG: AppConfig = {
 }
 
 export class AppSettings {
-  private store = new Store<AppConfig>({ name: 'meridian-config', defaults: DEFAULT_CONFIG })
+  private configPath: string
+  private data: AppConfig
 
-  get(): AppConfig {
-    return {
-      recentVaults: this.store.get('recentVaults', DEFAULT_CONFIG.recentVaults),
-      lastVault: this.store.get('lastVault', DEFAULT_CONFIG.lastVault),
-      windowBounds: this.store.get('windowBounds', DEFAULT_CONFIG.windowBounds),
+  constructor() {
+    const dir = join(app.getPath('userData'), 'meridian')
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    this.configPath = join(dir, 'config.json')
+    this.data = this.load()
+  }
+
+  private load(): AppConfig {
+    try {
+      return { ...DEFAULT_CONFIG, ...JSON.parse(readFileSync(this.configPath, 'utf-8')) }
+    } catch {
+      return { ...DEFAULT_CONFIG }
     }
   }
 
+  private save(): void {
+    writeFileSync(this.configPath, JSON.stringify(this.data, null, 2), 'utf-8')
+  }
+
+  get(): AppConfig {
+    return this.data
+  }
+
   setLastVault(path: string | null): void {
-    this.store.set('lastVault', path)
+    this.data.lastVault = path
+    this.save()
   }
 
   addRecentVault(path: string, name: string): void {
-    const recents = this.store.get('recentVaults', DEFAULT_CONFIG.recentVaults)
-    const filtered = recents.filter(v => v.path !== path)
+    const filtered = this.data.recentVaults.filter(v => v.path !== path)
     filtered.unshift({ path, name })
-    this.store.set('recentVaults', filtered.slice(0, 10))
+    this.data.recentVaults = filtered.slice(0, 10)
+    this.save()
   }
 
   setWindowBounds(bounds: AppConfig['windowBounds']): void {
-    this.store.set('windowBounds', bounds)
+    this.data.windowBounds = bounds
+    this.save()
   }
 }
