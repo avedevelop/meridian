@@ -1,23 +1,33 @@
 import { useCallback } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
-import type { VaultConfig } from '@shared/types'
+import { useLinkStore } from '../store/useLinkStore'
+import type { VaultConfig, VaultFile } from '@shared/types'
 
 declare global {
   interface Window {
     vault: {
       openDialog: () => Promise<VaultConfig | null>
-      listFiles: () => Promise<import('@shared/types').VaultFile[]>
+      listFiles: () => Promise<VaultFile[]>
       readFile: (path: string) => Promise<string>
       writeFile: (path: string, content: string) => Promise<void>
       createFile: (dir: string, name: string) => Promise<string>
       deleteFile: (path: string) => Promise<void>
-      onFileChanged: (cb: (file: import('@shared/types').VaultFile) => void) => () => void
+      onFileChanged: (cb: (file: VaultFile) => void) => () => void
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
       set: (key: string, value: unknown) => Promise<void>
     }
   }
+}
+
+function flattenFiles(files: VaultFile[]): VaultFile[] {
+  const result: VaultFile[] = []
+  for (const f of files) {
+    result.push(f)
+    if (f.children) result.push(...flattenFiles(f.children))
+  }
+  return result
 }
 
 export function useVaultBridge() {
@@ -29,6 +39,15 @@ export function useVaultBridge() {
     setVault(config)
     const files = await window.vault.listFiles()
     setFiles(files)
+    // Build link + search index for all .md files
+    const { indexFile } = useLinkStore.getState()
+    const flatFiles = flattenFiles(files)
+    for (const f of flatFiles) {
+      if (!f.isDirectory && f.name.endsWith('.md')) {
+        const content = await window.vault.readFile(f.path)
+        indexFile(f.path, f.name, content, config.path)
+      }
+    }
   }, [setVault, setFiles])
 
   const refreshFiles = useCallback(async () => {
@@ -45,12 +64,19 @@ export function useVaultBridge() {
   const saveFile = useCallback(async (path: string, content: string) => {
     await window.vault.writeFile(path, content)
     markTabDirty(path, false)
+    // Re-index this file
+    const vault = useVaultStore.getState().vault
+    if (vault) {
+      const name = path.split('/').pop() ?? ''
+      useLinkStore.getState().indexFile(path, name, content, vault.path)
+    }
   }, [markTabDirty])
 
   const createFile = useCallback(async (dir: string, name: string) => {
-    const filePath = await window.vault.createFile(dir, name.endsWith('.md') ? name : `${name}.md`)
+    const fileName = name.endsWith('.md') ? name : `${name}.md`
+    const filePath = await window.vault.createFile(dir, fileName)
     await refreshFiles()
-    await openFile(filePath, name.endsWith('.md') ? name : `${name}.md`)
+    await openFile(filePath, fileName)
   }, [refreshFiles, openFile])
 
   return { openVault, refreshFiles, openFile, saveFile, createFile }
