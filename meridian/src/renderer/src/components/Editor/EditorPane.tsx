@@ -3,13 +3,15 @@ import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { useLinkStore } from '../../store/useLinkStore'
 import { createMarkdownExtensions } from './extensions/markdownExtensions'
 import { TabBar } from './TabBar'
 import { MarkdownPreview } from './MarkdownPreview'
 
 export function EditorArea() {
   const { openTabs, activeTabPath, markTabDirty, setTabContent } = useVaultStore()
-  const { saveFile } = useVaultBridge()
+  const { saveFile, openFile } = useVaultBridge()
+  const allFiles = useLinkStore(s => s.allFiles)
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const activeTab = openTabs.find(t => t.path === activeTabPath)
@@ -19,6 +21,22 @@ export function EditorArea() {
     setTabContent(activeTabPath, content)
     markTabDirty(activeTabPath, true)
   }, [activeTabPath, setTabContent, markTabDirty])
+
+  const handleLinkClick = useCallback((linkText: string) => {
+    const files = allFiles()
+    const match = files.find(f => {
+      const name = f.split('/').pop()?.replace(/\.md$/i, '') ?? ''
+      return name.toLowerCase() === linkText.toLowerCase()
+    })
+    if (match) {
+      const name = match.split('/').pop() ?? ''
+      openFile(match, name)
+    }
+  }, [allFiles, openFile])
+
+  const getFileNames = useCallback(() => {
+    return allFiles().map(f => f.split('/').pop() ?? '').filter(n => n.endsWith('.md'))
+  }, [allFiles])
 
   useEffect(() => {
     const handleKeydown = async (e: KeyboardEvent) => {
@@ -37,7 +55,7 @@ export function EditorArea() {
     const view = new EditorView({
       state: EditorState.create({
         doc: activeTab?.content ?? '',
-        extensions: createMarkdownExtensions(handleChange),
+        extensions: createMarkdownExtensions(handleChange, handleLinkClick, getFileNames),
       }),
       parent: editorRef.current,
     })

@@ -14,8 +14,10 @@ import {
   defaultHighlightStyle, bracketMatching, foldKeymap,
 } from '@codemirror/language'
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
-import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+import { completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { lintKeymap } from '@codemirror/lint'
+import { wikiLinkExtension } from './wikiLinkExtension'
+import { wikiLinkCompletion } from './wikiLinkCompletion'
 
 export const meridianTheme = EditorView.theme({
   '&': { height: '100%', fontSize: '15px' },
@@ -25,7 +27,11 @@ export const meridianTheme = EditorView.theme({
   '.cm-line': { padding: '0' },
 }, { dark: true })
 
-export function createMarkdownExtensions(onChange?: (content: string) => void) {
+export function createMarkdownExtensions(
+  onChange?: (content: string) => void,
+  onLinkClick?: (linkText: string) => void,
+  getFileNames?: () => string[],
+) {
   return [
     oneDark,
     meridianTheme,
@@ -41,7 +47,6 @@ export function createMarkdownExtensions(onChange?: (content: string) => void) {
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     bracketMatching(),
     closeBrackets(),
-    autocompletion(),
     rectangularSelection(),
     crosshairCursor(),
     highlightActiveLine(),
@@ -56,6 +61,8 @@ export function createMarkdownExtensions(onChange?: (content: string) => void) {
       ...lintKeymap,
     ]),
     markdown({ base: markdownLanguage, codeLanguages: languages }),
+    onLinkClick ? wikiLinkExtension(onLinkClick) : [],
+    getFileNames ? wikiLinkCompletion(getFileNames) : [],
     onChange
       ? EditorView.updateListener.of(update => {
           if (update.docChanged) onChange(update.state.doc.toString())
