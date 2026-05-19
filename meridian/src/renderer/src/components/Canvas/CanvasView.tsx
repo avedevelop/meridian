@@ -193,6 +193,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const trRef = useRef<Konva.Transformer>(null)
   const nodeRefs = useRef<Record<string, Konva.Group | null>>({})
+  const nodeMinHeights = useRef<Record<string, number>>({})
 
   useEffect(() => {
     if (selectedNodeId && trRef.current) {
@@ -931,9 +932,27 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                       wordBreak: 'break-word',
                       whiteSpace: 'pre-wrap'
                     }}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {displayText}
-                      </ReactMarkdown>
+                      <div ref={el => {
+                        if (el) {
+                           // Intrinsic height of content + top/bottom padding
+                           const contentHeight = el.offsetHeight + 32
+                           nodeMinHeights.current[node.id] = contentHeight
+                           
+                           // Auto-expand if the box is smaller than content
+                           if (node.height < contentHeight) {
+                              setTimeout(() => {
+                                setCanvasData(prev => ({
+                                   ...prev,
+                                   nodes: prev.nodes.map(n => n.id === node.id && n.height < contentHeight ? { ...n, height: contentHeight } : n)
+                                }))
+                              }, 0)
+                           }
+                        }
+                      }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {displayText}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   </Html>
                 )}
@@ -944,7 +963,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           <Transformer
             ref={trRef}
             boundBoxFunc={(oldBox, newBox) => {
-              if (newBox.width < 150 || newBox.height < 60) return oldBox
+              const minH = Math.max(60, (selectedNodeId && nodeMinHeights.current[selectedNodeId]) || 60)
+              if (newBox.width < 150 || newBox.height < minH) return oldBox
               return newBox
             }}
             padding={4}
@@ -973,7 +993,20 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           <textarea
             autoFocus
             value={editText}
-            onChange={e => setEditText(e.target.value)}
+            onChange={e => {
+              setEditText(e.target.value)
+              const el = e.target
+              const oldH = el.style.height
+              el.style.height = '1px'
+              const intrinsicH = el.scrollHeight / stageScale
+              el.style.height = oldH
+              if (intrinsicH > node.height) {
+                setCanvasData(prev => ({
+                  ...prev,
+                  nodes: prev.nodes.map(n => n.id === node.id ? { ...n, height: intrinsicH } : n)
+                }))
+              }
+            }}
             onBlur={() => {
               mutate(prev => ({
                 ...prev,
