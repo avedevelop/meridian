@@ -33,11 +33,9 @@ export { AppErrorBoundary }
 export default function App() {
   const vault = useVaultStore(s => s.vault)
   const allFiles = useLinkStore(s => s.allFiles)
-  const { openFile } = useVaultBridge()
+  const { openFile, openVault, openDailyNote } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-
-  const { openVault } = useVaultBridge()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -45,11 +43,12 @@ export default function App() {
         if (e.key === 'k') { e.preventDefault(); setPaletteOpen(open => !open) }
         if (e.key === 'o') { e.preventDefault(); openVault() }
         if (e.key === ',') { e.preventDefault(); setSettingsOpen(open => !open) }
+        if (e.key === 'd') { e.preventDefault(); openDailyNote() }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [openVault])
+  }, [openVault, openDailyNote])
 
   const paletteFiles = allFiles().map(path => ({
     path,

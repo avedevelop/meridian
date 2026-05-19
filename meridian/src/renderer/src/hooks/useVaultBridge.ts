@@ -155,5 +155,34 @@ export function useVaultBridge() {
     }
   }, [initVault])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath }
+  const openDailyNote = useCallback(async () => {
+    const vault = useVaultStore.getState().vault
+    if (!vault) return
+
+    const today = new Date().toISOString().split('T')[0]
+    const fileName = `${today}.md`
+    const dailyDir = `${vault.path}/Daily`
+    const fullPath = `${dailyDir}/${fileName}`
+
+    const existing = useLinkStore.getState().allFiles().find(f => f === fullPath)
+    if (existing) {
+      await openFile(existing, fileName)
+      return
+    }
+
+    try {
+      await window.vault.createDir(vault.path, 'Daily')
+    } catch {}
+
+    try {
+      const filePath = await window.vault.createFile(dailyDir, fileName)
+      useLinkStore.getState().indexFile(filePath, fileName, '', vault.path)
+      await refreshFiles()
+      await openFile(filePath, fileName)
+    } catch (e) {
+      console.error('[Bridge] openDailyNote error', e)
+    }
+  }, [openFile, refreshFiles])
+
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote }
 }
