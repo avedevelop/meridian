@@ -1,8 +1,14 @@
-import { app, BrowserWindow, shell, protocol, net } from 'electron'
-import { join, resolve, sep } from 'path'
-import { pathToFileURL } from 'url'
+import { app, BrowserWindow, shell, protocol } from 'electron'
+import { join, resolve, sep, extname } from 'path'
+import { readFile } from 'fs/promises'
 import { AppSettings } from './settings'
 import { registerIpcHandlers, getVaultManager } from './ipc'
+
+const MIME: Record<string, string> = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4', '.pdf': 'application/pdf',
+}
 
 const settings = new AppSettings()
 
@@ -46,7 +52,7 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
-  protocol.handle('vault', (request) => {
+  protocol.handle('vault', async (request) => {
     const url = new URL(request.url)
     const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, '')
     const vm = getVaultManager()
@@ -56,7 +62,13 @@ app.whenReady().then(() => {
     if (!fullPath.startsWith(vaultResolved + sep)) {
       return new Response('Forbidden', { status: 403 })
     }
-    return net.fetch(pathToFileURL(fullPath).href)
+    try {
+      const data = await readFile(fullPath)
+      const contentType = MIME[extname(fullPath).toLowerCase()] ?? 'application/octet-stream'
+      return new Response(data, { headers: { 'Content-Type': contentType } })
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
   })
 
   registerIpcHandlers(settings)
