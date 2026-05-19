@@ -482,44 +482,24 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       })
       .filter(Boolean) as { id: string; points: number[] }[]
   }, [canvasData])
-  /* --- Drop handler for files from sidebar (window-level) --------- */
-  const [isDraggingFile, setIsDraggingFile] = useState(false)
-
-  useEffect(() => {
-    const containerEl = containerRef.current
-
-    const onDragOver = (e: DragEvent) => {
-      if (!e.dataTransfer?.types.includes('application/meridian-file')) return
-      if (!containerEl) return
-      const rect = containerEl.getBoundingClientRect()
-      const isOver = e.clientX >= rect.left && e.clientX <= rect.right &&
-                     e.clientY >= rect.top && e.clientY <= rect.bottom
-      setIsDraggingFile(isOver)
-      if (isOver) {
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'copy'
-      }
-    }
-
-    const onEnd = () => setIsDraggingFile(false)
-
-    window.addEventListener('dragover', onDragOver)
-    window.addEventListener('dragend', onEnd)
-    window.addEventListener('drop', onEnd)
-    return () => {
-      window.removeEventListener('dragover', onDragOver)
-      window.removeEventListener('dragend', onEnd)
-      window.removeEventListener('drop', onEnd)
-    }
+  /* --- Drop handler for files from sidebar ------------------------ */
+  const handleContainerDragOver = useCallback((e: React.DragEvent) => {
+    // Must call preventDefault to allow drop
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
   }, [])
 
-  const handleOverlayDrop = useCallback((e: React.DragEvent) => {
+  const handleContainerDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    setIsDraggingFile(false)
     const raw = e.dataTransfer.getData('application/meridian-file')
     if (!raw) return
     try {
       const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
+      // Use Konva's setPointersPositions to register the event position
+      const stage = stageRef.current
+      if (stage) {
+        stage.setPointersPositions(e.nativeEvent)
+      }
       const el = containerRef.current
       if (!el) return
       const rect = el.getBoundingClientRect()
@@ -547,6 +527,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   return (
     <div
       ref={containerRef}
+      onDragOver={handleContainerDragOver}
+      onDrop={handleContainerDrop}
       style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: BG }}
     >
       {/* Floating Toolbar */}
@@ -763,32 +745,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         </Layer>
       </Stage>
 
-      {/* File drop overlay — appears when dragging a file from the sidebar */}
-      {isDraggingFile && (
-        <div
-          onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }}
-          onDrop={handleOverlayDrop}
-          onDragLeave={() => {
-            setIsDraggingFile(false)
-          }}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 5,
-            background: 'rgba(124, 106, 247, 0.06)',
-            border: '2px dashed rgba(124, 106, 247, 0.4)',
-            borderRadius: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            pointerEvents: 'auto',
-          }}
-        >
-          <span style={{ color: 'rgba(124, 106, 247, 0.6)', fontSize: 14, fontFamily: FONT_FAMILY, userSelect: 'none' }}>
-            Drop note here
-          </span>
-        </div>
-      )}
 
       {/* Inline text editing overlay */}
       {editingNodeId && (() => {
