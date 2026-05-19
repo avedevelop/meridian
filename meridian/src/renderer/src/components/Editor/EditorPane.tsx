@@ -35,8 +35,12 @@ export function EditorArea() {
     // Use vault file tree (always fresh) + link index as fallback
     const flat = flattenVaultFiles(vaultFiles)
     const match = flat.find(f => {
-      const name = f.name.replace(/\.md$/i, '')
-      return name.toLowerCase() === linkText.toLowerCase()
+      const relPathWithoutExt = f.relativePath.replace(/\.md$/i, '')
+      const nameWithoutExt = f.name.replace(/\.md$/i, '')
+      return (
+        relPathWithoutExt.toLowerCase() === linkText.toLowerCase() ||
+        nameWithoutExt.toLowerCase() === linkText.toLowerCase()
+      )
     })
     if (match) openFile(match.path, match.name)
   }, [vaultFiles, openFile])
