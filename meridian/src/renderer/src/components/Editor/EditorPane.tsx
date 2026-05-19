@@ -8,6 +8,7 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { TabBar } from './TabBar'
 import { MarkdownPreview } from './MarkdownPreview'
 import { Breadcrumb } from './Breadcrumb'
+import { useEditorStore } from '../../store/useEditorStore'
 
 function flattenVaultFiles(files: import('@shared/types').VaultFile[]): import('@shared/types').VaultFile[] {
   return files.flatMap(f => f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f])
@@ -67,13 +68,34 @@ export function EditorArea() {
     const view = new EditorView({
       state: EditorState.create({
         doc: activeTab?.content ?? '',
-        extensions: createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames, fontSize, lineWidth, handleImagePaste),
+        extensions: [
+          createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames, fontSize, lineWidth, handleImagePaste),
+          EditorView.updateListener.of(update => {
+            if (!update.selectionSet && !update.docChanged) return
+            const head = update.state.selection.main.head
+            const line = update.state.doc.lineAt(head)
+            const cursorPos = { line: line.number, col: head - line.from + 1 }
+            let activeHeading: string | null = null
+            for (let i = line.number; i >= 1; i--) {
+              const text = update.state.doc.line(i).text
+              const match = text.match(/^#{1,6}\s+(.+)/)
+              if (match) { activeHeading = match[1].trim(); break }
+            }
+            useEditorStore.getState().setCursorPos(cursorPos)
+            useEditorStore.getState().setActiveHeading(activeHeading)
+          }),
+        ],
       }),
       parent: editorRef.current,
     })
 
     viewRef.current = view
-    return () => { view.destroy(); viewRef.current = null }
+    return () => {
+      view.destroy()
+      viewRef.current = null
+      useEditorStore.getState().setCursorPos(null)
+      useEditorStore.getState().setActiveHeading(null)
+    }
   }, [activeTabPath, fontSize, lineWidth])
 
   useEffect(() => {

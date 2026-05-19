@@ -1,4 +1,5 @@
 import { useVaultStore } from '../../store/useVaultStore'
+import { useEditorStore } from '../../store/useEditorStore'
 
 export interface BreadcrumbSegment {
   name: string
@@ -15,6 +16,7 @@ export function Breadcrumb() {
   const { openTabs, activeTabPath } = useVaultStore()
   const vault = useVaultStore(s => s.vault)
   const activeTab = openTabs.find(t => t.path === activeTabPath)
+  const activeHeading = useEditorStore(s => s.activeHeading)
 
   if (!activeTab || !vault) return null
 
@@ -39,6 +41,12 @@ export function Breadcrumb() {
           <span style={{ color: seg.isLast ? '#aaa' : '#555' }}>{seg.name}</span>
         </span>
       ))}
+      {activeHeading && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ color: '#333' }}>›</span>
+          <span style={{ color: '#7c6af7' }}>{activeHeading}</span>
+        </span>
+      )}
     </div>
   )
 }
