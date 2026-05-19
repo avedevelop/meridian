@@ -36,7 +36,10 @@ export function useVaultBridge() {
   const openVault = useCallback(async () => {
     const config = await window.vault.openDialog()
     if (!config) return
+    // Reset state for new vault
     setVault(config)
+    useVaultStore.setState({ openTabs: [], activeTabPath: null })
+    useLinkStore.getState().reset()
     const files = await window.vault.listFiles()
     setFiles(files)
     // Build link + search index — only .md files, skip errors

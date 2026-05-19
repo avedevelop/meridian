@@ -16,16 +16,18 @@ export default function App() {
   const { openFile } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
 
+  const { openVault } = useVaultBridge()
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setPaletteOpen(open => !open)
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key === 'k') { e.preventDefault(); setPaletteOpen(open => !open) }
+        if (e.key === 'o') { e.preventDefault(); openVault() }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [openVault])
 
   const paletteFiles = allFiles().map(path => ({
     path,

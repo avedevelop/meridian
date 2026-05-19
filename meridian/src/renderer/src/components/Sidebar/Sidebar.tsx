@@ -60,14 +60,27 @@ export function Sidebar() {
         {activeTab === 'files' && (
           <>
             <div style={{
-              padding: '8px 12px', borderBottom: '1px solid #2a2a2a', color: '#777',
+              padding: '6px 8px 6px 12px', borderBottom: '1px solid #2a2a2a', color: '#777',
               fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
               <span>📁</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {vault.name}
               </span>
+              <button
+                onClick={openVault}
+                title="Open another vault (⌘O)"
+                style={{
+                  background: 'transparent', border: 'none', color: '#555',
+                  cursor: 'pointer', fontSize: 14, padding: '2px 4px', borderRadius: 4,
+                  flexShrink: 0, lineHeight: 1,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#aaa')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+              >
+                ⎆
+              </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
               <FileTree files={files} onFileClick={openFile} vaultPath={vault.path} />
