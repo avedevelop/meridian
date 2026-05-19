@@ -51,7 +51,6 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
     committingRef.current = true
     setEditing(null)
     const newName = editValueRef.current.trim()
-    console.log('[FileTree] commitEdit', { filePath, originalName, newName })
     if (newName && newName !== originalName && onRename) {
       onRename(filePath, newName)
     }

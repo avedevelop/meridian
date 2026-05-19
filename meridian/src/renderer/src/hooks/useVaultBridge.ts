@@ -70,6 +70,12 @@ export function useVaultBridge() {
     const ext = path.split('.').pop()?.toLowerCase() ?? ''
     const textExts = ['md', 'txt', 'markdown', 'mdx', 'mdown', 'canvas', 'json', 'yaml', 'yml', 'toml', 'csv']
     if (!textExts.includes(ext)) return
+    // If tab already open, just activate it — don't overwrite unsaved content
+    const existing = useVaultStore.getState().openTabs.find(t => t.path === path)
+    if (existing) {
+      useVaultStore.getState().setActiveTab(path)
+      return
+    }
     openTab(path, name)
     try {
       const content = await window.vault.readFile(path)
@@ -113,16 +119,22 @@ export function useVaultBridge() {
   }, [refreshFiles])
 
   const renameFile = useCallback(async (oldPath: string, newName: string) => {
-    console.log('[Bridge] renameFile', { oldPath, newName })
     try {
       const newPath = await window.vault.renameFile(oldPath, newName)
-      console.log('[Bridge] renameFile success', newPath)
       const { openTabs, activeTabPath } = useVaultStore.getState()
       const wasActive = activeTabPath === oldPath
       useVaultStore.setState({
         openTabs: openTabs.map(t => t.path === oldPath ? { ...t, path: newPath, name: newName } : t),
         activeTabPath: wasActive ? newPath : activeTabPath,
       })
+      // Update link index: remove old path, re-index under new name
+      const vault = useVaultStore.getState().vault
+      if (vault) {
+        const tab = openTabs.find(t => t.path === oldPath)
+        const content = tab?.content ?? ''
+        useLinkStore.getState().removeFile(oldPath, vault.path)
+        useLinkStore.getState().indexFile(newPath, newName, content, vault.path)
+      }
       await refreshFiles()
     } catch (e) {
       console.error('[Bridge] renameFile error', e)
