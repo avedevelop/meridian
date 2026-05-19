@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react'
+import React, { useEffect, useRef, useCallback, useMemo } from 'react'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { useVaultStore } from '../../store/useVaultStore'
@@ -36,12 +36,15 @@ export function EditorArea() {
     if (match) openFile(match.path, match.name)
   }, [vaultFiles, openFile])
 
-  const getFileNames = useCallback(() => {
-    // Use vault file tree so newly created files always appear in autocomplete
-    return flattenVaultFiles(vaultFiles)
+  // Ref so CodeMirror always calls the latest version even after files change
+  const getFileNamesRef = useRef<() => string[]>(() => [])
+  getFileNamesRef.current = useMemo(() => {
+    const names = flattenVaultFiles(vaultFiles)
       .filter(f => !f.isDirectory && f.name.endsWith('.md'))
       .map(f => f.name)
-  }, [vaultFiles])
+    return () => names
+  }, [vaultFiles])()
+  const stableGetFileNames = useCallback(() => getFileNamesRef.current(), [])
 
   useEffect(() => {
     const handleKeydown = async (e: KeyboardEvent) => {
@@ -60,7 +63,7 @@ export function EditorArea() {
     const view = new EditorView({
       state: EditorState.create({
         doc: activeTab?.content ?? '',
-        extensions: createMarkdownExtensions(handleChange, handleLinkClick, getFileNames),
+        extensions: createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames),
       }),
       parent: editorRef.current,
     })
@@ -100,7 +103,7 @@ export function EditorArea() {
         {activeTab && (
           <>
             <div style={{ width: 1, background: '#2a2a2a' }} />
-            <MarkdownPreview content={activeTab.content} />
+            <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} />
           </>
         )}
       </div>

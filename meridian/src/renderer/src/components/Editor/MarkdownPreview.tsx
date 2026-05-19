@@ -19,19 +19,41 @@ interface MarkdownPreviewProps {
   content: string
 }
 
-export function MarkdownPreview({ content }: MarkdownPreviewProps) {
+// Pre-process wiki-links before remark: [[Note]] → styled span
+function preprocessWikiLinks(content: string): string {
+  return content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
+    const label = alias?.trim() ?? link.trim()
+    return `<span class="wiki-link" data-link="${link.trim()}" style="color:#7c6af7;text-decoration:underline;cursor:pointer">${label}</span>`
+  })
+}
+
+interface MarkdownPreviewProps {
+  content: string
+  onLinkClick?: (linkText: string) => void
+}
+
+export function MarkdownPreview({ content, onLinkClick }: MarkdownPreviewProps) {
   const html = useMemo(() => {
     try {
-      return String(processor.processSync(content))
+      const processed = preprocessWikiLinks(content)
+      return String(processor.processSync(processed))
     } catch {
       return '<p>Preview error</p>'
     }
   }, [content])
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = (e.target as HTMLElement).closest('.wiki-link') as HTMLElement | null
+    if (target && onLinkClick) {
+      onLinkClick(target.dataset.link ?? '')
+    }
+  }
+
   return (
     <div
       className="markdown-preview"
       dangerouslySetInnerHTML={{ __html: html }}
+      onClick={handleClick}
       style={{
         flex: 1,
         padding: '24px 32px',
