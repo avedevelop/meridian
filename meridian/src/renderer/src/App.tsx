@@ -1,35 +1,24 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import React from 'react'
+import { useVaultStore } from './store/useVaultStore'
+import { VaultPicker } from './components/VaultPicker'
+import { Layout } from './components/Layout'
+import { Sidebar } from './components/Sidebar/Sidebar'
+import { EditorArea } from './components/Editor/EditorPane'
+import { StatusBar } from './components/StatusBar'
 
-function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+export default function App() {
+  const vault = useVaultStore(s => s.vault)
+
+  if (!vault) return <VaultPicker />
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <Layout
+        sidebar={<Sidebar />}
+        editor={<EditorArea />}
+        rightPanel={<div style={{ padding: 12, color: '#555', fontSize: 12 }}>Right Panel</div>}
+      />
+      <StatusBar />
+    </div>
   )
 }
-
-export default App
