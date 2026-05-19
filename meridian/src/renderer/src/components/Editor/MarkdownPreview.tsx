@@ -4,30 +4,24 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import remarkRehype from 'remark-rehype'
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
+import rehypeSanitize from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 
-const sanitizeSchema = {
-  ...defaultSchema,
-  attributes: {
-    ...defaultSchema.attributes,
-    span: [...(defaultSchema.attributes?.span ?? []), 'className', 'style', 'dataLink', 'data-link'],
-  },
-}
-
+// Run markdown through sanitized pipeline first, then replace [[links]] in the output HTML.
+// Doing it after sanitization means rehype-sanitize never strips our spans.
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkBreaks)
-  .use(remarkRehype, { allowDangerousHtml: true })
-  .use(rehypeSanitize, sanitizeSchema)
-  .use(rehypeStringify, { allowDangerousHtml: true })
+  .use(remarkRehype)
+  .use(rehypeSanitize)
+  .use(rehypeStringify)
 
-// Pre-process wiki-links before remark: [[Note]] → styled span
-function preprocessWikiLinks(content: string): string {
-  return content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
-    const label = alias?.trim() ?? link.trim()
-    return `<span class="wiki-link" data-link="${link.trim()}" style="color:#7c6af7;text-decoration:underline;cursor:pointer">${label}</span>`
+function postprocessWikiLinks(html: string): string {
+  return html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
+    const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
+    const linkAttr = link.trim().replace(/"/g, '&quot;')
+    return `<span class="wiki-link" data-link="${linkAttr}" style="color:#7c6af7;text-decoration:underline;cursor:pointer">${label}</span>`
   })
 }
 
@@ -39,8 +33,8 @@ interface MarkdownPreviewProps {
 export function MarkdownPreview({ content, onLinkClick }: MarkdownPreviewProps) {
   const html = useMemo(() => {
     try {
-      const processed = preprocessWikiLinks(content)
-      return String(processor.processSync(processed))
+      const sanitized = String(processor.processSync(content))
+      return postprocessWikiLinks(sanitized)
     } catch {
       return '<p>Preview error</p>'
     }

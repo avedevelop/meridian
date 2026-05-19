@@ -37,6 +37,8 @@ export const wikiLinkExtension = (onLinkClick: (linkText: string) => void): Exte
   ),
   EditorView.domEventHandlers({
     click(event, view) {
+      // Only open link on Cmd+Click (Mac) or Ctrl+Click (Win/Linux)
+      if (!event.metaKey && !event.ctrlKey) return false
       const pos = view.posAtCoords({ x: event.clientX, y: event.clientY })
       if (pos == null) return false
       const line = view.state.doc.lineAt(pos)
