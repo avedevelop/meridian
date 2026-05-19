@@ -12,9 +12,41 @@ export class LinkIndex {
 
   update(filePath: string, content: string, _vaultPath: string): void {
     this.knownFiles.add(filePath)
-    const { links, tags } = parseLinks(content)
-    this.rawLinks.set(filePath, links)
-    this.fileTags.set(filePath, tags)
+
+    let extractedLinks: string[] = []
+    let extractedTags: string[] = []
+
+    if (filePath.endsWith('.canvas')) {
+      try {
+        const data = JSON.parse(content)
+        const nodes = data.nodes || []
+        
+        let allText = ''
+        for (const node of nodes) {
+          if (node.type === 'file' && node.file) {
+            // node.file is something like "Projects/Idea.md"
+            const baseName = node.file.split('/').pop()?.replace(/\.md$/i, '')
+            if (baseName) extractedLinks.push(baseName)
+          } else if (node.type === 'text' && node.text) {
+            allText += node.text + '\n'
+          }
+        }
+        
+        // Parse wikilinks and tags from all text nodes
+        const parsedText = parseLinks(allText)
+        extractedLinks.push(...parsedText.links)
+        extractedTags.push(...parsedText.tags)
+      } catch {
+        // invalid JSON, ignore
+      }
+    } else {
+      const { links, tags } = parseLinks(content)
+      extractedLinks = links
+      extractedTags = tags
+    }
+
+    this.rawLinks.set(filePath, extractedLinks)
+    this.fileTags.set(filePath, extractedTags)
     this.resolveAll()
   }
 
