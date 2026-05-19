@@ -299,8 +299,8 @@ ${bodyHtml}
     if (!config) return
     await initVault(config)
 
-    const { files } = useVaultStore.getState()
-    if (files.length === 0) {
+    const currentFiles = await window.vault.listFiles()
+    if (currentFiles.length === 0) {
       const welcomeContent = [
         '# Welcome to Meridian',
         '',
