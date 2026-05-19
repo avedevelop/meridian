@@ -22,7 +22,9 @@ const vaultAPI = {
     ipcRenderer.invoke(IPC.VAULT_DELETE_FILE, filePath),
 
   onFileChanged: (callback: (file: VaultFile) => void) => {
-    ipcRenderer.on(IPC.FILE_CHANGED, (_event, file) => callback(file))
+    const handler = (_event: Electron.IpcRendererEvent, file: VaultFile) => callback(file)
+    ipcRenderer.on(IPC.FILE_CHANGED, handler)
+    return () => ipcRenderer.removeListener(IPC.FILE_CHANGED, handler)
   },
 }
 

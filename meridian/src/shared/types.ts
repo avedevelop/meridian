@@ -25,7 +25,6 @@ export const IPC = {
   VAULT_WRITE_FILE: 'vault:write-file',
   VAULT_CREATE_FILE: 'vault:create-file',
   VAULT_DELETE_FILE: 'vault:delete-file',
-  VAULT_RENAME_FILE: 'vault:rename-file',
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',
   FILE_CHANGED: 'file:changed',   // main → renderer push event

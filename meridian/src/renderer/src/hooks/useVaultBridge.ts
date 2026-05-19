@@ -11,7 +11,7 @@ declare global {
       writeFile: (path: string, content: string) => Promise<void>
       createFile: (dir: string, name: string) => Promise<string>
       deleteFile: (path: string) => Promise<void>
-      onFileChanged: (cb: (file: import('@shared/types').VaultFile) => void) => void
+      onFileChanged: (cb: (file: import('@shared/types').VaultFile) => void) => () => void
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>

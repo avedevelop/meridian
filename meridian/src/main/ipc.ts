@@ -1,4 +1,5 @@
 import { ipcMain, dialog } from 'electron'
+import { basename } from 'path'
 import { IPC } from '../shared/types'
 import { VaultManager } from './vault'
 import { AppSettings } from './settings'
@@ -15,7 +16,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     if (result.canceled || result.filePaths.length === 0) return null
 
     const vaultPath = result.filePaths[0]
-    const name = vaultPath.split('/').pop() ?? 'Vault'
+    const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
     settings.addRecentVault(vaultPath, name)
     settings.setLastVault(vaultPath)

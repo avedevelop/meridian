@@ -8,7 +8,7 @@ interface LayoutProps {
 
 export function Layout({ sidebar, editor, rightPanel }: LayoutProps) {
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#1a1a1a' }}>
+    <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', background: '#1a1a1a' }}>
       <div style={{
         width: 220, flexShrink: 0, borderRight: '1px solid #2a2a2a',
         background: '#161616', display: 'flex', flexDirection: 'column',

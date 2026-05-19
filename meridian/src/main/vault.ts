@@ -1,9 +1,17 @@
 import { readFile, writeFile, readdir, stat, mkdir, rm } from 'fs/promises'
-import { join, relative } from 'path'
+import { join, relative, resolve, sep } from 'path'
 import { VaultFile } from '../shared/types'
 
 export class VaultManager {
   constructor(public readonly vaultPath: string) {}
+
+  private assertInsideVault(targetPath: string): void {
+    const resolved = resolve(targetPath)
+    const vaultResolved = resolve(this.vaultPath)
+    if (!resolved.startsWith(vaultResolved + sep) && resolved !== vaultResolved) {
+      throw new Error(`Path outside vault: ${targetPath}`)
+    }
+  }
 
   async listFiles(dir = this.vaultPath): Promise<VaultFile[]> {
     const entries = await readdir(dir)
@@ -37,24 +45,29 @@ export class VaultManager {
   }
 
   async readFile(filePath: string): Promise<string> {
+    this.assertInsideVault(filePath)
     return readFile(filePath, 'utf-8')
   }
 
   async writeFile(filePath: string, content: string): Promise<void> {
+    this.assertInsideVault(filePath)
     await writeFile(filePath, content, 'utf-8')
   }
 
   async createFile(dir: string, name: string): Promise<string> {
+    this.assertInsideVault(dir)
     const filePath = join(dir, name)
     await writeFile(filePath, '', 'utf-8')
     return filePath
   }
 
   async deleteFile(filePath: string): Promise<void> {
+    this.assertInsideVault(filePath)
     await rm(filePath, { recursive: true })
   }
 
   async createDirectory(parentDir: string, name: string): Promise<string> {
+    this.assertInsideVault(parentDir)
     const dirPath = join(parentDir, name)
     await mkdir(dirPath, { recursive: true })
     return dirPath

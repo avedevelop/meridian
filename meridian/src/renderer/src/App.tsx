@@ -12,7 +12,7 @@ export default function App() {
   if (!vault) return <VaultPicker />
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Layout
         sidebar={<Sidebar />}
         editor={<EditorArea />}
