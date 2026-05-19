@@ -11,8 +11,22 @@ export function Sidebar() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #2a2a2a', color: '#888', fontSize: 12 }}>
-        📁 {vault.name}
+      <div style={{
+        padding: '8px 12px',
+        borderBottom: '1px solid #2a2a2a',
+        color: '#777',
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: '0.05em',
+        textTransform: 'uppercase',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+      }}>
+        <span>📁</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {vault.name}
+        </span>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
         <FileTree files={files} onFileClick={openFile} vaultPath={vault.path} />
