@@ -863,8 +863,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                       ...n,
                       x: el.x(),
                       y: el.y(),
-                      width: Math.max(50, n.width * scaleX),
-                      height: Math.max(50, n.height * scaleY),
+                      width: Math.max(150, n.width * scaleX),
+                      height: Math.max(60, n.height * scaleY),
                     } : n)
                   }))
                 }}
@@ -926,8 +926,10 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                       width: '100%', 
                       height: '100%', 
                       boxSizing: 'border-box',
-                      overflow: 'hidden',
-                      wordBreak: 'break-word'
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap'
                     }}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {displayText}
@@ -942,7 +944,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           <Transformer
             ref={trRef}
             boundBoxFunc={(oldBox, newBox) => {
-              if (newBox.width < 100 || newBox.height < 40) return oldBox
+              if (newBox.width < 150 || newBox.height < 60) return oldBox
               return newBox
             }}
             padding={4}
