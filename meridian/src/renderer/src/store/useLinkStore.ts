@@ -5,6 +5,7 @@ import { SearchIndex, SearchResult } from '../lib/searchIndex'
 interface LinkState {
   searchResults: SearchResult[]
   searchQuery: string
+  tagsVersion: number
 
   indexFile: (path: string, name: string, content: string, vaultPath: string) => void
   backlinks: (path: string) => string[]
@@ -23,10 +24,12 @@ let searchIndex = new SearchIndex()
 export const useLinkStore = create<LinkState>((set) => ({
   searchResults: [],
   searchQuery: '',
+  tagsVersion: 0,
 
   indexFile: (path, name, content, vaultPath) => {
     linkIndex.update(path, content, vaultPath)
     searchIndex.addOrUpdate(path, name, content)
+    set(s => ({ tagsVersion: s.tagsVersion + 1 }))
   },
 
   backlinks: (path) => linkIndex.getBacklinks(path),
@@ -42,11 +45,12 @@ export const useLinkStore = create<LinkState>((set) => ({
   removeFile: (path, vaultPath) => {
     linkIndex.remove(path, vaultPath)
     searchIndex.remove(path)
+    set(s => ({ tagsVersion: s.tagsVersion + 1 }))
   },
 
   reset: () => {
     linkIndex = new LinkIndex()
     searchIndex = new SearchIndex()
-    set({ searchResults: [], searchQuery: '' })
+    set({ searchResults: [], searchQuery: '', tagsVersion: 0 })
   },
 }))
