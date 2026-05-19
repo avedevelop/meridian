@@ -4,17 +4,25 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import remarkRehype from 'remark-rehype'
-import rehypeSanitize from 'rehype-sanitize'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 
 // Run markdown through sanitized pipeline first, then replace [[links]] in the output HTML.
 // Doing it after sanitization means rehype-sanitize never strips our spans.
+const sanitizeSchema = {
+  ...defaultSchema,
+  protocols: {
+    ...defaultSchema.protocols,
+    src: [...(defaultSchema.protocols?.src ?? []), ''],  // '' allows relative URLs
+  },
+}
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkBreaks)
   .use(remarkRehype)
-  .use(rehypeSanitize)
+  .use(rehypeSanitize, sanitizeSchema)
   .use(rehypeStringify)
 
 function postprocessWikiLinks(html: string): string {
