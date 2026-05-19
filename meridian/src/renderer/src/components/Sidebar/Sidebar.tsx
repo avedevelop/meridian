@@ -23,7 +23,7 @@ type SidebarTab = 'files' | 'search' | 'graph'
 
 export function Sidebar() {
   const { vault, files } = useVaultStore()
-  const { openFile, createFile, openVault, renameFile } = useVaultBridge()
+  const { openFile, createFile, openVault, renameFile, deleteFile } = useVaultBridge()
   const [activeTab, setActiveTab] = useState<SidebarTab>('files')
 
   if (!vault) return null
@@ -86,7 +86,7 @@ export function Sidebar() {
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
-              <FileTree files={files} onFileClick={openFile} onRename={renameFile} vaultPath={vault.path} />
+              <FileTree files={files} onFileClick={openFile} onRename={renameFile} onDelete={deleteFile} vaultPath={vault.path} />
             </div>
             <div style={{ padding: 8, borderTop: '1px solid #2a2a2a', flexShrink: 0 }}>
               <button

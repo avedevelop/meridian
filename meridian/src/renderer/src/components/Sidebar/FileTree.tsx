@@ -1,18 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { VaultFile } from '@shared/types'
+import { ContextMenu } from './ContextMenu'
 
 interface FileTreeProps {
   files: VaultFile[]
   onFileClick: (path: string, name: string) => void
   onRename?: (oldPath: string, newName: string) => void
+  onDelete?: (path: string) => void
   vaultPath: string
   depth?: number
 }
 
-export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }: FileTreeProps) {
+export function FileTree({ files, onFileClick, onRename, onDelete, vaultPath, depth = 0 }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: VaultFile } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   // Keep a ref to always read the latest editValue inside event handlers
   const editValueRef = useRef('')
@@ -56,6 +59,13 @@ export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }:
 
   const cancelEdit = () => setEditing(null)
 
+  const handleContextMenu = (e: React.MouseEvent, file: VaultFile) => {
+    if (file.isDirectory) return
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, file })
+  }
+
   return (
     <div>
       {files.map(file => (
@@ -66,6 +76,7 @@ export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }:
               file.isDirectory ? toggle(file.path) : onFileClick(file.path, file.name)
             }}
             onDoubleClick={e => !file.isDirectory && startEdit(file, e)}
+            onContextMenu={e => handleContextMenu(e, file)}
             style={{
               paddingLeft: 12 + depth * 16, paddingRight: 12,
               paddingTop: 3, paddingBottom: 3,
@@ -108,12 +119,38 @@ export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }:
               files={file.children}
               onFileClick={onFileClick}
               onRename={onRename}
+              onDelete={onDelete}
               vaultPath={vaultPath}
               depth={depth + 1}
             />
           )}
         </div>
       ))}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: 'Rename',
+              onClick: () => {
+                setEditing(contextMenu.file.path)
+                setEditValue(contextMenu.file.name)
+              },
+            },
+            {
+              label: 'Delete',
+              danger: true,
+              onClick: () => {
+                if (window.confirm(`Delete "${contextMenu.file.name}"? This cannot be undone.`)) {
+                  onDelete?.(contextMenu.file.path)
+                }
+              },
+            },
+          ]}
+        />
+      )}
     </div>
   )
 }

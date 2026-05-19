@@ -13,6 +13,7 @@ interface LinkState {
   allTags: () => Map<string, string[]>
   allFiles: () => string[]
   search: (query: string) => void
+  removeFile: (path: string, vaultPath: string) => void
   reset: () => void
 }
 
@@ -36,6 +37,11 @@ export const useLinkStore = create<LinkState>((set) => ({
 
   search: (query) => {
     set({ searchQuery: query, searchResults: searchIndex.search(query) })
+  },
+
+  removeFile: (path, vaultPath) => {
+    linkIndex.remove(path, vaultPath)
+    searchIndex.remove(path)
   },
 
   reset: () => {

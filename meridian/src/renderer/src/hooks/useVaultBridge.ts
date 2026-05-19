@@ -115,5 +115,22 @@ export function useVaultBridge() {
     }
   }, [refreshFiles])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile }
+  const deleteFile = useCallback(async (path: string) => {
+    try {
+      await window.vault.deleteFile(path)
+      const { openTabs } = useVaultStore.getState()
+      if (openTabs.some(t => t.path === path)) {
+        useVaultStore.getState().closeTab(path)
+      }
+      const vault = useVaultStore.getState().vault
+      if (vault) {
+        useLinkStore.getState().removeFile(path, vault.path)
+      }
+      await refreshFiles()
+    } catch (e) {
+      console.error('[Bridge] deleteFile error', e)
+    }
+  }, [refreshFiles])
+
+  return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile, deleteFile }
 }
