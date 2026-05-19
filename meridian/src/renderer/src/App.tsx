@@ -31,12 +31,23 @@ import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
 
+declare global {
+  interface Window {
+    menuAPI: {
+      onAction: (callback: (action: string) => void) => () => void
+    }
+  }
+}
+
 export { AppErrorBoundary }
 export default function App() {
   const vault = useVaultStore(s => s.vault)
+  const closeTab = useVaultStore(s => s.closeTab)
+  const activeTabPath = useVaultStore(s => s.activeTabPath)
+  const openTabs = useVaultStore(s => s.openTabs)
   const allFiles = useLinkStore(s => s.allFiles)
   const indexVersion = useLinkStore(s => s.indexVersion)
-  const { openFile, openVault, openDailyNote, exportNote } = useVaultBridge()
+  const { openFile, openVault, openDailyNote, exportNote, createFile, saveFile } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph'>('files')
@@ -55,6 +66,43 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [openVault, openDailyNote, exportNote])
+
+  useEffect(() => {
+    const unsub = window.menuAPI.onAction(async (action) => {
+      switch (action) {
+        case 'new-file':
+          if (vault) createFile(vault.path, `Untitled ${Date.now()}.md`)
+          break
+        case 'daily-note':
+          openDailyNote()
+          break
+        case 'open-vault':
+          openVault()
+          break
+        case 'save': {
+          const tab = openTabs.find(t => t.path === activeTabPath)
+          if (tab) await saveFile(tab.path, tab.content)
+          break
+        }
+        case 'export-html':
+          exportNote()
+          break
+        case 'close-tab':
+          if (activeTabPath) closeTab(activeTabPath)
+          break
+        case 'command-palette':
+          setPaletteOpen(open => !open)
+          break
+        case 'settings':
+          setSettingsOpen(open => !open)
+          break
+        case 'graph-view':
+          setActiveSidebarTab('graph')
+          break
+      }
+    })
+    return unsub
+  }, [vault, createFile, openDailyNote, openVault, saveFile, exportNote, closeTab, activeTabPath, openTabs])
 
   const paletteFiles = useMemo(() => (
     allFiles().map(path => ({

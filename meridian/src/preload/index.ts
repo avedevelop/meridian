@@ -58,3 +58,10 @@ const settingsAPI = {
 
 contextBridge.exposeInMainWorld('vault', vaultAPI)
 contextBridge.exposeInMainWorld('settings', settingsAPI)
+contextBridge.exposeInMainWorld('menuAPI', {
+  onAction: (callback: (action: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, action: string) => callback(action)
+    ipcRenderer.on('menu:action', listener)
+    return () => ipcRenderer.removeListener('menu:action', listener)
+  },
+})

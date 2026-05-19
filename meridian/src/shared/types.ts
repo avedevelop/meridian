@@ -44,4 +44,5 @@ export const IPC = {
   SETTINGS_SET: 'settings:set',
   FILE_CHANGED: 'file:changed',   // main → renderer push event
   VAULT_EXPORT_HTML: 'vault:export-html',
+  MENU_ACTION: 'menu:action',
 } as const
