@@ -22,9 +22,11 @@ export function EditorArea() {
   const viewRef = useRef<EditorView | null>(null)
   const activeTab = openTabs.find(t => t.path === activeTabPath)
   const { fontSize, lineWidth } = useSettingsStore()
+  // Flag to suppress dirty marking during programmatic content sync from store
+  const isProgrammaticUpdate = useRef(false)
 
   const handleChange = useCallback((content: string) => {
-    if (!activeTabPath) return
+    if (!activeTabPath || isProgrammaticUpdate.current) return
     setTabContent(activeTabPath, content)
     markTabDirty(activeTabPath, true)
   }, [activeTabPath, setTabContent, markTabDirty])
@@ -103,9 +105,11 @@ export function EditorArea() {
     if (!view || !activeTab) return
     const current = view.state.doc.toString()
     if (current !== activeTab.content) {
+      isProgrammaticUpdate.current = true
       view.dispatch({
         changes: { from: 0, to: current.length, insert: activeTab.content },
       })
+      isProgrammaticUpdate.current = false
     }
   }, [activeTab?.content])
 
