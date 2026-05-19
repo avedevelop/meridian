@@ -5,6 +5,7 @@ import { Layout } from './components/Layout'
 import { Sidebar } from './components/Sidebar/Sidebar'
 import { EditorArea } from './components/Editor/EditorPane'
 import { StatusBar } from './components/StatusBar'
+import { BacklinksPanel } from './components/RightPanel/BacklinksPanel'
 
 export default function App() {
   const vault = useVaultStore(s => s.vault)
@@ -16,7 +17,7 @@ export default function App() {
       <Layout
         sidebar={<Sidebar />}
         editor={<EditorArea />}
-        rightPanel={<div style={{ padding: 12, color: '#555', fontSize: 12 }}>Right Panel</div>}
+        rightPanel={<BacklinksPanel />}
       />
       <StatusBar />
     </div>
