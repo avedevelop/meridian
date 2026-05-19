@@ -91,6 +91,9 @@ export function useVaultBridge() {
   const createFile = useCallback(async (dir: string, name: string) => {
     const fileName = name.endsWith('.md') ? name : `${name}.md`
     const filePath = await window.vault.createFile(dir, fileName)
+    // Index new file so it appears in autocomplete and backlinks
+    const vault = useVaultStore.getState().vault
+    if (vault) useLinkStore.getState().indexFile(filePath, fileName, '', vault.path)
     await refreshFiles()
     await openFile(filePath, fileName)
   }, [refreshFiles, openFile])

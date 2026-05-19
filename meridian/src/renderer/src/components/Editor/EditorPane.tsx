@@ -8,8 +8,12 @@ import { createMarkdownExtensions } from './extensions/markdownExtensions'
 import { TabBar } from './TabBar'
 import { MarkdownPreview } from './MarkdownPreview'
 
+function flattenVaultFiles(files: import('@shared/types').VaultFile[]): import('@shared/types').VaultFile[] {
+  return files.flatMap(f => f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f])
+}
+
 export function EditorArea() {
-  const { openTabs, activeTabPath, markTabDirty, setTabContent } = useVaultStore()
+  const { openTabs, activeTabPath, markTabDirty, setTabContent, files: vaultFiles } = useVaultStore()
   const { saveFile, openFile } = useVaultBridge()
   const allFiles = useLinkStore(s => s.allFiles)
   const editorRef = useRef<HTMLDivElement>(null)
@@ -23,20 +27,21 @@ export function EditorArea() {
   }, [activeTabPath, setTabContent, markTabDirty])
 
   const handleLinkClick = useCallback((linkText: string) => {
-    const files = allFiles()
-    const match = files.find(f => {
-      const name = f.split('/').pop()?.replace(/\.md$/i, '') ?? ''
+    // Use vault file tree (always fresh) + link index as fallback
+    const flat = flattenVaultFiles(vaultFiles)
+    const match = flat.find(f => {
+      const name = f.name.replace(/\.md$/i, '')
       return name.toLowerCase() === linkText.toLowerCase()
     })
-    if (match) {
-      const name = match.split('/').pop() ?? ''
-      openFile(match, name)
-    }
-  }, [allFiles, openFile])
+    if (match) openFile(match.path, match.name)
+  }, [vaultFiles, openFile])
 
   const getFileNames = useCallback(() => {
-    return allFiles().map(f => f.split('/').pop() ?? '').filter(n => n.endsWith('.md'))
-  }, [allFiles])
+    // Use vault file tree so newly created files always appear in autocomplete
+    return flattenVaultFiles(vaultFiles)
+      .filter(f => !f.isDirectory && f.name.endsWith('.md'))
+      .map(f => f.name)
+  }, [vaultFiles])
 
   useEffect(() => {
     const handleKeydown = async (e: KeyboardEvent) => {
