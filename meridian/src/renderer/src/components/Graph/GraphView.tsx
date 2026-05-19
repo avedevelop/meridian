@@ -63,10 +63,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     const bt = new Map<string, number>()
     flattenFiles(files).forEach(f => { if (!f.isDirectory) bt.set(f.path, f.birthtime ?? f.mtime) })
     const times = Array.from(bt.values())
+    const min = times.length > 0 ? Math.min(...times) : Date.now() - 86_400_000
+    const max = times.length > 0 ? Math.max(...times) : Date.now()
+    const finalMax = max === min ? min + 3600000 : max
     return {
       birthtimes: bt,
-      minTime: times.length > 0 ? Math.min(...times) : Date.now() - 86_400_000,
-      maxTime: Date.now(),
+      minTime: min,
+      maxTime: finalMax,
     }
   }, [files])
 
@@ -344,6 +347,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         mediaRecorderRef.current?.stop()
         setIsRecording(false)
       }
+    } else {
+      setProgress(0)
+      setIsPlaying(true)
     }
   }
 
