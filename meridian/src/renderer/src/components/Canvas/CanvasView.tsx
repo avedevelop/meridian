@@ -900,15 +900,16 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                         width: node.width,
                         height: node.height,
                         overflow: 'hidden',
-                        padding: 12,
+                        padding: '16px 20px',
                         boxSizing: 'border-box',
                         color: getContrastColor(node.color),
                         fontFamily: FONT_FAMILY,
                         fontSize: 13,
+                        borderRadius: 8,
                       }
                     }}
                   >
-                    <div className="markdown-preview" style={{ color: 'inherit' }}>
+                    <div className="markdown-preview" style={{ color: 'inherit', margin: 0, padding: 0 }}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {displayText}
                       </ReactMarkdown>
@@ -932,6 +933,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
             anchorStroke="#7c6af7"
             anchorFill="#fff"
             rotateEnabled={false}
+            keepRatio={false}
           />
         </Layer>
       </Stage>
