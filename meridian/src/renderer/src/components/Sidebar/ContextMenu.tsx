@@ -25,14 +25,22 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     return () => document.removeEventListener('mousedown', handler, true)
   }, [onClose])
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [onClose])
+
   const menuWidth = 160
   const adjustedX = Math.min(x, window.innerWidth - menuWidth - 8)
+  const menuHeight = items.length * 30 + 8
+  const adjustedY = Math.min(y, window.innerHeight - menuHeight - 8)
 
   return createPortal(
     <div
       ref={ref}
       style={{
-        position: 'fixed', top: y, left: adjustedX,
+        position: 'fixed', top: adjustedY, left: adjustedX,
         background: '#252525', border: '1px solid #3a3a3a',
         borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
         zIndex: 2000, minWidth: menuWidth, overflow: 'hidden',
