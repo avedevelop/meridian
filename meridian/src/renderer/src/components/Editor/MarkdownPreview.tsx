@@ -45,23 +45,14 @@ export function MarkdownPreview({ content, onLinkClick, fontSize = 15, lineWidth
   const html = useMemo(() => {
     try {
       const sanitized = String(processor.processSync(content))
-      console.log('[Preview] sanitized HTML:', sanitized.slice(0, 500))
       const withLinks = postprocessWikiLinks(sanitized)
-      if (!vaultPath) {
-        console.log('[Preview] no vaultPath, skipping img rewrite')
-        return withLinks
-      }
-      const result = withLinks.replace(
-        /(<img[^>]+src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/\/)([^"]+)(")/g,
-        (_m, pre, src, post) => {
-          console.log('[Preview] rewriting img src:', src, '→', `vault:///${src}`)
-          return `${pre}vault:///${src}${post}`
-        }
+      if (!vaultPath) return withLinks
+      return withLinks.replace(
+        /(<img)([^>]*src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/\/)([^"]+)(")/g,
+        (_m, imgTag, pre, src, post) =>
+          `${imgTag} style="max-width:100%;height:auto;border-radius:4px"${pre}vault:///${src}${post}`
       )
-      console.log('[Preview] final HTML:', result.slice(0, 500))
-      return result
-    } catch (e) {
-      console.error('[Preview] error:', e)
+    } catch {
       return '<p>Preview error</p>'
     }
   }, [content, vaultPath])
