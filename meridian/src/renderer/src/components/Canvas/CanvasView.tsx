@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Stage, Layer, Rect, Text, Group, Line, Circle } from 'react-konva'
 import type Konva from 'konva'
 
@@ -205,6 +205,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
   /* --- Shift-drag edge creation ----------------------------------- */
   const shiftDragOriginRef = useRef<string | null>(null)
+  const [tempLineEnd, setTempLineEnd] = useState<{ x: number; y: number } | null>(null)
 
   /* --- Delete selected node --------------------------------------- */
   useEffect(() => {
@@ -317,9 +318,36 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     (nodeId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
       if (e.evt.shiftKey) {
         shiftDragOriginRef.current = nodeId
+        // Initialize temp line at mouse position
+        const stage = stageRef.current
+        if (stage) {
+          const pointer = stage.getPointerPosition()
+          if (pointer) {
+            setTempLineEnd({
+              x: (pointer.x - stagePos.x) / stageScale,
+              y: (pointer.y - stagePos.y) / stageScale,
+            })
+          }
+        }
       }
     },
-    [],
+    [stagePos, stageScale],
+  )
+
+  /* Stage-level mouseMove: update temp line during shift-drag */
+  const handleStageMouseMove = useCallback(
+    (_e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!shiftDragOriginRef.current) return
+      const stage = stageRef.current
+      if (!stage) return
+      const pointer = stage.getPointerPosition()
+      if (!pointer) return
+      setTempLineEnd({
+        x: (pointer.x - stagePos.x) / stageScale,
+        y: (pointer.y - stagePos.y) / stageScale,
+      })
+    },
+    [stagePos, stageScale],
   )
 
   /* Stage-level mouseUp: detect target node under cursor for edge creation */
@@ -328,6 +356,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       const origin = shiftDragOriginRef.current
       if (!origin) return
       shiftDragOriginRef.current = null
+      setTempLineEnd(null)
 
       // Find which node is under the pointer
       const stage = stageRef.current
@@ -427,58 +456,61 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       })
       .filter(Boolean) as { id: string; points: number[] }[]
   }, [canvasData])
-  /* --- Drop handler for files from sidebar (native DOM events) ---- */
-  const stagePosRef = useRef(stagePos)
-  const stageScaleRef = useRef(stageScale)
-  stagePosRef.current = stagePos
-  stageScaleRef.current = stageScale
+  /* --- Drop handler for files from sidebar (overlay approach) ----- */
+  const [isDraggingFile, setIsDraggingFile] = useState(false)
+  const dragCounterRef = useRef(0)
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-
-    const onDragOver = (e: DragEvent) => {
+    const onEnter = (e: DragEvent) => {
       if (e.dataTransfer?.types.includes('application/meridian-file')) {
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'copy'
+        dragCounterRef.current++
+        setIsDraggingFile(true)
       }
     }
-
-    const onDrop = (e: DragEvent) => {
-      e.preventDefault()
-      const raw = e.dataTransfer?.getData('application/meridian-file')
-      if (!raw) return
-      try {
-        const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
-        const rect = el.getBoundingClientRect()
-        const pos = stagePosRef.current
-        const scale = stageScaleRef.current
-        const canvasX = (e.clientX - rect.left - pos.x) / scale
-        const canvasY = (e.clientY - rect.top - pos.y) / scale
-
-        const newNode: CanvasNodeData = {
-          id: crypto.randomUUID(),
-          type: 'file',
-          x: canvasX - DEFAULT_NODE_W / 2,
-          y: canvasY - DEFAULT_NODE_H / 2,
-          width: DEFAULT_NODE_W,
-          height: DEFAULT_NODE_H,
-          text: fileInfo.name.replace(/\.md$/i, ''),
-          file: fileInfo.relativePath,
-        }
-        mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
-      } catch {
-        // Invalid data, ignore
+    const onLeave = () => {
+      dragCounterRef.current--
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0
+        setIsDraggingFile(false)
       }
     }
-
-    el.addEventListener('dragover', onDragOver)
-    el.addEventListener('drop', onDrop)
+    el.addEventListener('dragenter', onEnter)
+    el.addEventListener('dragleave', onLeave)
     return () => {
-      el.removeEventListener('dragover', onDragOver)
-      el.removeEventListener('drop', onDrop)
+      el.removeEventListener('dragenter', onEnter)
+      el.removeEventListener('dragleave', onLeave)
     }
-  }, [mutate])
+  }, [])
+
+  const handleOverlayDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingFile(false)
+    dragCounterRef.current = 0
+    const raw = e.dataTransfer.getData('application/meridian-file')
+    if (!raw) return
+    try {
+      const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
+      const el = containerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const canvasX = (e.clientX - rect.left - stagePos.x) / stageScale
+      const canvasY = (e.clientY - rect.top - stagePos.y) / stageScale
+
+      const newNode: CanvasNodeData = {
+        id: crypto.randomUUID(),
+        type: 'file',
+        x: canvasX - DEFAULT_NODE_W / 2,
+        y: canvasY - DEFAULT_NODE_H / 2,
+        width: DEFAULT_NODE_W,
+        height: DEFAULT_NODE_H,
+        text: fileInfo.name.replace(/\.md$/i, ''),
+        file: fileInfo.relativePath,
+      }
+      mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+    } catch { /* ignore */ }
+  }, [stagePos, stageScale, mutate])
 
   /* --- Zoom percentage label -------------------------------------- */
   const zoomPct = Math.round(stageScale * 100)
@@ -587,6 +619,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         onDblClick={handleDblClick}
         onClick={handleStageClick}
         onMouseUp={handleStageMouseUp}
+        onMouseMove={handleStageMouseMove}
         style={{ cursor: shiftHeld ? 'crosshair' : spaceHeld ? 'grab' : 'default' }}
       >
         {/* Background layer */}
@@ -621,6 +654,23 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               listening={false}
             />
           ))}
+          {/* Temporary line while shift-dragging */}
+          {shiftDragOriginRef.current && tempLineEnd && (() => {
+            const originNode = canvasData.nodes.find(n => n.id === shiftDragOriginRef.current)
+            if (!originNode) return null
+            const oc = nodeCenter(originNode)
+            return (
+              <Line
+                points={[oc.x, oc.y, tempLineEnd.x, tempLineEnd.y]}
+                stroke={EDGE_COLOR}
+                strokeWidth={2}
+                opacity={0.8}
+                dash={[8, 4]}
+                lineCap="round"
+                listening={false}
+              />
+            )
+          })()}
         </Layer>
 
         {/* Nodes layer */}
@@ -676,6 +726,34 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           })}
         </Layer>
       </Stage>
+
+      {/* File drop overlay — appears when dragging a file from the sidebar */}
+      {isDraggingFile && (
+        <div
+          onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }}
+          onDrop={handleOverlayDrop}
+          onDragLeave={() => {
+            dragCounterRef.current = 0
+            setIsDraggingFile(false)
+          }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 5,
+            background: 'rgba(124, 106, 247, 0.06)',
+            border: '2px dashed rgba(124, 106, 247, 0.4)',
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'auto',
+          }}
+        >
+          <span style={{ color: 'rgba(124, 106, 247, 0.6)', fontSize: 14, fontFamily: FONT_FAMILY, userSelect: 'none' }}>
+            Drop note here
+          </span>
+        </div>
+      )}
 
       {/* Inline text editing overlay */}
       {editingNodeId && (() => {
