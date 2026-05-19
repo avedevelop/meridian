@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, stat, mkdir } from 'fs/promises'
+import { readFile, writeFile, readdir, stat, mkdir, rm } from 'fs/promises'
 import { join, relative } from 'path'
 import { VaultFile } from '../shared/types'
 
@@ -51,7 +51,6 @@ export class VaultManager {
   }
 
   async deleteFile(filePath: string): Promise<void> {
-    const { rm } = await import('fs/promises')
     await rm(filePath, { recursive: true })
   }
 
