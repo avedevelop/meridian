@@ -9,6 +9,7 @@ import { TabBar } from './TabBar'
 import { MarkdownPreview } from './MarkdownPreview'
 import { Breadcrumb } from './Breadcrumb'
 import { useEditorStore } from '../../store/useEditorStore'
+import { CanvasView } from '../Canvas/CanvasView'
 
 function flattenVaultFiles(files: import('@shared/types').VaultFile[]): import('@shared/types').VaultFile[] {
   return files.flatMap(f => f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f])
@@ -24,6 +25,8 @@ export function EditorArea() {
   const { fontSize, lineWidth } = useSettingsStore()
   // Flag to suppress dirty marking during programmatic content sync from store
   const isProgrammaticUpdate = useRef(false)
+
+  const isCanvasFile = activeTabPath?.endsWith('.canvas') ?? false
 
   const handleChange = useCallback((content: string) => {
     if (!activeTabPath || isProgrammaticUpdate.current) return
@@ -68,8 +71,9 @@ export function EditorArea() {
     return () => window.removeEventListener('keydown', handleKeydown)
   }, [activeTab, saveFile])
 
+  // Only mount CodeMirror for non-canvas tabs
   useEffect(() => {
-    if (!editorRef.current) return
+    if (!editorRef.current || isCanvasFile) return
 
     const view = new EditorView({
       state: EditorState.create({
@@ -102,9 +106,10 @@ export function EditorArea() {
       useEditorStore.getState().setCursorPos(null)
       useEditorStore.getState().setActiveHeading(null)
     }
-  }, [activeTabPath, fontSize, lineWidth])
+  }, [activeTabPath, fontSize, lineWidth, isCanvasFile])
 
   useEffect(() => {
+    if (isCanvasFile) return
     const view = viewRef.current
     if (!view || !activeTab) return
     const current = view.state.doc.toString()
@@ -115,7 +120,7 @@ export function EditorArea() {
       })
       isProgrammaticUpdate.current = false
     }
-  }, [activeTab?.content])
+  }, [activeTab?.content, isCanvasFile])
 
   if (openTabs.length === 0) {
     return (
@@ -133,15 +138,26 @@ export function EditorArea() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       <TabBar />
       <Breadcrumb />
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <div ref={editorRef} style={{ flex: 1, overflow: 'auto', height: '100%' }} />
-        {activeTab && (
-          <>
-            <div style={{ width: 1, background: '#2a2a2a' }} />
-            <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} fontSize={fontSize} lineWidth={lineWidth} vaultPath={vault?.path} />
-          </>
-        )}
-      </div>
+      {isCanvasFile && activeTab ? (
+        <CanvasView
+          filePath={activeTab.path}
+          content={activeTab.content}
+          onSave={(path, content) => {
+            setTabContent(path, content)
+            saveFile(path, content)
+          }}
+        />
+      ) : (
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          <div ref={editorRef} style={{ flex: 1, overflow: 'auto', height: '100%' }} />
+          {activeTab && (
+            <>
+              <div style={{ width: 1, background: '#2a2a2a' }} />
+              <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} fontSize={fontSize} lineWidth={lineWidth} vaultPath={vault?.path} />
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

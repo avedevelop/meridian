@@ -1,0 +1,598 @@
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { Stage, Layer, Rect, Text, Group, Line, Circle } from 'react-konva'
+import type Konva from 'konva'
+
+/* ------------------------------------------------------------------ */
+/*  Data model                                                         */
+/* ------------------------------------------------------------------ */
+
+export interface CanvasNodeData {
+  id: string
+  type: 'text' | 'file'
+  x: number
+  y: number
+  width: number
+  height: number
+  text: string
+  file?: string
+  color?: string
+}
+
+export interface CanvasEdgeData {
+  id: string
+  fromNode: string
+  toNode: string
+  fromSide: 'top' | 'right' | 'bottom' | 'left'
+  toSide: 'top' | 'right' | 'bottom' | 'left'
+}
+
+export interface CanvasData {
+  nodes: CanvasNodeData[]
+  edges: CanvasEdgeData[]
+}
+
+/* ------------------------------------------------------------------ */
+/*  Props                                                              */
+/* ------------------------------------------------------------------ */
+
+interface CanvasViewProps {
+  filePath: string
+  content: string
+  onSave: (path: string, content: string) => void
+}
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const BG = '#161616'
+const NODE_FILL = '#1e1e2e'
+const NODE_STROKE = '#3a3a5a'
+const NODE_SELECTED_STROKE = '#7c6af7'
+const EDGE_COLOR = '#7c6af7'
+const DOT_COLOR = '#2a2a2a'
+const DOT_SPACING = 30
+const DOT_RADIUS = 1
+const SCALE_BY = 1.05
+const MIN_SCALE = 0.1
+const MAX_SCALE = 5
+const SAVE_DEBOUNCE_MS = 500
+const DEFAULT_NODE_W = 200
+const DEFAULT_NODE_H = 80
+const FONT_FAMILY = 'Inter, -apple-system, sans-serif'
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function parseCanvasData(raw: string): CanvasData {
+  try {
+    const parsed = JSON.parse(raw) as Partial<CanvasData>
+    return {
+      nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
+      edges: Array.isArray(parsed.edges) ? parsed.edges : [],
+    }
+  } catch {
+    return { nodes: [], edges: [] }
+  }
+}
+
+function nodeCenter(n: CanvasNodeData): { x: number; y: number } {
+  return { x: n.x + n.width / 2, y: n.y + n.height / 2 }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Dot-grid background                                                */
+/* ------------------------------------------------------------------ */
+
+interface DotGridProps {
+  stageX: number
+  stageY: number
+  stageScale: number
+  width: number
+  height: number
+}
+
+function DotGrid({ stageX, stageY, stageScale, width, height }: DotGridProps) {
+  const dots = useMemo(() => {
+    const spacing = DOT_SPACING
+    const startX = Math.floor(-stageX / stageScale / spacing) * spacing - spacing
+    const startY = Math.floor(-stageY / stageScale / spacing) * spacing - spacing
+    const endX = startX + width / stageScale + spacing * 2
+    const endY = startY + height / stageScale + spacing * 2
+    const result: { x: number; y: number }[] = []
+    for (let x = startX; x <= endX; x += spacing) {
+      for (let y = startY; y <= endY; y += spacing) {
+        result.push({ x, y })
+      }
+    }
+    return result
+  }, [stageX, stageY, stageScale, width, height])
+
+  return (
+    <>
+      {dots.map((d, i) => (
+        <Circle key={i} x={d.x} y={d.y} radius={DOT_RADIUS} fill={DOT_COLOR} listening={false} />
+      ))}
+    </>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  CanvasView                                                         */
+/* ------------------------------------------------------------------ */
+
+export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
+  /* --- Container sizing ------------------------------------------- */
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ width: 800, height: 600 })
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      setSize({ width: el.clientWidth, height: el.clientHeight })
+    })
+    ro.observe(el)
+    setSize({ width: el.clientWidth, height: el.clientHeight })
+    return () => ro.disconnect()
+  }, [])
+
+  /* --- Canvas data state ------------------------------------------ */
+  const [canvasData, setCanvasData] = useState<CanvasData>(() => parseCanvasData(content))
+
+  // Sync if external content prop changes
+  useEffect(() => {
+    setCanvasData(parseCanvasData(content))
+  }, [content])
+
+  /* --- Save debounce ---------------------------------------------- */
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const scheduleSave = useCallback(
+    (data: CanvasData) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        onSave(filePath, JSON.stringify(data, null, 2))
+      }, SAVE_DEBOUNCE_MS)
+    },
+    [filePath, onSave],
+  )
+
+  const mutate = useCallback(
+    (updater: (prev: CanvasData) => CanvasData) => {
+      setCanvasData(prev => {
+        const next = updater(prev)
+        scheduleSave(next)
+        return next
+      })
+    },
+    [scheduleSave],
+  )
+
+  /* --- Stage / viewport state ------------------------------------- */
+  const stageRef = useRef<Konva.Stage>(null)
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
+  const [stageScale, setStageScale] = useState(1)
+
+  /* --- Selection -------------------------------------------------- */
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+
+  /* --- Space-bar panning ------------------------------------------ */
+  const [spaceHeld, setSpaceHeld] = useState(false)
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) setSpaceHeld(true)
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpaceHeld(false)
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+    }
+  }, [])
+
+  /* --- Shift-drag edge creation ----------------------------------- */
+  const shiftDragOriginRef = useRef<string | null>(null)
+
+  /* --- Delete selected node --------------------------------------- */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId) {
+        // Don't delete when user is typing in an input
+        if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return
+        mutate(prev => ({
+          nodes: prev.nodes.filter(n => n.id !== selectedNodeId),
+          edges: prev.edges.filter(
+            ed => ed.fromNode !== selectedNodeId && ed.toNode !== selectedNodeId,
+          ),
+        }))
+        setSelectedNodeId(null)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [selectedNodeId, mutate])
+
+  /* --- Wheel zoom ------------------------------------------------- */
+  const handleWheel = useCallback(
+    (e: Konva.KonvaEventObject<WheelEvent>) => {
+      e.evt.preventDefault()
+      const stage = stageRef.current
+      if (!stage) return
+
+      const oldScale = stage.scaleX()
+      const pointer = stage.getPointerPosition()
+      if (!pointer) return
+
+      const direction = e.evt.deltaY > 0 ? -1 : 1
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, direction > 0 ? oldScale * SCALE_BY : oldScale / SCALE_BY))
+
+      const mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      }
+
+      const newPos = {
+        x: pointer.x - mousePointTo.x * newScale,
+        y: pointer.y - mousePointTo.y * newScale,
+      }
+
+      setStageScale(newScale)
+      setStagePos(newPos)
+    },
+    [],
+  )
+
+  /* --- Drag end (pan) --------------------------------------------- */
+  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (e.target === stageRef.current) {
+      setStagePos({ x: e.target.x(), y: e.target.y() })
+    }
+  }, [])
+
+  /* --- Double-click to create node -------------------------------- */
+  const handleDblClick = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      // Only on empty stage area
+      if (e.target !== stageRef.current) return
+      const stage = stageRef.current!
+      const pointer = stage.getPointerPosition()
+      if (!pointer) return
+
+      const canvasX = (pointer.x - stagePos.x) / stageScale
+      const canvasY = (pointer.y - stagePos.y) / stageScale
+
+      const newNode: CanvasNodeData = {
+        id: crypto.randomUUID(),
+        type: 'text',
+        x: canvasX - DEFAULT_NODE_W / 2,
+        y: canvasY - DEFAULT_NODE_H / 2,
+        width: DEFAULT_NODE_W,
+        height: DEFAULT_NODE_H,
+        text: 'New Card',
+      }
+
+      mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+    },
+    [stagePos, stageScale, mutate],
+  )
+
+  /* --- Click on empty stage to deselect --------------------------- */
+  const handleStageClick = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (e.target === stageRef.current) {
+        setSelectedNodeId(null)
+      }
+    },
+    [],
+  )
+
+  /* --- Node drag end ---------------------------------------------- */
+  const handleNodeDragEnd = useCallback(
+    (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
+      const x = e.target.x()
+      const y = e.target.y()
+      mutate(prev => ({
+        ...prev,
+        nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x, y } : n)),
+      }))
+    },
+    [mutate],
+  )
+
+  /* --- Shift-drag: edge creation ---------------------------------- */
+  const handleNodeMouseDown = useCallback(
+    (nodeId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (e.evt.shiftKey) {
+        shiftDragOriginRef.current = nodeId
+      }
+    },
+    [],
+  )
+
+  const handleNodeMouseUp = useCallback(
+    (nodeId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+      const origin = shiftDragOriginRef.current
+      shiftDragOriginRef.current = null
+      if (!origin || origin === nodeId || !e.evt.shiftKey) return
+
+      // Don't create duplicate edges
+      mutate(prev => {
+        const exists = prev.edges.some(
+          ed =>
+            (ed.fromNode === origin && ed.toNode === nodeId) ||
+            (ed.fromNode === nodeId && ed.toNode === origin),
+        )
+        if (exists) return prev
+
+        const newEdge: CanvasEdgeData = {
+          id: crypto.randomUUID(),
+          fromNode: origin,
+          toNode: nodeId,
+          fromSide: 'right',
+          toSide: 'left',
+        }
+        return { ...prev, edges: [...prev.edges, newEdge] }
+      })
+    },
+    [mutate],
+  )
+
+  /* --- Toolbar actions -------------------------------------------- */
+  const addNodeAtCenter = useCallback(() => {
+    const cx = (size.width / 2 - stagePos.x) / stageScale
+    const cy = (size.height / 2 - stagePos.y) / stageScale
+    const newNode: CanvasNodeData = {
+      id: crypto.randomUUID(),
+      type: 'text',
+      x: cx - DEFAULT_NODE_W / 2,
+      y: cy - DEFAULT_NODE_H / 2,
+      width: DEFAULT_NODE_W,
+      height: DEFAULT_NODE_H,
+      text: 'New Card',
+    }
+    mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+  }, [size, stagePos, stageScale, mutate])
+
+  const fitToContent = useCallback(() => {
+    const { nodes } = canvasData
+    if (nodes.length === 0) {
+      setStagePos({ x: 0, y: 0 })
+      setStageScale(1)
+      return
+    }
+    const minX = Math.min(...nodes.map(n => n.x))
+    const minY = Math.min(...nodes.map(n => n.y))
+    const maxX = Math.max(...nodes.map(n => n.x + n.width))
+    const maxY = Math.max(...nodes.map(n => n.y + n.height))
+    const contentW = maxX - minX
+    const contentH = maxY - minY
+
+    const pad = 80
+    const scaleX = (size.width - pad * 2) / contentW
+    const scaleY = (size.height - pad * 2) / contentH
+    const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), MIN_SCALE), MAX_SCALE)
+
+    const centerX = (minX + maxX) / 2
+    const centerY = (minY + maxY) / 2
+
+    setStageScale(newScale)
+    setStagePos({
+      x: size.width / 2 - centerX * newScale,
+      y: size.height / 2 - centerY * newScale,
+    })
+  }, [canvasData, size])
+
+  /* --- Build edge lines ------------------------------------------- */
+  const edgeLines = useMemo(() => {
+    const nodeMap = new Map(canvasData.nodes.map(n => [n.id, n]))
+    return canvasData.edges
+      .map(edge => {
+        const from = nodeMap.get(edge.fromNode)
+        const to = nodeMap.get(edge.toNode)
+        if (!from || !to) return null
+        const fc = nodeCenter(from)
+        const tc = nodeCenter(to)
+        return { id: edge.id, points: [fc.x, fc.y, tc.x, tc.y] }
+      })
+      .filter(Boolean) as { id: string; points: number[] }[]
+  }, [canvasData])
+
+  /* --- Zoom percentage label -------------------------------------- */
+  const zoomPct = Math.round(stageScale * 100)
+
+  /* --- Render ----------------------------------------------------- */
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: BG }}
+    >
+      {/* Floating Toolbar */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 12,
+          left: 12,
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          background: 'rgba(22,22,22,0.85)',
+          backdropFilter: 'blur(12px)',
+          borderRadius: 10,
+          border: '1px solid #2a2a2a',
+          padding: '6px 12px',
+          userSelect: 'none',
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            fontFamily: FONT_FAMILY,
+            color: '#888',
+            minWidth: 36,
+            textAlign: 'center',
+          }}
+        >
+          {zoomPct}%
+        </span>
+        <button
+          onClick={fitToContent}
+          style={{
+            background: 'transparent',
+            border: '1px solid #3a3a3a',
+            borderRadius: 6,
+            color: '#aaa',
+            fontSize: 11,
+            fontFamily: FONT_FAMILY,
+            padding: '3px 8px',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            ;(e.target as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
+            ;(e.target as HTMLButtonElement).style.color = '#ddd'
+          }}
+          onMouseLeave={e => {
+            ;(e.target as HTMLButtonElement).style.borderColor = '#3a3a3a'
+            ;(e.target as HTMLButtonElement).style.color = '#aaa'
+          }}
+        >
+          Fit
+        </button>
+        <button
+          onClick={addNodeAtCenter}
+          style={{
+            background: NODE_SELECTED_STROKE,
+            border: 'none',
+            borderRadius: 6,
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 600,
+            width: 26,
+            height: 26,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            lineHeight: 1,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => {
+            ;(e.target as HTMLButtonElement).style.opacity = '0.85'
+          }}
+          onMouseLeave={e => {
+            ;(e.target as HTMLButtonElement).style.opacity = '1'
+          }}
+        >
+          +
+        </button>
+      </div>
+
+      {/* Konva Stage */}
+      <Stage
+        ref={stageRef}
+        width={size.width}
+        height={size.height}
+        x={stagePos.x}
+        y={stagePos.y}
+        scaleX={stageScale}
+        scaleY={stageScale}
+        draggable={spaceHeld || true}
+        onWheel={handleWheel}
+        onDragEnd={handleDragEnd}
+        onDblClick={handleDblClick}
+        onClick={handleStageClick}
+        style={{ cursor: spaceHeld ? 'grab' : 'default' }}
+      >
+        {/* Background layer */}
+        <Layer listening={false}>
+          <Rect
+            x={-stagePos.x / stageScale}
+            y={-stagePos.y / stageScale}
+            width={size.width / stageScale}
+            height={size.height / stageScale}
+            fill={BG}
+            listening={false}
+          />
+          <DotGrid
+            stageX={stagePos.x}
+            stageY={stagePos.y}
+            stageScale={stageScale}
+            width={size.width}
+            height={size.height}
+          />
+        </Layer>
+
+        {/* Edges layer */}
+        <Layer listening={false}>
+          {edgeLines.map(edge => (
+            <Line
+              key={edge.id}
+              points={edge.points}
+              stroke={EDGE_COLOR}
+              strokeWidth={2}
+              opacity={0.6}
+              lineCap="round"
+              listening={false}
+            />
+          ))}
+        </Layer>
+
+        {/* Nodes layer */}
+        <Layer>
+          {canvasData.nodes.map(node => {
+            const isSelected = node.id === selectedNodeId
+            const displayText =
+              node.type === 'file' && node.file
+                ? node.file.split('/').pop() ?? node.text
+                : node.text
+
+            return (
+              <Group
+                key={node.id}
+                x={node.x}
+                y={node.y}
+                draggable={!spaceHeld}
+                onDragEnd={e => handleNodeDragEnd(node.id, e)}
+                onClick={() => setSelectedNodeId(node.id)}
+                onMouseDown={e => handleNodeMouseDown(node.id, e)}
+                onMouseUp={e => handleNodeMouseUp(node.id, e)}
+              >
+                <Rect
+                  width={node.width}
+                  height={node.height}
+                  fill={node.color ?? NODE_FILL}
+                  stroke={isSelected ? NODE_SELECTED_STROKE : NODE_STROKE}
+                  strokeWidth={isSelected ? 2 : 1}
+                  cornerRadius={8}
+                  shadowColor="#000"
+                  shadowBlur={isSelected ? 12 : 4}
+                  shadowOpacity={isSelected ? 0.4 : 0.2}
+                  shadowOffsetY={2}
+                />
+                <Text
+                  text={displayText}
+                  fill="#ccc"
+                  fontFamily={FONT_FAMILY}
+                  fontSize={13}
+                  padding={12}
+                  width={node.width}
+                  height={node.height}
+                  verticalAlign="top"
+                  listening={false}
+                />
+              </Group>
+            )
+          })}
+        </Layer>
+      </Stage>
+    </div>
+  )
+}

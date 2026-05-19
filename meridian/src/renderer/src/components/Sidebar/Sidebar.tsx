@@ -28,7 +28,7 @@ class GraphErrorBoundary extends Component<{ children: ReactNode }, { error: str
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { vault, files } = useVaultStore()
-  const { openFile, createFile, createFolder, openVault, renameFile, moveFile, deleteFile, revealFile } = useVaultBridge()
+  const { openFile, createFile, createCanvas, createFolder, openVault, renameFile, moveFile, deleteFile, revealFile } = useVaultBridge()
   const [filterQuery, setFilterQuery] = useState('')
   const [collapseKey, setCollapseKey] = useState(0)
 
@@ -147,16 +147,27 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 />
               )}
             </div>
-            <div style={{ padding: 8, borderTop: '1px solid #2a2a2a', flexShrink: 0 }}>
+            <div style={{ padding: 8, borderTop: '1px solid #2a2a2a', flexShrink: 0, display: 'flex', gap: 6 }}>
               <button
                 onClick={() => createFile(vault.path, `Untitled ${Date.now()}.md`)}
                 style={{
-                  width: '100%', padding: '6px 0', borderRadius: 6,
+                  flex: 1, padding: '6px 0', borderRadius: 6,
                   background: '#2a2050', color: '#aaa', border: 'none',
                   fontSize: 12, cursor: 'pointer',
                 }}
               >
                 + New note
+              </button>
+              <button
+                onClick={() => createCanvas(vault.path, `Canvas ${Date.now()}`)}
+                title="Create a new spatial canvas"
+                style={{
+                  padding: '6px 10px', borderRadius: 6,
+                  background: '#1e2040', color: '#7c6af7', border: '1px solid #3a3a5a',
+                  fontSize: 12, cursor: 'pointer',
+                }}
+              >
+                ⊞
               </button>
             </div>
           </>

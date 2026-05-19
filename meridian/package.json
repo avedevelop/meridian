@@ -38,7 +38,9 @@
     "chokidar": "^5.0.0",
     "d3": "^7.9.0",
     "force-graph": "^1.51.4",
+    "konva": "^10.3.0",
     "minisearch": "^7.2.0",
+    "react-konva": "^19.2.4",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",
     "remark": "^15.0.1",
@@ -59,7 +61,15 @@
       "package.json"
     ],
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "icon": "resources/icon.png",
       "category": "public.app-category.productivity",
       "darkModeSupport": true
@@ -67,7 +77,10 @@
     "dmg": {
       "title": "Meridian",
       "background": null,
-      "window": { "width": 540, "height": 380 }
+      "window": {
+        "width": 540,
+        "height": 380
+      }
     },
     "win": {
       "target": "nsis",

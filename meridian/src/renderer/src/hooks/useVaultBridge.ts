@@ -118,6 +118,14 @@ export function useVaultBridge() {
     await openFile(filePath, fileName)
   }, [refreshFiles, openFile])
 
+  const createCanvas = useCallback(async (dir: string, name: string) => {
+    const fileName = name.endsWith('.canvas') ? name : `${name}.canvas`
+    const filePath = await window.vault.createFile(dir, fileName)
+    await window.vault.writeFile(filePath, '{"nodes":[], "edges":[]}')
+    await refreshFiles()
+    await openFile(filePath, fileName)
+  }, [refreshFiles, openFile])
+
   const createFolder = useCallback(async (parentDir: string) => {
     const name = window.prompt('Folder name:')
     if (!name?.trim()) return
@@ -374,5 +382,5 @@ ${bodyHtml}
     }
   }, [initVault, openFile])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, moveFile, deleteFile, revealFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createCanvas, createFolder, renameFile, moveFile, deleteFile, revealFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
 }

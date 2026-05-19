@@ -1,5 +1,6 @@
 const FILE_COLORS: Record<string, string> = {
   '.md': '#7c6af7',
+  '.canvas': '#a78bfa',
   '.txt': '#9e9e9e',
   '.json': '#e8a44d',
   '.js': '#cbcb41',
