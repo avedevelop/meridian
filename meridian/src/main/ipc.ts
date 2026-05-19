@@ -202,6 +202,18 @@ export function registerIpcHandlers(settings: AppSettings): void {
     await writeFile(result.filePath, html, 'utf-8')
     return result.filePath
   })
+
+  ipcMain.handle(IPC.VAULT_SAVE_VIDEO, async (_event, data: Uint8Array) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Export Graph Animation',
+      defaultPath: 'meridian-graph.webm',
+      filters: [{ name: 'WebM Video', extensions: ['webm'] }],
+    })
+    if (!filePath) return null
+    const { writeFile } = await import('fs/promises')
+    await writeFile(filePath, data)
+    return filePath
+  })
 }
 
 export function getVaultManager(): VaultManager | null {

@@ -24,6 +24,8 @@ describe('VaultManager', () => {
     const files = await vault.listFiles()
     const names = files.map(f => f.name).sort()
     expect(names).toEqual(['Hello.md', 'World.md'])
+    expect(files[0].birthtime).toBeGreaterThan(0)
+    expect(files[1].birthtime).toBeGreaterThan(0)
   })
 
   it('reads file content', async () => {
@@ -63,6 +65,7 @@ describe('VaultManager', () => {
       isDirectory: false,
     })
     expect(file.mtime).toBeGreaterThan(0)
+    expect(file.birthtime).toBeGreaterThan(0)
   })
 
   it('lists subdirectory files recursively', async () => {

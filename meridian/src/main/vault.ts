@@ -29,6 +29,7 @@ export class VaultManager {
         relativePath: relative(this.vaultPath, fullPath),
         isDirectory,
         mtime: info.mtimeMs,
+        birthtime: info.birthtimeMs,
       }
 
       if (isDirectory) {
@@ -54,6 +55,7 @@ export class VaultManager {
       relativePath: relative(this.vaultPath, filePath),
       isDirectory,
       mtime: info.mtimeMs,
+      birthtime: info.birthtimeMs,
     }
 
     if (isDirectory) {

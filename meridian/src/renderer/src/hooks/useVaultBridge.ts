@@ -20,6 +20,7 @@ declare global {
       onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
       exportHtml: (suggestedName: string, html: string) => Promise<string | null>
+      saveVideo: (data: Uint8Array) => Promise<string | null>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>

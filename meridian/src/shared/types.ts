@@ -5,6 +5,7 @@ export interface VaultFile {
   isDirectory: boolean
   children?: VaultFile[]
   mtime: number       // last modified timestamp (ms)
+  birthtime: number    // file creation timestamp (ms)
 }
 
 export interface VaultConfig {
@@ -44,5 +45,6 @@ export const IPC = {
   SETTINGS_SET: 'settings:set',
   FILE_CHANGED: 'file:changed',   // main → renderer push event
   VAULT_EXPORT_HTML: 'vault:export-html',
+  VAULT_SAVE_VIDEO: 'vault:save-video',
   MENU_ACTION: 'menu:action',
 } as const

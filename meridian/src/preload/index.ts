@@ -27,6 +27,9 @@ const vaultAPI = {
   exportHtml: (suggestedName: string, html: string): Promise<string | null> =>
     ipcRenderer.invoke(IPC.VAULT_EXPORT_HTML, suggestedName, html),
 
+  saveVideo: (data: Uint8Array): Promise<string | null> =>
+    ipcRenderer.invoke(IPC.VAULT_SAVE_VIDEO, data),
+
   deleteFile: (filePath: string): Promise<void> =>
     ipcRenderer.invoke(IPC.VAULT_DELETE_FILE, filePath),
 
