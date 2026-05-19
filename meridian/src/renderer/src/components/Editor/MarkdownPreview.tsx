@@ -49,7 +49,7 @@ export function MarkdownPreview({ content, onLinkClick, fontSize = 15, lineWidth
       if (!vaultPath) return withLinks
       return withLinks.replace(
         /(<img[^>]+src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/)([^"]+)(")/g,
-        (_m, pre, src, post) => `${pre}vault://${src}${post}`
+        (_m, pre, src, post) => `${pre}vault:///${src}${post}`
       )
     } catch {
       return '<p>Preview error</p>'
