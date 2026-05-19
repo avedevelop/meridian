@@ -25,6 +25,7 @@ export const IPC = {
   VAULT_READ_FILE: 'vault:read-file',
   VAULT_WRITE_FILE: 'vault:write-file',
   VAULT_CREATE_FILE: 'vault:create-file',
+  VAULT_CREATE_DIR: 'vault:create-dir',
   VAULT_DELETE_FILE: 'vault:delete-file',
   VAULT_RENAME_FILE: 'vault:rename-file',
   SETTINGS_GET: 'settings:get',

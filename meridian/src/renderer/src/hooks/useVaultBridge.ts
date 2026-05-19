@@ -11,6 +11,7 @@ declare global {
       readFile: (path: string) => Promise<string>
       writeFile: (path: string, content: string) => Promise<void>
       createFile: (dir: string, name: string) => Promise<string>
+      createDir: (parentDir: string, name: string) => Promise<string>
       deleteFile: (path: string) => Promise<void>
       renameFile: (oldPath: string, newName: string) => Promise<string>
       openByPath: (path: string) => Promise<VaultConfig | null>
@@ -98,6 +99,17 @@ export function useVaultBridge() {
     await openFile(filePath, fileName)
   }, [refreshFiles, openFile])
 
+  const createFolder = useCallback(async (parentDir: string) => {
+    const name = window.prompt('Folder name:')
+    if (!name?.trim()) return
+    try {
+      await window.vault.createDir(parentDir, name.trim())
+      await refreshFiles()
+    } catch (e) {
+      console.error('[Bridge] createFolder error', e)
+    }
+  }, [refreshFiles])
+
   const renameFile = useCallback(async (oldPath: string, newName: string) => {
     console.log('[Bridge] renameFile', { oldPath, newName })
     try {
@@ -142,5 +154,5 @@ export function useVaultBridge() {
     }
   }, [initVault])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile, deleteFile, openVaultByPath }
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath }
 }

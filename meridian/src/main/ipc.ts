@@ -64,6 +64,11 @@ export function registerIpcHandlers(settings: AppSettings): void {
     return vaultManager.createFile(dir, name)
   })
 
+  ipcMain.handle(IPC.VAULT_CREATE_DIR, async (_event, parentDir: string, name: string) => {
+    if (!vaultManager) throw new Error('No vault open')
+    return vaultManager.createDirectory(parentDir, name)
+  })
+
   ipcMain.handle(IPC.VAULT_DELETE_FILE, async (_event, filePath: string) => {
     if (!vaultManager) throw new Error('No vault open')
     return vaultManager.deleteFile(filePath)

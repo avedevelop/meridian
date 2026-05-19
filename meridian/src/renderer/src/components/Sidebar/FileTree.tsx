@@ -7,11 +7,12 @@ interface FileTreeProps {
   onFileClick: (path: string, name: string) => void
   onRename?: (oldPath: string, newName: string) => void
   onDelete?: (path: string) => void
+  onNewFolder?: (parentDir: string) => void
   vaultPath: string
   depth?: number
 }
 
-export function FileTree({ files, onFileClick, onRename, onDelete, vaultPath, depth = 0 }: FileTreeProps) {
+export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, vaultPath, depth = 0 }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -60,7 +61,6 @@ export function FileTree({ files, onFileClick, onRename, onDelete, vaultPath, de
   const cancelEdit = () => setEditing(null)
 
   const handleContextMenu = (e: React.MouseEvent, file: VaultFile) => {
-    if (file.isDirectory) return
     e.preventDefault()
     e.stopPropagation()
     setContextMenu({ x: e.clientX, y: e.clientY, file })
@@ -120,6 +120,7 @@ export function FileTree({ files, onFileClick, onRename, onDelete, vaultPath, de
               onFileClick={onFileClick}
               onRename={onRename}
               onDelete={onDelete}
+              onNewFolder={onNewFolder}
               vaultPath={vaultPath}
               depth={depth + 1}
             />
@@ -131,24 +132,33 @@ export function FileTree({ files, onFileClick, onRename, onDelete, vaultPath, de
           x={contextMenu.x}
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
-          items={[
-            {
-              label: 'Rename',
-              onClick: () => {
-                setEditing(contextMenu.file.path)
-                setEditValue(contextMenu.file.name)
-              },
-            },
-            {
-              label: 'Delete',
-              danger: true,
-              onClick: () => {
-                if (window.confirm(`Delete "${contextMenu.file.name}"? This cannot be undone.`)) {
-                  onDelete?.(contextMenu.file.path)
-                }
-              },
-            },
-          ]}
+          items={
+            contextMenu.file.isDirectory
+              ? [
+                  {
+                    label: 'New Folder',
+                    onClick: () => onNewFolder?.(contextMenu.file.path),
+                  },
+                ]
+              : [
+                  {
+                    label: 'Rename',
+                    onClick: () => {
+                      setEditing(contextMenu.file.path)
+                      setEditValue(contextMenu.file.name)
+                    },
+                  },
+                  {
+                    label: 'Delete',
+                    danger: true,
+                    onClick: () => {
+                      if (window.confirm(`Delete "${contextMenu.file.name}"? This cannot be undone.`)) {
+                        onDelete?.(contextMenu.file.path)
+                      }
+                    },
+                  },
+                ]
+          }
         />
       )}
     </div>

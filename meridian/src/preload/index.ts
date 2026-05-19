@@ -18,6 +18,9 @@ const vaultAPI = {
   createFile: (dir: string, name: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_CREATE_FILE, dir, name),
 
+  createDir: (parentDir: string, name: string): Promise<string> =>
+    ipcRenderer.invoke(IPC.VAULT_CREATE_DIR, parentDir, name),
+
   deleteFile: (filePath: string): Promise<void> =>
     ipcRenderer.invoke(IPC.VAULT_DELETE_FILE, filePath),
 
