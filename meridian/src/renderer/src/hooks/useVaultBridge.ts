@@ -294,5 +294,49 @@ ${bodyHtml}
     }
   }, [])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote, saveImage, exportNote }
+  const createNewVault = useCallback(async () => {
+    const config = await window.vault.openDialog()
+    if (!config) return
+    await initVault(config)
+
+    const { files } = useVaultStore.getState()
+    if (files.length === 0) {
+      const welcomeContent = [
+        '# Welcome to Meridian',
+        '',
+        'This is your new vault. Here are a few things to try:',
+        '',
+        '- **Write** — just start typing in any note',
+        '- **Link notes** — type `[[Note Name]]` to create a wiki-link',
+        '- **Daily note** — press `⌘D` to open today\'s note',
+        '- **Search** — press `⌘K` to search across all notes',
+        '- **Graph** — click the 🕸️ tab in the sidebar to see your note network',
+        '',
+        '## Quick shortcuts',
+        '',
+        '| Shortcut | Action |',
+        '|----------|--------|',
+        '| `⌘S` | Save note |',
+        '| `⌘D` | Open daily note |',
+        '| `⌘K` | Command palette |',
+        '| `⌘E` | Export to HTML |',
+        '| `⌘,` | Settings |',
+        '',
+        'Happy writing! 📓',
+      ].join('\n')
+
+      try {
+        const filePath = await window.vault.createFile(config.path, 'Welcome.md')
+        await window.vault.writeFile(filePath, welcomeContent)
+        useLinkStore.getState().indexFile(filePath, 'Welcome.md', welcomeContent, config.path)
+        const updatedFiles = await window.vault.listFiles()
+        useVaultStore.getState().setFiles(updatedFiles)
+        await openFile(filePath, 'Welcome.md')
+      } catch (e) {
+        console.error('[Bridge] createNewVault welcome note error', e)
+      }
+    }
+  }, [initVault, openFile])
+
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
 }
