@@ -15,6 +15,7 @@ declare global {
       deleteFile: (path: string) => Promise<void>
       renameFile: (oldPath: string, newName: string) => Promise<string>
       moveFile: (sourcePath: string, targetDir: string) => Promise<string>
+      revealFile: (filePath: string) => Promise<void>
       openByPath: (path: string) => Promise<VaultConfig | null>
       onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
@@ -175,6 +176,14 @@ export function useVaultBridge() {
       window.alert(`Could not move file: ${e instanceof Error ? e.message : String(e)}`)
     }
   }, [refreshFiles])
+
+  const revealFile = useCallback(async (path: string) => {
+    try {
+      await window.vault.revealFile(path)
+    } catch (e) {
+      console.error('[Bridge] revealFile error', e)
+    }
+  }, [])
 
   const deleteFile = useCallback(async (path: string) => {
     try {
@@ -364,5 +373,5 @@ ${bodyHtml}
     }
   }, [initVault, openFile])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, moveFile, deleteFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, moveFile, deleteFile, revealFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
 }

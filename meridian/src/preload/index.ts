@@ -36,6 +36,9 @@ const vaultAPI = {
   moveFile: (sourcePath: string, targetDir: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_MOVE_FILE, sourcePath, targetDir),
 
+  revealFile: (filePath: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.VAULT_REVEAL_FILE, filePath),
+
   openByPath: (vaultPath: string): Promise<VaultConfig | null> =>
     ipcRenderer.invoke(IPC.VAULT_OPEN_BY_PATH, vaultPath),
 

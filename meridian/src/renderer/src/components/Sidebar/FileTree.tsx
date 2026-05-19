@@ -9,6 +9,7 @@ interface FileTreeProps {
   onDelete?: (path: string) => void
   onNewFolder?: (parentDir: string) => void
   onMove?: (sourcePath: string, targetDir: string) => void
+  onReveal?: (path: string) => void
   collapseKey?: number
   vaultPath: string
   depth?: number
@@ -16,7 +17,7 @@ interface FileTreeProps {
 
 let dragSourcePath: string | null = null
 
-export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, onMove, collapseKey = 0, vaultPath, depth = 0 }: FileTreeProps) {
+export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, onMove, onReveal, collapseKey = 0, vaultPath, depth = 0 }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -153,6 +154,7 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
               onDelete={onDelete}
               onNewFolder={onNewFolder}
               onMove={onMove}
+              onReveal={onReveal}
               collapseKey={collapseKey}
               vaultPath={vaultPath}
               depth={depth + 1}
@@ -188,6 +190,22 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
                       if (window.confirm(`Delete "${contextMenu.file.name}"? This cannot be undone.`)) {
                         onDelete?.(contextMenu.file.path)
                       }
+                    },
+                  },
+                  {
+                    label: 'Reveal in Finder',
+                    onClick: () => onReveal?.(contextMenu.file.path),
+                  },
+                  {
+                    label: 'Copy Path',
+                    onClick: () => {
+                      navigator.clipboard.writeText(contextMenu.file.path).catch(console.error)
+                    },
+                  },
+                  {
+                    label: 'Copy Relative Path',
+                    onClick: () => {
+                      navigator.clipboard.writeText(contextMenu.file.relativePath).catch(console.error)
                     },
                   },
                 ]

@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, dialog } from 'electron'
+import { BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { basename, isAbsolute, resolve } from 'path'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { IPC, type VaultFileChangeEvent, type VaultFileChangeType } from '../shared/types'
@@ -163,6 +163,10 @@ export function registerIpcHandlers(settings: AppSettings): void {
   ipcMain.handle(IPC.VAULT_MOVE_FILE, async (_event, sourcePath: string, targetDir: string) => {
     if (!vaultManager) throw new Error('No vault open')
     return vaultManager.moveFile(sourcePath, targetDir)
+  })
+
+  ipcMain.handle(IPC.VAULT_REVEAL_FILE, async (_event, filePath: string) => {
+    shell.showItemInFolder(filePath)
   })
 
   ipcMain.handle(IPC.VAULT_RENAME_FILE, async (_event, oldPath: string, newName: string) => {
