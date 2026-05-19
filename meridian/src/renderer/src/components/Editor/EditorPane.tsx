@@ -5,6 +5,7 @@ import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { useLinkStore } from '../../store/useLinkStore'
 import { createMarkdownExtensions } from './extensions/markdownExtensions'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { TabBar } from './TabBar'
 import { MarkdownPreview } from './MarkdownPreview'
 
@@ -19,6 +20,7 @@ export function EditorArea() {
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const activeTab = openTabs.find(t => t.path === activeTabPath)
+  const { fontSize, lineWidth } = useSettingsStore()
 
   const handleChange = useCallback((content: string) => {
     if (!activeTabPath) return
@@ -61,14 +63,14 @@ export function EditorArea() {
     const view = new EditorView({
       state: EditorState.create({
         doc: activeTab?.content ?? '',
-        extensions: createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames),
+        extensions: createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames, fontSize, lineWidth),
       }),
       parent: editorRef.current,
     })
 
     viewRef.current = view
     return () => { view.destroy(); viewRef.current = null }
-  }, [activeTabPath])
+  }, [activeTabPath, fontSize, lineWidth])
 
   useEffect(() => {
     const view = viewRef.current
@@ -101,7 +103,7 @@ export function EditorArea() {
         {activeTab && (
           <>
             <div style={{ width: 1, background: '#2a2a2a' }} />
-            <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} />
+            <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} fontSize={fontSize} lineWidth={lineWidth} />
           </>
         )}
       </div>

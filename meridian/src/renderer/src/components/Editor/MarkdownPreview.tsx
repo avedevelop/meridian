@@ -28,9 +28,11 @@ function postprocessWikiLinks(html: string): string {
 interface MarkdownPreviewProps {
   content: string
   onLinkClick?: (linkText: string) => void
+  fontSize?: number
+  lineWidth?: number
 }
 
-export function MarkdownPreview({ content, onLinkClick }: MarkdownPreviewProps) {
+export function MarkdownPreview({ content, onLinkClick, fontSize = 15, lineWidth = 720 }: MarkdownPreviewProps) {
   const html = useMemo(() => {
     try {
       const sanitized = String(processor.processSync(content))
@@ -57,11 +59,11 @@ export function MarkdownPreview({ content, onLinkClick }: MarkdownPreviewProps) 
         padding: '24px 32px',
         overflowY: 'auto',
         color: '#ccc',
-        fontSize: 15,
+        fontSize,
         lineHeight: 1.8,
         fontFamily: 'Georgia, serif',
         background: '#1e1e1e',
-        maxWidth: 720,
+        maxWidth: lineWidth,
       }}
     />
   )

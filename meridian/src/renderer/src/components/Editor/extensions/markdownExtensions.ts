@@ -19,22 +19,26 @@ import { lintKeymap } from '@codemirror/lint'
 import { wikiLinkExtension } from './wikiLinkExtension'
 import { wikiLinkCompletion } from './wikiLinkCompletion'
 
-export const meridianTheme = EditorView.theme({
-  '&': { height: '100%', fontSize: '15px' },
-  '.cm-scroller': { overflow: 'auto', fontFamily: "'Georgia', serif", lineHeight: '1.8' },
-  '.cm-content': { padding: '24px 32px', maxWidth: 720, margin: '0 auto' },
-  '.cm-focused': { outline: 'none' },
-  '.cm-line': { padding: '0' },
-}, { dark: true })
+export function createMeridianTheme(fontSize: number, lineWidth: number) {
+  return EditorView.theme({
+    '&': { height: '100%', fontSize: `${fontSize}px` },
+    '.cm-scroller': { overflow: 'auto', fontFamily: "'Georgia', serif", lineHeight: '1.8' },
+    '.cm-content': { padding: '24px 32px', maxWidth: `${lineWidth}px`, margin: '0 auto' },
+    '.cm-focused': { outline: 'none' },
+    '.cm-line': { padding: '0' },
+  }, { dark: true })
+}
 
 export function createMarkdownExtensions(
   onChange?: (content: string) => void,
   onLinkClick?: (linkText: string) => void,
   getFileNames?: () => string[],
+  fontSize = 15,
+  lineWidth = 720,
 ) {
   return [
     oneDark,
-    meridianTheme,
+    createMeridianTheme(fontSize, lineWidth),
     lineNumbers(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
