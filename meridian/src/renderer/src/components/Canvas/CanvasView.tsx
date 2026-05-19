@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Stage, Layer, Rect, Text, Group, Line, Circle } from 'react-konva'
 import type Konva from 'konva'
 
@@ -427,43 +427,58 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       })
       .filter(Boolean) as { id: string; points: number[] }[]
   }, [canvasData])
-  /* --- Drop handler for files from sidebar ------------------------- */
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/meridian-file')) {
-      e.preventDefault()
-      e.dataTransfer.dropEffect = 'copy'
-    }
-  }, [])
+  /* --- Drop handler for files from sidebar (native DOM events) ---- */
+  const stagePosRef = useRef(stagePos)
+  const stageScaleRef = useRef(stageScale)
+  stagePosRef.current = stagePos
+  stageScaleRef.current = stageScale
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    const raw = e.dataTransfer.getData('application/meridian-file')
-    if (!raw) return
-    try {
-      const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
-      const stage = stageRef.current
-      if (!stage) return
-      const containerEl = containerRef.current
-      if (!containerEl) return
-      const rect = containerEl.getBoundingClientRect()
-      const canvasX = (e.clientX - rect.left - stagePos.x) / stageScale
-      const canvasY = (e.clientY - rect.top - stagePos.y) / stageScale
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
 
-      const newNode: CanvasNodeData = {
-        id: crypto.randomUUID(),
-        type: 'file',
-        x: canvasX - DEFAULT_NODE_W / 2,
-        y: canvasY - DEFAULT_NODE_H / 2,
-        width: DEFAULT_NODE_W,
-        height: DEFAULT_NODE_H,
-        text: fileInfo.name.replace(/\.md$/i, ''),
-        file: fileInfo.relativePath,
+    const onDragOver = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('application/meridian-file')) {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
       }
-      mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
-    } catch {
-      // Invalid data, ignore
     }
-  }, [stagePos, stageScale, mutate])
+
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault()
+      const raw = e.dataTransfer?.getData('application/meridian-file')
+      if (!raw) return
+      try {
+        const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
+        const rect = el.getBoundingClientRect()
+        const pos = stagePosRef.current
+        const scale = stageScaleRef.current
+        const canvasX = (e.clientX - rect.left - pos.x) / scale
+        const canvasY = (e.clientY - rect.top - pos.y) / scale
+
+        const newNode: CanvasNodeData = {
+          id: crypto.randomUUID(),
+          type: 'file',
+          x: canvasX - DEFAULT_NODE_W / 2,
+          y: canvasY - DEFAULT_NODE_H / 2,
+          width: DEFAULT_NODE_W,
+          height: DEFAULT_NODE_H,
+          text: fileInfo.name.replace(/\.md$/i, ''),
+          file: fileInfo.relativePath,
+        }
+        mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+      } catch {
+        // Invalid data, ignore
+      }
+    }
+
+    el.addEventListener('dragover', onDragOver)
+    el.addEventListener('drop', onDrop)
+    return () => {
+      el.removeEventListener('dragover', onDragOver)
+      el.removeEventListener('drop', onDrop)
+    }
+  }, [mutate])
 
   /* --- Zoom percentage label -------------------------------------- */
   const zoomPct = Math.round(stageScale * 100)
@@ -472,8 +487,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   return (
     <div
       ref={containerRef}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
       style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: BG }}
     >
       {/* Floating Toolbar */}
@@ -568,7 +581,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         y={stagePos.y}
         scaleX={stageScale}
         scaleY={stageScale}
-        draggable={spaceHeld || true}
+        draggable={!shiftHeld}
         onWheel={handleWheel}
         onDragEnd={handleDragEnd}
         onDblClick={handleDblClick}
