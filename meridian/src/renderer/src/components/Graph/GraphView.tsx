@@ -226,16 +226,16 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       const height = el.clientHeight
       if (!width || !height) return
 
-      const allMd = flattenFiles(files)
-        .filter(f => !f.isDirectory && f.name.endsWith('.md'))
+      const allFiles = flattenFiles(files)
+        .filter(f => !f.isDirectory && (f.name.endsWith('.md') || f.name.endsWith('.canvas')))
         .map(f => f.path)
         .slice(0, 400)
-      const liveSet = new Set(allMd)
+      const liveSet = new Set(allFiles)
       const degree: Record<string, number> = {}
       const edgeSet = new Set<string>()
       const links: GLink[] = []
 
-      for (const file of allMd) {
+      for (const file of allFiles) {
         for (const target of outlinks(file)) {
           if (!liveSet.has(target)) continue
           const key = [file, target].sort().join('|')
@@ -247,9 +247,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         }
       }
 
-      const nodes: GNode[] = allMd.map(f => ({
+      const nodes: GNode[] = allFiles.map(f => ({
         id: f,
-        name: f.split('/').pop()?.replace(/\.md$/, '') ?? '',
+        name: f.split('/').pop()?.replace(/\.(md|canvas)$/, '') ?? '',
         degree: degree[f] ?? 0,
         x: width / 2 + (Math.random() - 0.5) * 100,
         y: height / 2 + (Math.random() - 0.5) * 100,

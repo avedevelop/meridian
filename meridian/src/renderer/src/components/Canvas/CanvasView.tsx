@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Stage, Layer, Rect, Text, Group, Line, Circle } from 'react-konva'
+import { Stage, Layer, Rect, Text, Group, Line, Circle, Transformer } from 'react-konva'
 import type Konva from 'konva'
+import { Html } from 'react-konva-utils'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 /* ------------------------------------------------------------------ */
 /*  Data model                                                         */
@@ -8,7 +11,7 @@ import type Konva from 'konva'
 
 export interface CanvasNodeData {
   id: string
-  type: 'text' | 'file'
+  type: 'text' | 'file' | 'frame'
   x: number
   y: number
   width: number
@@ -79,6 +82,16 @@ function parseCanvasData(raw: string): CanvasData {
 
 function nodeCenter(n: CanvasNodeData): { x: number; y: number } {
   return { x: n.x + n.width / 2, y: n.y + n.height / 2 }
+}
+
+function getContrastColor(hexColor: string | undefined): string {
+  if (!hexColor) return '#ccc' // default text color for dark node
+  const hex = hexColor.replace('#', '')
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000
+  return (yiq >= 128) ? '#111' : '#ccc'
 }
 
 /* ------------------------------------------------------------------ */
@@ -175,9 +188,23 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
   const [stageScale, setStageScale] = useState(1)
 
-  /* --- Selection -------------------------------------------------- */
+  /* --- Selection & Transformer ------------------------------------ */
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const trRef = useRef<Konva.Transformer>(null)
+  const nodeRefs = useRef<Record<string, Konva.Group | null>>({})
+
+  useEffect(() => {
+    if (selectedNodeId && trRef.current) {
+      const node = nodeRefs.current[selectedNodeId]
+      if (node) {
+        trRef.current.nodes([node])
+        trRef.current.getLayer()?.batchDraw()
+      }
+    } else if (trRef.current) {
+      trRef.current.nodes([])
+    }
+  }, [selectedNodeId, canvasData.nodes])
 
   /* --- Inline editing --------------------------------------------- */
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
@@ -334,30 +361,71 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     [],
   )
 
-  /* --- Node drag end ---------------------------------------------- */
-  const handleNodeDragEnd = useCallback(
-    (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
-      const x = e.target.x()
-      const y = e.target.y()
-      mutate(prev => ({
-        ...prev,
-        nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x, y } : n)),
-      }))
+  /* --- Node drag -------------------------------------------------- */
+  const frameChildrenRef = useRef<{ id: string; offsetX: number; offsetY: number }[]>([])
+
+  const handleNodeDragStart = useCallback(
+    (nodeId: string) => {
+      const node = canvasData.nodes.find(n => n.id === nodeId)
+      if (node?.type === 'frame') {
+        const children = canvasData.nodes.filter(
+          n =>
+            n.id !== nodeId &&
+            n.x >= node.x &&
+            n.x + n.width <= node.x + node.width &&
+            n.y >= node.y &&
+            n.y + n.height <= node.y + node.height
+        )
+        frameChildrenRef.current = children.map(c => ({
+          id: c.id,
+          offsetX: c.x - node.x,
+          offsetY: c.y - node.y,
+        }))
+      } else {
+        frameChildrenRef.current = []
+      }
     },
-    [mutate],
+    [canvasData.nodes]
   )
 
-  /* Live update node position during drag so edges follow */
   const handleNodeDragMove = useCallback(
     (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
       const x = e.target.x()
       const y = e.target.y()
+      const isFrame = frameChildrenRef.current.length > 0
       setCanvasData(prev => ({
         ...prev,
-        nodes: prev.nodes.map(n => (n.id === nodeId ? { ...n, x, y } : n)),
+        nodes: prev.nodes.map(n => {
+          if (n.id === nodeId) return { ...n, x, y }
+          if (isFrame) {
+            const child = frameChildrenRef.current.find(c => c.id === n.id)
+            if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
+          }
+          return n
+        }),
       }))
     },
-    [],
+    []
+  )
+
+  const handleNodeDragEnd = useCallback(
+    (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
+      const x = e.target.x()
+      const y = e.target.y()
+      const isFrame = frameChildrenRef.current.length > 0
+      mutate(prev => ({
+        ...prev,
+        nodes: prev.nodes.map(n => {
+          if (n.id === nodeId) return { ...n, x, y }
+          if (isFrame) {
+            const child = frameChildrenRef.current.find(c => c.id === n.id)
+            if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
+          }
+          return n
+        }),
+      }))
+    },
+    [mutate]
   )
 
   /* --- Shift-drag: edge creation & Z-index ------------------------ */
@@ -643,6 +711,41 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         >
           +
         </button>
+        <button
+          onClick={() => {
+            const stage = stageRef.current
+            if (!stage) return
+            const stagePos = stage.position()
+            const stageScale = stage.scaleX()
+            const canvasX = (stage.width() / 2 - stagePos.x) / stageScale
+            const canvasY = (stage.height() / 2 - stagePos.y) / stageScale
+
+            const newNode: CanvasNodeData = {
+              id: Date.now().toString() + Math.random().toString(36).slice(2),
+              type: 'frame',
+              x: canvasX - 200,
+              y: canvasY - 150,
+              width: 400,
+              height: 300,
+              text: 'New Frame',
+            }
+
+            mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+          }}
+          title="Add Frame"
+          style={{
+            background: 'transparent',
+            border: '1px solid #3a3a3a',
+            borderRadius: 6,
+            color: '#ccc',
+            fontSize: 12,
+            padding: '4px 8px',
+            cursor: 'pointer',
+            marginLeft: 8,
+          }}
+        >
+          🔲 Frame
+        </button>
       </div>
 
       {/* Konva Stage */}
@@ -733,9 +836,11 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
             return (
               <Group
                 key={node.id}
+                ref={el => { nodeRefs.current[node.id] = el }}
                 x={node.x}
                 y={node.y}
                 draggable={!spaceHeld && !shiftHeld}
+                onDragStart={() => handleNodeDragStart(node.id)}
                 onDragEnd={e => handleNodeDragEnd(node.id, e)}
                 onDragMove={e => handleNodeDragMove(node.id, e)}
                 onClick={() => { setSelectedNodeId(node.id); setSelectedEdgeId(null) }}
@@ -746,33 +851,88 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                   }
                 }}
                 onMouseDown={e => handleNodeMouseDown(node.id, e)}
+                onTransformEnd={(e) => {
+                  const el = e.target
+                  const scaleX = el.scaleX()
+                  const scaleY = el.scaleY()
+                  el.scaleX(1)
+                  el.scaleY(1)
+                  mutate(prev => ({
+                    ...prev,
+                    nodes: prev.nodes.map(n => n.id === node.id ? {
+                      ...n,
+                      x: el.x(),
+                      y: el.y(),
+                      width: Math.max(50, n.width * scaleX),
+                      height: Math.max(50, n.height * scaleY),
+                    } : n)
+                  }))
+                }}
               >
                 <Rect
                   width={node.width}
                   height={node.height}
-                  fill={node.color ?? NODE_FILL}
-                  stroke={isSelected ? NODE_SELECTED_STROKE : NODE_STROKE}
-                  strokeWidth={isSelected ? 2 : 1}
+                  fill={node.type === 'frame' ? (node.color ? `${node.color}33` : 'rgba(255,255,255,0.05)') : (node.color ?? NODE_FILL)}
+                  stroke={isSelected ? NODE_SELECTED_STROKE : (node.type === 'frame' ? (node.color ?? '#555') : NODE_STROKE)}
+                  strokeWidth={isSelected ? 2 : (node.type === 'frame' ? 2 : 1)}
                   cornerRadius={8}
                   shadowColor="#000"
                   shadowBlur={isSelected ? 12 : 4}
                   shadowOpacity={isSelected ? 0.4 : 0.2}
                   shadowOffsetY={2}
                 />
-                <Text
-                  text={displayText}
-                  fill="#ccc"
-                  fontFamily={FONT_FAMILY}
-                  fontSize={13}
-                  padding={12}
-                  width={node.width}
-                  height={node.height}
-                  verticalAlign="top"
-                  listening={false}
-                />
+                {node.type === 'frame' && (
+                  <Text
+                    text={displayText}
+                    fill={node.color ?? '#ccc'}
+                    fontFamily={FONT_FAMILY}
+                    fontSize={18}
+                    fontStyle="bold"
+                    y={-28}
+                    listening={false}
+                  />
+                )}
+                {node.type !== 'frame' && (
+                  <Html
+                    divProps={{
+                      style: {
+                        pointerEvents: 'none',
+                        width: node.width,
+                        height: node.height,
+                        overflow: 'hidden',
+                        padding: 12,
+                        boxSizing: 'border-box',
+                        color: getContrastColor(node.color),
+                        fontFamily: FONT_FAMILY,
+                        fontSize: 13,
+                      }
+                    }}
+                  >
+                    <div className="markdown-preview" style={{ color: 'inherit' }}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {displayText}
+                      </ReactMarkdown>
+                    </div>
+                  </Html>
+                )}
               </Group>
             )
           })}
+          
+          <Transformer
+            ref={trRef}
+            boundBoxFunc={(oldBox, newBox) => {
+              if (newBox.width < 50 || newBox.height < 50) return oldBox
+              return newBox
+            }}
+            padding={4}
+            anchorSize={8}
+            anchorCornerRadius={4}
+            borderStroke="#7c6af7"
+            anchorStroke="#7c6af7"
+            anchorFill="#fff"
+            rotateEnabled={false}
+          />
         </Layer>
       </Stage>
 
