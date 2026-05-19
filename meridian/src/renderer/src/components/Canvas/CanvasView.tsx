@@ -925,7 +925,9 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                       padding: '16px 20px', 
                       width: '100%', 
                       height: '100%', 
-                      boxSizing: 'border-box' 
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
+                      wordBreak: 'break-word'
                     }}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {displayText}
@@ -940,7 +942,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           <Transformer
             ref={trRef}
             boundBoxFunc={(oldBox, newBox) => {
-              if (newBox.width < 50 || newBox.height < 50) return oldBox
+              if (newBox.width < 100 || newBox.height < 40) return oldBox
               return newBox
             }}
             padding={4}
