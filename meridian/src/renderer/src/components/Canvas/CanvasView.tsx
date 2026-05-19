@@ -182,15 +182,18 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
 
-  /* --- Space-bar panning ------------------------------------------ */
+  /* --- Space-bar panning / Shift for edge creation ---------------- */
   const [spaceHeld, setSpaceHeld] = useState(false)
+  const [shiftHeld, setShiftHeld] = useState(false)
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.code === 'Space' && !e.repeat) setSpaceHeld(true)
+      if (e.key === 'Shift' && !e.repeat) setShiftHeld(true)
     }
     const up = (e: KeyboardEvent) => {
       if (e.code === 'Space') setSpaceHeld(false)
+      if (e.key === 'Shift') setShiftHeld(false)
     }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
@@ -319,32 +322,50 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     [],
   )
 
-  const handleNodeMouseUp = useCallback(
-    (nodeId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+  /* Stage-level mouseUp: detect target node under cursor for edge creation */
+  const handleStageMouseUp = useCallback(
+    (_e: Konva.KonvaEventObject<MouseEvent>) => {
       const origin = shiftDragOriginRef.current
+      if (!origin) return
       shiftDragOriginRef.current = null
-      if (!origin || origin === nodeId || !e.evt.shiftKey) return
 
-      // Don't create duplicate edges
+      // Find which node is under the pointer
+      const stage = stageRef.current
+      if (!stage) return
+      const pointer = stage.getPointerPosition()
+      if (!pointer) return
+
+      // Convert screen coords to canvas coords
+      const canvasX = (pointer.x - stagePos.x) / stageScale
+      const canvasY = (pointer.y - stagePos.y) / stageScale
+
+      // Find which node contains this point
+      const targetNode = canvasData.nodes.find(n =>
+        n.id !== origin &&
+        canvasX >= n.x && canvasX <= n.x + n.width &&
+        canvasY >= n.y && canvasY <= n.y + n.height
+      )
+      if (!targetNode) return
+
       mutate(prev => {
         const exists = prev.edges.some(
           ed =>
-            (ed.fromNode === origin && ed.toNode === nodeId) ||
-            (ed.fromNode === nodeId && ed.toNode === origin),
+            (ed.fromNode === origin && ed.toNode === targetNode.id) ||
+            (ed.fromNode === targetNode.id && ed.toNode === origin),
         )
         if (exists) return prev
 
         const newEdge: CanvasEdgeData = {
           id: crypto.randomUUID(),
           fromNode: origin,
-          toNode: nodeId,
+          toNode: targetNode.id,
           fromSide: 'right',
           toSide: 'left',
         }
         return { ...prev, edges: [...prev.edges, newEdge] }
       })
     },
-    [mutate],
+    [mutate, canvasData.nodes, stagePos, stageScale],
   )
 
   /* --- Toolbar actions -------------------------------------------- */
@@ -552,7 +573,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         onDragEnd={handleDragEnd}
         onDblClick={handleDblClick}
         onClick={handleStageClick}
-        style={{ cursor: spaceHeld ? 'grab' : 'default' }}
+        onMouseUp={handleStageMouseUp}
+        style={{ cursor: shiftHeld ? 'crosshair' : spaceHeld ? 'grab' : 'default' }}
       >
         {/* Background layer */}
         <Layer listening={false}>
@@ -602,7 +624,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                 key={node.id}
                 x={node.x}
                 y={node.y}
-                draggable={!spaceHeld}
+                draggable={!spaceHeld && !shiftHeld}
                 onDragEnd={e => handleNodeDragEnd(node.id, e)}
                 onClick={() => setSelectedNodeId(node.id)}
                 onDblClick={() => {
@@ -612,7 +634,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                   }
                 }}
                 onMouseDown={e => handleNodeMouseDown(node.id, e)}
-                onMouseUp={e => handleNodeMouseUp(node.id, e)}
               >
                 <Rect
                   width={node.width}
