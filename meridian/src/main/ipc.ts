@@ -55,8 +55,16 @@ export function registerIpcHandlers(settings: AppSettings): void {
   })
 
   ipcMain.handle(IPC.VAULT_RENAME_FILE, async (_event, oldPath: string, newName: string) => {
+    console.log('[IPC] rename:', oldPath, '->', newName)
     if (!vaultManager) throw new Error('No vault open')
-    return vaultManager.renameFile(oldPath, newName)
+    try {
+      const result = await vaultManager.renameFile(oldPath, newName)
+      console.log('[IPC] rename success:', result)
+      return result
+    } catch (e) {
+      console.error('[IPC] rename error:', e)
+      throw e
+    }
   })
 
   ipcMain.handle(IPC.SETTINGS_GET, async () => {
