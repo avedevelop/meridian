@@ -1,9 +1,10 @@
-import { useState, Component, type ReactNode } from 'react'
+import { useState, useMemo, Component, type ReactNode } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { FileTree } from './FileTree'
 import { SearchPanel } from './SearchPanel'
 import { GraphView } from '../Graph/GraphView'
+import type { VaultFile } from '@shared/types'
 
 class GraphErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null }
@@ -25,6 +26,22 @@ export function Sidebar() {
   const { vault, files } = useVaultStore()
   const { openFile, createFile, createFolder, openVault, renameFile, moveFile, deleteFile, revealFile } = useVaultBridge()
   const [activeTab, setActiveTab] = useState<SidebarTab>('files')
+  const [filterQuery, setFilterQuery] = useState('')
+  const [collapseKey, setCollapseKey] = useState(0)
+
+  const filteredFiles = useMemo(() => {
+    if (!filterQuery.trim()) return null
+    const q = filterQuery.toLowerCase()
+    const result: VaultFile[] = []
+    function walk(items: VaultFile[]) {
+      for (const f of items) {
+        if (!f.isDirectory && f.name.toLowerCase().includes(q)) result.push(f)
+        if (f.isDirectory && f.children) walk(f.children)
+      }
+    }
+    walk(files)
+    return result.slice(0, 100)
+  }, [files, filterQuery])
 
   if (!vault) return null
 
@@ -82,8 +99,74 @@ export function Sidebar() {
                 ⎆
               </button>
             </div>
+            <div style={{ padding: '4px 8px', borderBottom: '1px solid #2a2a2a', display: 'flex', gap: 4 }}>
+              <input
+                value={filterQuery}
+                onChange={e => setFilterQuery(e.target.value)}
+                placeholder="Filter files..."
+                style={{
+                  flex: 1, padding: '4px 8px', borderRadius: 4,
+                  background: '#2a2a2a', border: 'none', outline: 'none',
+                  color: '#ccc', fontSize: 12,
+                }}
+              />
+              {filterQuery && (
+                <button
+                  onClick={() => setFilterQuery('')}
+                  style={{ background: 'transparent', border: 'none', color: '#555', cursor: 'pointer', padding: '0 4px' }}
+                >
+                  ×
+                </button>
+              )}
+              <button
+                onClick={() => setCollapseKey(k => k + 1)}
+                title="Collapse all folders"
+                style={{ background: 'transparent', border: 'none', color: '#555', cursor: 'pointer', padding: '0 4px', fontSize: 12 }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#aaa')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+              >
+                ⊟
+              </button>
+            </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
-              <FileTree files={files} onFileClick={openFile} onRename={renameFile} onDelete={deleteFile} onNewFolder={createFolder} onMove={moveFile} onReveal={revealFile} collapseKey={0} vaultPath={vault.path} />
+              {filteredFiles ? (
+                filteredFiles.length === 0 ? (
+                  <div style={{ padding: '8px 12px', color: '#444', fontSize: 12 }}>No files match.</div>
+                ) : (
+                  filteredFiles.map(f => (
+                    <div
+                      key={f.path}
+                      onClick={() => openFile(f.path, f.name)}
+                      style={{
+                        padding: '3px 12px', cursor: 'pointer', color: '#ccc', fontSize: 13,
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#2a2a2a')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <span style={{ flexShrink: 0 }}>📄</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        {f.name}
+                      </span>
+                      <span style={{ color: '#444', fontSize: 11, flexShrink: 0 }}>
+                        {f.relativePath.split('/').slice(0, -1).join('/')}
+                      </span>
+                    </div>
+                  ))
+                )
+              ) : (
+                <FileTree
+                  files={files}
+                  onFileClick={openFile}
+                  onRename={renameFile}
+                  onDelete={deleteFile}
+                  onNewFolder={createFolder}
+                  onMove={moveFile}
+                  onReveal={revealFile}
+                  collapseKey={collapseKey}
+                  vaultPath={vault.path}
+                />
+              )}
             </div>
             <div style={{ padding: 8, borderTop: '1px solid #2a2a2a', flexShrink: 0 }}>
               <button
