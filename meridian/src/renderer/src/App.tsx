@@ -68,6 +68,7 @@ export default function App() {
   }, [openVault, openDailyNote, exportNote])
 
   useEffect(() => {
+    if (!window.menuAPI) return
     const unsub = window.menuAPI.onAction(async (action) => {
       switch (action) {
         case 'new-file':
