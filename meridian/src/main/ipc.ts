@@ -23,6 +23,14 @@ export function registerIpcHandlers(settings: AppSettings): void {
     return { path: vaultPath, name }
   })
 
+  ipcMain.handle(IPC.VAULT_OPEN_BY_PATH, async (_event, vaultPath: string) => {
+    const name = basename(vaultPath) || 'Vault'
+    vaultManager = new VaultManager(vaultPath)
+    settings.addRecentVault(vaultPath, name)
+    settings.setLastVault(vaultPath)
+    return { path: vaultPath, name }
+  })
+
   ipcMain.handle(IPC.VAULT_LIST_FILES, async () => {
     if (!vaultManager) throw new Error('No vault open')
     return vaultManager.listFiles()

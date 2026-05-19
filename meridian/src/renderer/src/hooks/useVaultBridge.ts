@@ -13,6 +13,7 @@ declare global {
       createFile: (dir: string, name: string) => Promise<string>
       deleteFile: (path: string) => Promise<void>
       renameFile: (oldPath: string, newName: string) => Promise<string>
+      openByPath: (path: string) => Promise<VaultConfig | null>
       onFileChanged: (cb: (file: VaultFile) => void) => () => void
     }
     settings: {
@@ -132,5 +133,27 @@ export function useVaultBridge() {
     }
   }, [refreshFiles])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile, deleteFile }
+  const openVaultByPath = useCallback(async (vaultPath: string) => {
+    const config = await window.vault.openByPath(vaultPath)
+    if (!config) return
+    useVaultStore.setState({ openTabs: [], activeTabPath: null })
+    useLinkStore.getState().reset()
+    setVault(config)
+    const files = await window.vault.listFiles()
+    setFiles(files)
+    const { indexFile } = useLinkStore.getState()
+    const flat: VaultFile[] = []
+    const flatten = (arr: VaultFile[]) => { for (const f of arr) { flat.push(f); if (f.children) flatten(f.children) } }
+    flatten(files)
+    for (const f of flat) {
+      if (!f.isDirectory && f.name.endsWith('.md')) {
+        try {
+          const content = await window.vault.readFile(f.path)
+          indexFile(f.path, f.name, content, config.path)
+        } catch {}
+      }
+    }
+  }, [setVault, setFiles])
+
+  return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile, deleteFile, openVaultByPath }
 }

@@ -24,6 +24,9 @@ const vaultAPI = {
   renameFile: (oldPath: string, newName: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_RENAME_FILE, oldPath, newName),
 
+  openByPath: (vaultPath: string): Promise<VaultConfig | null> =>
+    ipcRenderer.invoke(IPC.VAULT_OPEN_BY_PATH, vaultPath),
+
   onFileChanged: (callback: (file: VaultFile) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, file: VaultFile) => callback(file)
     ipcRenderer.on(IPC.FILE_CHANGED, handler)
