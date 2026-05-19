@@ -36,9 +36,23 @@ function flattenFiles(files: VaultFile[]): VaultFile[] {
   return files.flatMap(f => f.children ? [f, ...flattenFiles(f.children)] : [f])
 }
 
+const GROUP_COLORS = {
+  canvas: '#b4befe',     // Lavender
+  project: '#f5c2e7',    // Pink
+  daily: '#a6e3a1',      // Green
+  connected: '#89b4fa',  // Blue
+  orphan: '#5c5f77'      // Gray
+}
+
+function getNodeGroup(id: string, name: string, degree: number): 'canvas' | 'project' | 'daily' | 'connected' | 'orphan' {
+  if (id.endsWith('.canvas')) return 'canvas'
+  if (name.match(/^\d{4}-\d{2}-\d{2}$/)) return 'daily'
+  if (id.includes('/Projects/') || id.includes('\\Projects\\')) return 'project'
+  return degree > 0 ? 'connected' : 'orphan'
+}
+
 const nodeR = (d: GNode) => d.degree > 0 ? 7 + Math.min(d.degree * 2, 10) : 5
-const nodeColor = (d: GNode) => d.degree > 0 ? '#7c6af7' : '#3a3560'
-const labelColor = (d: GNode) => d.degree > 0 ? '#bbb' : '#555'
+const labelColor = (d: GNode) => d.degree > 0 ? '#cdd6f4' : '#6c7086'
 
 export function GraphView({ onFileOpen }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -59,6 +73,18 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [playDuration, setPlayDuration] = useState(20000)
   const [isRecording, setIsRecording] = useState(false)
+
+  // Graph View Settings State
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showOrphans, setShowOrphans] = useState(true)
+  const [showCanvases, setShowCanvases] = useState(true)
+  const [showDaily, setShowDaily] = useState(true)
+  const [linkDistance, setLinkDistance] = useState(70)
+  const [repulsionStrength, setRepulsionStrength] = useState(-80)
+  const [showArrows, setShowArrows] = useState(false)
+  const [textSize, setTextSize] = useState(11)
+  const [linkThickness, setLinkThickness] = useState(1)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(true)
 
   progressRef.current = progress
   const viewModeRef = useRef(viewMode)
@@ -84,43 +110,36 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 
-  const updateVisibility = useCallback((prog: number, mode: 'live' | 'history') => {
+  const applyFiltersAndVisibility = useCallback(() => {
     const state = d3Ref.current
     if (!state) return
 
-    if (mode === 'live') {
-      state.nodeG.each(function(d) {
-        const group = d3.select(this)
-        group.transition().duration(300).attr('opacity', 1).style('pointer-events', 'auto')
-        group.select('circle.vis').transition().duration(300).attr('r', nodeR(d))
-        group.select('text').transition().duration(300).attr('opacity', 1)
-      })
+    const q = searchQuery.toLowerCase().trim()
+    const ts = minTime + (maxTime - minTime) * progress
+    const isHistory = viewMode === 'history'
 
-      state.linkSel.each(function() {
-        d3.select(this).transition().duration(300)
-          .attr('opacity', 0.6)
-          .attr('stroke-width', 1)
-      })
-
-      state.dateLabel.text('')
-      return
-    }
-
-    const ts = minTime + (maxTime - minTime) * prog
     let reheated = false
     const visibleNodes = new Set<string>()
 
     state.nodeG.each(function(d) {
-      const birth = birthtimes.get(d.id)
-      const visible = birth !== undefined && birth <= ts
+      let visible = true
+      
+      if (isHistory) {
+        const birth = birthtimes.get(d.id)
+        visible = birth !== undefined && birth <= ts
+      }
+
+      if (d.id.endsWith('.canvas') && !showCanvases) visible = false
+      if (d.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
+      if (d.degree === 0 && !showOrphans) visible = false
+
       if (visible) {
         visibleNodes.add(d.id)
       }
     })
 
     state.nodeG.each(function(d) {
-      const birth = birthtimes.get(d.id)
-      const visible = birth !== undefined && birth <= ts
+      const visible = visibleNodes.has(d.id)
       const group = d3.select(this)
       const circle = group.select('circle.vis')
       const text = group.select('text')
@@ -130,17 +149,17 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       if (visible) {
         if (wasHidden) {
           const neighbors = state.links.filter(l => 
-            (typeof l.source === 'object' ? l.source.id : l.source) === d.id ||
-            (typeof l.target === 'object' ? l.target.id : l.target) === d.id
+            (typeof l.source === 'object' ? (l.source as GNode).id : l.source) === d.id ||
+            (typeof l.target === 'object' ? (l.target as GNode).id : l.target) === d.id
           )
           
           let parentNode: GNode | null = null
           for (const l of neighbors) {
-            const otherId = (typeof l.source === 'object' ? l.source.id : l.source) === d.id
-              ? (typeof l.target === 'object' ? l.target.id : l.target)
-              : (typeof l.source === 'object' ? l.source.id : l.source)
+            const otherId = (typeof l.source === 'object' ? (l.source as GNode).id : l.source) === d.id
+              ? (typeof l.target === 'object' ? (l.target as GNode).id : l.target)
+              : (typeof l.source === 'object' ? (l.source as GNode).id : l.source)
             
-            if (visibleNodes.has(otherId)) {
+            if (visibleNodes.has(otherId as string)) {
               const foundNode = state.nodes.find(n => n.id === otherId)
               if (foundNode) {
                 parentNode = foundNode
@@ -171,10 +190,15 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           .duration(150)
           .attr('opacity', 1)
 
+        let baseOpacity = 1
+        if (q) {
+          baseOpacity = d.name.toLowerCase().includes(q) ? 1 : 0.15
+        }
+
         group.transition()
-          .duration(100)
-          .attr('opacity', 1)
-          .style('pointer-events', 'auto')
+          .duration(250)
+          .attr('opacity', baseOpacity)
+          .style('pointer-events', baseOpacity > 0.15 ? 'auto' : 'none')
       } else {
         circle.transition()
           .duration(200)
@@ -192,12 +216,21 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     })
 
     state.linkSel.each(function(d) {
-      const sb = birthtimes.get((d.source as GNode).id)
-      const tb = birthtimes.get((d.target as GNode).id)
-      const visible = sb !== undefined && tb !== undefined && sb <= ts && tb <= ts
-      d3.select(this).transition().duration(visible ? 250 : 150)
-        .attr('opacity', visible ? 0.6 : 0)
-        .attr('stroke-width', visible ? 1 : 0)
+      const sNode = d.source as GNode
+      const tNode = d.target as GNode
+      const visible = visibleNodes.has(sNode.id) && visibleNodes.has(tNode.id)
+
+      let opacity = visible ? 0.4 : 0
+      if (visible && q) {
+        const sMatch = sNode.name.toLowerCase().includes(q)
+        const tMatch = tNode.name.toLowerCase().includes(q)
+        opacity = (sMatch && tMatch) ? 0.4 : 0.05
+      }
+
+      d3.select(this).transition().duration(250)
+        .attr('stroke', 'rgba(255, 255, 255, 0.08)')
+        .attr('opacity', opacity)
+        .attr('stroke-width', visible ? linkThickness : 0)
     })
 
     visibleNodesRef.current = visibleNodes
@@ -206,14 +239,189 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       state.sim.alpha(0.3).restart()
     }
 
-    state.dateLabel.text(
-      new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-    )
-  }, [birthtimes, minTime, maxTime])
+    if (isHistory) {
+      state.dateLabel.text(
+        new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+      )
+    } else {
+      state.dateLabel.text('')
+    }
+  }, [
+    birthtimes,
+    minTime,
+    maxTime,
+    progress,
+    viewMode,
+    searchQuery,
+    showOrphans,
+    showCanvases,
+    showDaily,
+    linkThickness
+  ])
 
   useEffect(() => {
-    updateVisibility(progress, viewMode)
-  }, [progress, viewMode, updateVisibility])
+    applyFiltersAndVisibility()
+  }, [applyFiltersAndVisibility])
+
+  const handleMouseOver = useCallback((gEl: SVGGElement, d: GNode) => {
+    const state = d3Ref.current
+    if (!state) return
+
+    const q = searchQuery.toLowerCase().trim()
+    const ts = minTime + (maxTime - minTime) * progress
+    const isHistory = viewMode === 'history'
+
+    const connectedNodes = new Set<string>()
+    connectedNodes.add(d.id)
+    
+    state.links.forEach(l => {
+      const sourceId = (l.source as GNode).id
+      const targetId = (l.target as GNode).id
+      if (sourceId === d.id) connectedNodes.add(targetId)
+      if (targetId === d.id) connectedNodes.add(sourceId)
+    })
+
+    const hoverGroup = getNodeGroup(d.id, d.name, d.degree)
+    const hoverColor = GROUP_COLORS[hoverGroup]
+
+    d3.select(gEl).select('circle.vis')
+      .transition().duration(150)
+      .attr('r', nodeR(d) + 3)
+      .attr('fill', '#fff')
+      .style('filter', `url(#glow-${hoverGroup})`)
+
+    d3.select(gEl).select('text')
+      .transition().duration(150)
+      .attr('fill', '#fff')
+      .attr('font-size', textSize + 1)
+      .style('font-weight', 'bold')
+
+    state.nodeG.each(function(n) {
+      if (n.id === d.id) return
+      
+      let visible = true
+      if (isHistory) {
+        const birth = birthtimes.get(n.id)
+        visible = birth !== undefined && birth <= ts
+      }
+      if (n.id.endsWith('.canvas') && !showCanvases) visible = false
+      if (n.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
+      if (n.degree === 0 && !showOrphans) visible = false
+
+      let baseOpacity = visible ? 1 : 0
+      if (visible && q) {
+        baseOpacity = n.name.toLowerCase().includes(q) ? 1 : 0.15
+      }
+
+      const targetOpacity = baseOpacity > 0 ? (connectedNodes.has(n.id) ? baseOpacity : 0.15) : 0
+
+      d3.select(this).transition().duration(150)
+        .attr('opacity', targetOpacity)
+    })
+
+    state.linkSel.transition().duration(150)
+      .attr('stroke', l => {
+        const sNode = l.source as GNode
+        const tNode = l.target as GNode
+        const isConnected = sNode.id === d.id || tNode.id === d.id
+        return isConnected ? hoverColor : 'rgba(255, 255, 255, 0.04)'
+      })
+      .attr('stroke-width', l => {
+        const sNode = l.source as GNode
+        const tNode = l.target as GNode
+        const isConnected = sNode.id === d.id || tNode.id === d.id
+        return isConnected ? linkThickness + 1 : linkThickness
+      })
+      .attr('opacity', l => {
+        const sNode = l.source as GNode
+        const tNode = l.target as GNode
+        const isConnected = sNode.id === d.id || tNode.id === d.id
+        
+        let visible = true
+        if (isHistory) {
+          const sb = birthtimes.get(sNode.id)
+          const tb = birthtimes.get(tNode.id)
+          visible = sb !== undefined && tb !== undefined && sb <= ts && tb <= ts
+        }
+        if (sNode.id.endsWith('.canvas') && !showCanvases) visible = false
+        if (tNode.id.endsWith('.canvas') && !showCanvases) visible = false
+        if (sNode.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
+        if (tNode.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
+        if (sNode.degree === 0 && !showOrphans) visible = false
+        if (tNode.degree === 0 && !showOrphans) visible = false
+
+        if (!visible) return 0
+        return isConnected ? 0.85 : 0.05
+      })
+  }, [
+    searchQuery,
+    showCanvases,
+    showDaily,
+    showOrphans,
+    textSize,
+    linkThickness,
+    progress,
+    viewMode,
+    birthtimes,
+    minTime,
+    maxTime
+  ])
+
+  const handleMouseOut = useCallback((gEl: SVGGElement, d: GNode) => {
+    const group = getNodeGroup(d.id, d.name, d.degree)
+    
+    d3.select(gEl).select('circle.vis')
+      .transition().duration(150)
+      .attr('r', nodeR(d))
+      .attr('fill', GROUP_COLORS[group])
+      .style('filter', null)
+
+    d3.select(gEl).select('text')
+      .transition().duration(150)
+      .attr('fill', labelColor(d))
+      .attr('font-size', textSize)
+      .style('font-weight', 'normal')
+
+    applyFiltersAndVisibility()
+  }, [textSize, applyFiltersAndVisibility])
+
+  const handleMouseOverRef = useRef(handleMouseOver)
+  handleMouseOverRef.current = handleMouseOver
+
+  const handleMouseOutRef = useRef(handleMouseOut)
+  handleMouseOutRef.current = handleMouseOut
+
+  // Effect: Update Forces (Link distance and charge repulsion)
+  useEffect(() => {
+    const state = d3Ref.current
+    if (!state) return
+
+    const linkForce = state.sim.force('link') as d3.ForceLink<GNode, GLink>
+    if (linkForce) linkForce.distance(linkDistance)
+
+    const chargeForce = state.sim.force('charge') as d3.ForceManyBody<GNode>
+    if (chargeForce) chargeForce.strength(repulsionStrength)
+
+    state.sim.alpha(0.3).restart()
+  }, [linkDistance, repulsionStrength])
+
+  // Effect: Update Text Size
+  useEffect(() => {
+    const state = d3Ref.current
+    if (!state) return
+
+    state.nodeG.selectAll('text')
+      .attr('font-size', textSize)
+      .attr('dy', d => nodeR(d as GNode) + textSize + 2)
+  }, [textSize])
+
+  // Effect: Update Arrows
+  useEffect(() => {
+    const state = d3Ref.current
+    if (!state) return
+
+    state.linkSel.attr('marker-end', showArrows ? 'url(#arrow)' : null)
+  }, [showArrows])
 
   useEffect(() => {
     const el = containerRef.current
@@ -266,14 +474,56 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .style('cursor', 'grab').style('display', 'block')
 
       const defs = svg.append('defs')
-      const filter = defs.append('filter').attr('id', 'glow')
-      filter.append('feGaussianBlur').attr('stdDeviation', 3).attr('result', 'coloredBlur')
-      const merge = filter.append('feMerge')
-      merge.append('feMergeNode').attr('in', 'coloredBlur')
-      merge.append('feMergeNode').attr('in', 'SourceGraphic')
+
+      // Arrow marker
+      defs.append('marker')
+        .attr('id', 'arrow')
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 22)
+        .attr('refY', 0)
+        .attr('markerWidth', 5)
+        .attr('markerHeight', 5)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .attr('fill', 'rgba(255, 255, 255, 0.15)')
+
+      // Multi-group glow filters
+      Object.entries(GROUP_COLORS).forEach(([name, color]) => {
+        const filter = defs.append('filter')
+          .attr('id', `glow-${name}`)
+          .attr('x', '-50%')
+          .attr('y', '-50%')
+          .attr('width', '200%')
+          .attr('height', '200%')
+        
+        filter.append('feGaussianBlur')
+          .attr('stdDeviation', 4)
+          .attr('result', 'blur')
+          
+        filter.append('feComponentTransfer')
+          .attr('in', 'blur')
+          .attr('result', 'boost')
+          .append('feFuncA').attr('type', 'linear').attr('slope', 2)
+          
+        filter.append('feFlood')
+          .attr('flood-color', color)
+          .attr('result', 'flood')
+          
+        filter.append('feComposite')
+          .attr('in', 'flood')
+          .attr('in2', 'boost')
+          .attr('operator', 'in')
+          .attr('result', 'coloredGlow')
+          
+        const merge = filter.append('feMerge')
+        merge.append('feMergeNode').attr('in', 'coloredGlow')
+        merge.append('feMergeNode').attr('in', 'SourceGraphic')
+      })
+
       const pattern = defs.append('pattern')
         .attr('id', 'dotgrid').attr('width', 28).attr('height', 28).attr('patternUnits', 'userSpaceOnUse')
-      pattern.append('circle').attr('cx', 14).attr('cy', 14).attr('r', 0.6).attr('fill', '#1e1e2a')
+      pattern.append('circle').attr('cx', 14).attr('cy', 14).attr('r', 0.6).attr('fill', '#2a2b3d')
 
       svg.append('rect').attr('width', width).attr('height', height).attr('fill', '#161616')
       svg.append('rect').attr('width', width).attr('height', height).attr('fill', 'url(#dotgrid)')
@@ -290,7 +540,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
       const linkSel = root.append('g').selectAll<SVGLineElement, GLink>('line')
         .data(links).join('line')
-        .attr('stroke', '#4a4080').attr('stroke-width', 0).attr('opacity', 0)
+        .attr('stroke', 'rgba(255, 255, 255, 0.08)').attr('stroke-width', 0).attr('opacity', 0)
 
       const nodeG = root.append('g').selectAll<SVGGElement, GNode>('g')
         .data(nodes).join('g')
@@ -302,14 +552,10 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           onFileOpen?.()
         })
         .on('mouseover', function(_e, d) {
-          d3.select(this).select('circle.vis').attr('fill', '#a89df7').attr('r', nodeR(d) + 3)
-            .style('filter', 'url(#glow)')
-          d3.select(this).select('text').attr('fill', '#fff').attr('font-size', 13)
+          handleMouseOverRef.current?.(this, d)
         })
         .on('mouseout', function(_e, d) {
-          d3.select(this).select('circle.vis').attr('fill', nodeColor(d)).attr('r', nodeR(d))
-            .style('filter', null)
-          d3.select(this).select('text').attr('fill', labelColor(d)).attr('font-size', 11)
+          handleMouseOutRef.current?.(this, d)
         })
         .call(
           d3.drag<SVGGElement, GNode>()
@@ -320,12 +566,12 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
       nodeG.append('circle').attr('r', d => Math.max(nodeR(d) + 10, 16)).attr('fill', 'transparent')
       nodeG.append('circle').attr('class', 'vis')
-        .attr('r', 0).attr('fill', d => nodeColor(d))
-        .attr('stroke', d => d.degree > 0 ? '#6a5af7' : '#444').attr('stroke-width', 1.5)
+        .attr('r', 0).attr('fill', d => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
+        .attr('stroke', d => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)]).attr('stroke-width', 1.5)
       nodeG.append('text').text(d => d.name)
-        .attr('font-size', 11).attr('font-family', '-apple-system, sans-serif')
+        .attr('font-size', textSize).attr('font-family', '-apple-system, sans-serif')
         .attr('fill', d => labelColor(d)).attr('text-anchor', 'middle')
-        .attr('dy', d => nodeR(d) + 13)
+        .attr('dy', d => nodeR(d) + textSize + 2)
         .attr('opacity', 0)
         .style('pointer-events', 'none').style('user-select', 'none')
 
@@ -345,7 +591,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       })
 
       d3Ref.current = { sim, nodeG, linkSel, dateLabel, svgEl: svg.node()!, nodes, links, width, height }
-      updateVisibility(progressRef.current, viewModeRef.current)
+      applyFiltersAndVisibility()
     }
 
     const ro = new ResizeObserver(build)
@@ -445,6 +691,234 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      {/* Search and Settings Toggle */}
+      <div style={{
+        position: 'absolute', top: 12, left: 12, zIndex: 10,
+        display: 'flex', alignItems: 'center', gap: 8
+      }}>
+        <div style={{
+          background: 'rgba(22, 22, 22, 0.85)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid #2a2a2a',
+          borderRadius: 8,
+          padding: '4px 8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          width: 220,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+        }}>
+          <span style={{ fontSize: 13, opacity: 0.6 }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Поиск файлов..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: '#fff',
+              fontSize: 12,
+              width: '100%'
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                background: 'transparent', border: 'none', color: '#888',
+                cursor: 'pointer', fontSize: 10, padding: 2
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={() => setIsSettingsOpen(o => !o)}
+          style={{
+            background: isSettingsOpen ? '#7c6af7' : 'rgba(22, 22, 22, 0.85)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid #2a2a2a',
+            borderRadius: 8,
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: 14,
+            color: '#fff',
+            transition: 'all 0.2s',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+          }}
+          title="Параметры графа"
+        >
+          ⚙️
+        </button>
+      </div>
+
+      {/* Settings Panel */}
+      {isSettingsOpen && (
+        <div style={{
+          position: 'absolute', top: 52, left: 12, zIndex: 10,
+          width: 280,
+          background: 'rgba(22, 22, 22, 0.9)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid #2a2a2a',
+          borderRadius: 12,
+          padding: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          color: '#fff',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+          maxHeight: 'calc(100% - 80px)',
+          overflowY: 'auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2a2a2a', paddingBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: '#a6adc8' }}>ПАРАМЕТРЫ ГРАФА</span>
+            <button
+              onClick={() => setIsSettingsOpen(false)}
+              style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: 12 }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Filters */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#585b70' }}>ФИЛЬТРЫ</span>
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={showOrphans}
+                onChange={e => setShowOrphans(e.target.checked)}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
+              />
+              <span style={{ display: 'inline-flex', width: 8, height: 8, borderRadius: '50%', background: GROUP_COLORS.orphan }} />
+              Одиночные файлы
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={showCanvases}
+                onChange={e => setShowCanvases(e.target.checked)}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
+              />
+              <span style={{ display: 'inline-flex', width: 8, height: 8, borderRadius: '50%', background: GROUP_COLORS.canvas }} />
+              Холсты (.canvas)
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={showDaily}
+                onChange={e => setShowDaily(e.target.checked)}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
+              />
+              <span style={{ display: 'inline-flex', width: 8, height: 8, borderRadius: '50%', background: GROUP_COLORS.daily }} />
+              Ежедневники (Daily)
+            </label>
+          </div>
+
+          {/* Physics Forces */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #222', paddingTop: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#585b70' }}>СИЛЫ ГРАФА</span>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                <span style={{ color: '#a6adc8' }}>Дистанция связей</span>
+                <span style={{ color: '#7c6af7', fontWeight: 500 }}>{linkDistance}px</span>
+              </div>
+              <input
+                type="range" min={30} max={200} value={linkDistance}
+                onChange={e => setLinkDistance(Number(e.target.value))}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                <span style={{ color: '#a6adc8' }}>Сила отталкивания</span>
+                <span style={{ color: '#7c6af7', fontWeight: 500 }}>{Math.abs(repulsionStrength)}</span>
+              </div>
+              <input
+                type="range" min={-300} max={-20} value={repulsionStrength}
+                onChange={e => setRepulsionStrength(Number(e.target.value))}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
+              />
+            </div>
+          </div>
+
+          {/* Rendering */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #222', paddingTop: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#585b70' }}>ОТОБРАЖЕНИЕ</span>
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={showArrows}
+                onChange={e => setShowArrows(e.target.checked)}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
+              />
+              Стрелки направления связей
+            </label>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                <span style={{ color: '#a6adc8' }}>Размер текста</span>
+                <span style={{ color: '#7c6af7', fontWeight: 500 }}>{textSize}px</span>
+              </div>
+              <input
+                type="range" min={8} max={20} value={textSize}
+                onChange={e => setTextSize(Number(e.target.value))}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                <span style={{ color: '#a6adc8' }}>Толщина связей</span>
+                <span style={{ color: '#7c6af7', fontWeight: 500 }}>{linkThickness}px</span>
+              </div>
+              <input
+                type="range" min={1} max={5} value={linkThickness}
+                onChange={e => setLinkThickness(Number(e.target.value))}
+                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
+              />
+            </div>
+          </div>
+
+          {/* Color Legend */}
+          <div style={{ borderTop: '1px solid #222', paddingTop: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#585b70', display: 'block', marginBottom: 8 }}>ЛЕГЕНДА ЦВЕТОВ</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#a6adc8' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_COLORS.canvas }} />
+                <span>Холсты</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#a6adc8' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_COLORS.project }} />
+                <span>Проекты</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#a6adc8' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_COLORS.daily }} />
+                <span>Дневники</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#a6adc8' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUP_COLORS.connected }} />
+                <span>Связанные</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mode Selector */}
       <div style={{
         position: 'absolute', top: 12, right: 12,
