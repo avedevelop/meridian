@@ -851,13 +851,13 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                   }
                 }}
                 onMouseDown={e => handleNodeMouseDown(node.id, e)}
-                onTransformEnd={(e) => {
+                onTransform={(e) => {
                   const el = e.target
                   const scaleX = el.scaleX()
                   const scaleY = el.scaleY()
                   el.scaleX(1)
                   el.scaleY(1)
-                  mutate(prev => ({
+                  setCanvasData(prev => ({
                     ...prev,
                     nodes: prev.nodes.map(n => n.id === node.id ? {
                       ...n,
@@ -865,6 +865,19 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                       y: el.y(),
                       width: Math.max(50, n.width * scaleX),
                       height: Math.max(50, n.height * scaleY),
+                    } : n)
+                  }))
+                }}
+                onTransformEnd={(e) => {
+                  const el = e.target
+                  mutate(prev => ({
+                    ...prev,
+                    nodes: prev.nodes.map(n => n.id === node.id ? {
+                      ...n,
+                      x: el.x(),
+                      y: el.y(),
+                      width: n.width, // already updated in onTransform
+                      height: n.height,
                     } : n)
                   }))
                 }}
