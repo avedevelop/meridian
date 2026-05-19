@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
+import { FileIcon, EditNoteIcon } from '../Icons'
 
 export interface TocHeading {
   level: number
@@ -35,7 +36,7 @@ function scrollToHeading(index: number) {
 
 export function TocPanel() {
   const { openTabs, activeTabPath } = useVaultStore()
-  const activeTab = openTabs.find(t => t.path === activeTabPath)
+  const activeTab = openTabs.find((t) => t.path === activeTabPath)
 
   const isCanvas = activeTab?.path.endsWith('.canvas')
 
@@ -64,13 +65,16 @@ export function TocPanel() {
     }
     return (
       <div style={{ padding: '8px 0', fontSize: 12 }}>
-        {canvasNodes.map(node => {
-          const displayText = node.type === 'file' && node.file ? node.file.split('/').pop() : node.text || 'Untitled'
+        {canvasNodes.map((node) => {
+          const displayText =
+            node.type === 'file' && node.file ? node.file.split('/').pop() : node.text || 'Untitled'
           return (
             <div
               key={node.id}
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('canvas:center-node', { detail: { nodeId: node.id } }))
+                window.dispatchEvent(
+                  new CustomEvent('canvas:center-node', { detail: { nodeId: node.id } })
+                )
               }}
               title={displayText}
               style={{
@@ -81,21 +85,32 @@ export function TocPanel() {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                borderLeft: '2px solid transparent',
+                borderLeft: '2px solid transparent'
               }}
-              onMouseEnter={e => {
+              onMouseEnter={(e) => {
                 e.currentTarget.style.color = '#fff'
                 e.currentTarget.style.borderLeft = '2px solid #7c6af7'
                 e.currentTarget.style.background = '#1a1a2a'
               }}
-              onMouseLeave={e => {
+              onMouseLeave={(e) => {
                 e.currentTarget.style.color = '#ccc'
                 e.currentTarget.style.borderLeft = '2px solid transparent'
                 e.currentTarget.style.background = 'transparent'
               }}
             >
-              <span style={{ color: '#777', marginRight: 6 }}>
-                {node.type === 'file' ? '📄' : '📝'}
+              <span
+                style={{
+                  color: '#777',
+                  marginRight: 6,
+                  display: 'inline-flex',
+                  alignItems: 'center'
+                }}
+              >
+                {node.type === 'file' ? (
+                  <FileIcon size={11} color="#7c6af7" />
+                ) : (
+                  <EditNoteIcon size={11} color="#a78bfa" />
+                )}
               </span>
               {displayText}
             </div>
@@ -115,7 +130,7 @@ export function TocPanel() {
 
   return (
     <div style={{ padding: '8px 0', fontSize: 12 }}>
-      {headings.map(h => (
+      {headings.map((h) => (
         <div
           key={h.index}
           onClick={() => scrollToHeading(h.index)}
@@ -132,10 +147,12 @@ export function TocPanel() {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            borderLeft: `2px solid ${h.level === 1 ? '#7c6af7' : 'transparent'}`,
+            borderLeft: `2px solid ${h.level === 1 ? '#7c6af7' : 'transparent'}`
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={e => (e.currentTarget.style.color = h.level === 1 ? '#ccc' : h.level === 2 ? '#aaa' : '#777')}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.color = h.level === 1 ? '#ccc' : h.level === 2 ? '#aaa' : '#777')
+          }
         >
           {h.text}
         </div>

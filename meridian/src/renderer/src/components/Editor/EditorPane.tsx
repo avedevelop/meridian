@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react'
+import { FileIcon } from '../Icons'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { useVaultStore } from '../../store/useVaultStore'
@@ -11,51 +12,162 @@ import { Breadcrumb } from './Breadcrumb'
 import { useEditorStore } from '../../store/useEditorStore'
 import { CanvasView } from '../Canvas/CanvasView'
 
-function flattenVaultFiles(files: import('@shared/types').VaultFile[]): import('@shared/types').VaultFile[] {
-  return files.flatMap(f => f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f])
+function flattenVaultFiles(
+  files: import('@shared/types').VaultFile[]
+): import('@shared/types').VaultFile[] {
+  return files.flatMap((f) => (f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f]))
 }
 
 export function EditorArea() {
-  const { openTabs, activeTabPath, markTabDirty, setTabContent, files: vaultFiles } = useVaultStore()
-  const vault = useVaultStore(s => s.vault)
+  const {
+    openTabs,
+    activeTabPath,
+    markTabDirty,
+    setTabContent,
+    files: vaultFiles
+  } = useVaultStore()
+  const vault = useVaultStore((s) => s.vault)
   const { saveFile, openFile, saveImage } = useVaultBridge()
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
-  const activeTab = openTabs.find(t => t.path === activeTabPath)
-  const { fontSize, lineWidth } = useSettingsStore()
+  const activeTab = openTabs.find((t) => t.path === activeTabPath)
+  const {
+    fontSize,
+    lineWidth,
+    lineWrapping,
+    lineNumbers,
+    bracketMatching,
+    closeBrackets,
+    fontFamily,
+    fontWeight,
+    lineHeight
+  } = useSettingsStore()
   // Flag to suppress dirty marking during programmatic content sync from store
   const isProgrammaticUpdate = useRef(false)
 
   const isCanvasFile = activeTabPath?.endsWith('.canvas') ?? false
 
-  const handleChange = useCallback((content: string) => {
-    if (!activeTabPath || isProgrammaticUpdate.current) return
-    setTabContent(activeTabPath, content)
-    markTabDirty(activeTabPath, true)
-  }, [activeTabPath, setTabContent, markTabDirty])
+  const handleChange = useCallback(
+    (content: string) => {
+      if (!activeTabPath || isProgrammaticUpdate.current) return
+      setTabContent(activeTabPath, content)
+      markTabDirty(activeTabPath, true)
+    },
+    [activeTabPath, setTabContent, markTabDirty]
+  )
 
-  const handleLinkClick = useCallback((linkText: string) => {
-    // Use vault file tree (always fresh) + link index as fallback
-    const flat = flattenVaultFiles(vaultFiles)
-    const match = flat.find(f => {
-      const relPathWithoutExt = f.relativePath.replace(/\.md$/i, '')
-      const nameWithoutExt = f.name.replace(/\.md$/i, '')
-      return (
-        relPathWithoutExt.toLowerCase() === linkText.toLowerCase() ||
-        nameWithoutExt.toLowerCase() === linkText.toLowerCase()
-      )
-    })
-    if (match) openFile(match.path, match.name)
-  }, [vaultFiles, openFile])
+  const handleLinkClick = useCallback(
+    (linkText: string) => {
+      // Use vault file tree (always fresh) + link index as fallback
+      const flat = flattenVaultFiles(vaultFiles)
+      const match = flat.find((f) => {
+        const relPathWithoutExt = f.relativePath.replace(/\.md$/i, '')
+        const nameWithoutExt = f.name.replace(/\.md$/i, '')
+        return (
+          relPathWithoutExt.toLowerCase() === linkText.toLowerCase() ||
+          nameWithoutExt.toLowerCase() === linkText.toLowerCase()
+        )
+      })
+      if (match) openFile(match.path, match.name)
+    },
+    [vaultFiles, openFile]
+  )
 
-  const handleImagePaste = useCallback(async (base64: string, ext: string) => {
-    return saveImage(base64, ext)
-  }, [saveImage])
+  const handleImagePaste = useCallback(
+    async (base64: string, ext: string) => {
+      return saveImage(base64, ext)
+    },
+    [saveImage]
+  )
+
+  const handleEditorDragOver = useCallback((e: React.DragEvent) => {
+    const types = e.dataTransfer.types
+    if (types.includes('application/meridian-file') || types.includes('text/plain')) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }, [])
+
+  const handleEditorDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      const raw = e.dataTransfer.getData('application/meridian-file')
+      const plainText = e.dataTransfer.getData('text/plain')
+
+      let path = ''
+      let relativePath = ''
+
+      if (raw) {
+        try {
+          const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
+          path = fileInfo.path
+          relativePath = fileInfo.relativePath
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (!relativePath && plainText) {
+        path = plainText
+        if (vault) {
+          if (path.startsWith(vault.path)) {
+            relativePath = path.slice(vault.path.length).replace(/^\/+/, '')
+          } else {
+            relativePath = path.split('/').pop() ?? ''
+          }
+        } else {
+          relativePath = path.split('/').pop() ?? ''
+        }
+      }
+
+      if (!relativePath) return
+
+      // Create a clean wiki link format
+      const wikiLink = `[[${relativePath.replace(/\.md$/i, '')}]]`
+
+      const view = viewRef.current
+      if (view) {
+        // Find coordinates where the drop happened relative to the viewport
+        const pos = view.posAtCoords({ x: e.clientX, y: e.clientY })
+        if (pos !== null) {
+          // Insert link at the drop coordinates
+          view.dispatch({
+            changes: { from: pos, to: pos, insert: wikiLink },
+            selection: { anchor: pos + wikiLink.length }
+          })
+        } else {
+          // If the editor is focused, insert at current selection/cursor position
+          const state = view.state
+          if (view.hasFocus) {
+            const selection = state.selection.main
+            view.dispatch({
+              changes: { from: selection.from, to: selection.to, insert: wikiLink },
+              selection: { anchor: selection.from + wikiLink.length }
+            })
+          } else {
+            // Otherwise, append it to the end of the file
+            const docLength = state.doc.length
+            const insertText =
+              docLength === 0 || state.doc.toString().endsWith('\n') ? wikiLink : `\n${wikiLink}`
+            view.dispatch({
+              changes: { from: docLength, to: docLength, insert: insertText },
+              selection: { anchor: docLength + insertText.length }
+            })
+          }
+        }
+        view.focus()
+      }
+    },
+    [vault]
+  )
 
   // Stable ref so CodeMirror always gets latest file list even after re-renders
   const fileNamesRef = useRef<string[]>([])
   fileNamesRef.current = useMemo(
-    () => flattenVaultFiles(vaultFiles).filter(f => !f.isDirectory && f.name.endsWith('.md')).map(f => f.name),
+    () =>
+      flattenVaultFiles(vaultFiles)
+        .filter((f) => !f.isDirectory && f.name.endsWith('.md'))
+        .map((f) => f.name),
     [vaultFiles]
   )
   const stableGetFileNames = useCallback(() => fileNamesRef.current, [])
@@ -79,8 +191,22 @@ export function EditorArea() {
       state: EditorState.create({
         doc: activeTab?.content ?? '',
         extensions: [
-          createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames, fontSize, lineWidth, handleImagePaste),
-          EditorView.updateListener.of(update => {
+          createMarkdownExtensions(
+            handleChange,
+            handleLinkClick,
+            stableGetFileNames,
+            fontSize,
+            lineWidth,
+            handleImagePaste,
+            lineWrapping,
+            lineNumbers,
+            bracketMatching,
+            closeBrackets,
+            fontFamily,
+            fontWeight,
+            lineHeight
+          ),
+          EditorView.updateListener.of((update) => {
             if (!update.selectionSet && !update.docChanged) return
             const head = update.state.selection.main.head
             const line = update.state.doc.lineAt(head)
@@ -89,14 +215,17 @@ export function EditorArea() {
             for (let i = line.number; i >= 1; i--) {
               const text = update.state.doc.line(i).text
               const match = text.match(/^#{1,6}\s+(.+)/)
-              if (match) { activeHeading = match[1].trim(); break }
+              if (match) {
+                activeHeading = match[1].trim()
+                break
+              }
             }
             useEditorStore.getState().setCursorPos(cursorPos)
             useEditorStore.getState().setActiveHeading(activeHeading)
-          }),
-        ],
+          })
+        ]
       }),
-      parent: editorRef.current,
+      parent: editorRef.current
     })
 
     viewRef.current = view
@@ -106,7 +235,19 @@ export function EditorArea() {
       useEditorStore.getState().setCursorPos(null)
       useEditorStore.getState().setActiveHeading(null)
     }
-  }, [activeTabPath, fontSize, lineWidth, isCanvasFile])
+  }, [
+    activeTabPath,
+    fontSize,
+    lineWidth,
+    lineWrapping,
+    lineNumbers,
+    bracketMatching,
+    closeBrackets,
+    fontFamily,
+    fontWeight,
+    lineHeight,
+    isCanvasFile
+  ])
 
   useEffect(() => {
     if (isCanvasFile) return
@@ -116,7 +257,7 @@ export function EditorArea() {
     if (current !== activeTab.content) {
       isProgrammaticUpdate.current = true
       view.dispatch({
-        changes: { from: 0, to: current.length, insert: activeTab.content },
+        changes: { from: 0, to: current.length, insert: activeTab.content }
       })
       isProgrammaticUpdate.current = false
     }
@@ -124,9 +265,19 @@ export function EditorArea() {
 
   if (openTabs.length === 0) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#444'
+        }}
+      >
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+            <FileIcon size={48} color="#2b2a3a" />
+          </div>
           <p>Open a note from the sidebar</p>
           <p style={{ fontSize: 12, color: '#333' }}>⌘K to search</p>
         </div>
@@ -149,11 +300,22 @@ export function EditorArea() {
         />
       ) : (
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          <div ref={editorRef} style={{ flex: 1, overflow: 'auto', height: '100%' }} />
+          <div
+            ref={editorRef}
+            onDragOver={handleEditorDragOver}
+            onDrop={handleEditorDrop}
+            style={{ flex: 1, overflow: 'auto', height: '100%', background: '#131313' }}
+          />
           {activeTab && (
             <>
               <div style={{ width: 1, background: '#2a2a2a' }} />
-              <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} fontSize={fontSize} lineWidth={lineWidth} vaultPath={vault?.path} />
+              <MarkdownPreview
+                content={activeTab.content}
+                onLinkClick={handleLinkClick}
+                fontSize={fontSize}
+                lineWidth={lineWidth}
+                vaultPath={vault?.path}
+              />
             </>
           )}
         </div>

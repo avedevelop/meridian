@@ -21,6 +21,10 @@ declare global {
       writeBinary: (filePath: string, base64: string) => Promise<string>
       exportHtml: (suggestedName: string, html: string) => Promise<string | null>
       saveVideo: (data: Uint8Array) => Promise<string | null>
+      fetchUrlMetadata: (
+        url: string
+      ) => Promise<{ title: string; description: string; image: string; url: string }>
+      openExternal: (url: string) => Promise<void>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
@@ -47,24 +51,27 @@ function flattenFiles(files: VaultFile[]): VaultFile[] {
 export function useVaultBridge() {
   const { setVault, setFiles, openTab, setTabContent, markTabDirty } = useVaultStore()
 
-  const initVault = useCallback(async (config: import('@shared/types').VaultConfig) => {
-    useVaultStore.setState({ openTabs: [], activeTabPath: null })
-    useLinkStore.getState().reset()
-    setVault(config)
-    const files = await window.vault.listFiles()
-    setFiles(files)
-    const { indexFile } = useLinkStore.getState()
-    for (const f of flattenFiles(files)) {
-      if (!f.isDirectory && f.name.endsWith('.md')) {
-        try {
-          const content = await window.vault.readFile(f.path)
-          indexFile(f.path, f.name, content, config.path)
-        } catch {
-          // Skip files that disappeared or became unreadable during initial indexing.
+  const initVault = useCallback(
+    async (config: import('@shared/types').VaultConfig) => {
+      useVaultStore.setState({ openTabs: [], activeTabPath: null })
+      useLinkStore.getState().reset()
+      setVault(config)
+      const files = await window.vault.listFiles()
+      setFiles(files)
+      const { indexFile } = useLinkStore.getState()
+      for (const f of flattenFiles(files)) {
+        if (!f.isDirectory && f.name.endsWith('.md')) {
+          try {
+            const content = await window.vault.readFile(f.path)
+            indexFile(f.path, f.name, content, config.path)
+          } catch {
+            // Skip files that disappeared or became unreadable during initial indexing.
+          }
         }
       }
-    }
-  }, [setVault, setFiles])
+    },
+    [setVault, setFiles]
+  )
 
   const openVault = useCallback(async () => {
     const config = await window.vault.openDialog()
@@ -77,114 +84,149 @@ export function useVaultBridge() {
     setFiles(files)
   }, [setFiles])
 
-  const openFile = useCallback(async (path: string, name: string) => {
-    // Only open text-like files
-    const ext = path.split('.').pop()?.toLowerCase() ?? ''
-    const textExts = ['md', 'txt', 'markdown', 'mdx', 'mdown', 'canvas', 'json', 'yaml', 'yml', 'toml', 'csv']
-    if (!textExts.includes(ext)) return
-    // If tab already open, just activate it — don't overwrite unsaved content
-    const existing = useVaultStore.getState().openTabs.find(t => t.path === path)
-    if (existing) {
-      useVaultStore.getState().setActiveTab(path)
-      return
-    }
-    openTab(path, name)
-    try {
-      const content = await window.vault.readFile(path)
-      setTabContent(path, content)
-    } catch {
-      setTabContent(path, `<!-- Could not read file: ${name} -->`)
-    }
-  }, [openTab, setTabContent])
+  const openFile = useCallback(
+    async (path: string, name: string) => {
+      // Only open text-like files
+      const ext = path.split('.').pop()?.toLowerCase() ?? ''
+      const textExts = [
+        'md',
+        'txt',
+        'markdown',
+        'mdx',
+        'mdown',
+        'canvas',
+        'json',
+        'yaml',
+        'yml',
+        'toml',
+        'csv'
+      ]
+      if (!textExts.includes(ext)) return
+      // If tab already open, just activate it — don't overwrite unsaved content
+      const existing = useVaultStore.getState().openTabs.find((t) => t.path === path)
+      if (existing) {
+        useVaultStore.getState().setActiveTab(path)
+        return
+      }
+      openTab(path, name)
+      try {
+        const content = await window.vault.readFile(path)
+        setTabContent(path, content)
+      } catch {
+        setTabContent(path, `<!-- Could not read file: ${name} -->`)
+      }
+    },
+    [openTab, setTabContent]
+  )
 
-  const saveFile = useCallback(async (path: string, content: string) => {
-    await window.vault.writeFile(path, content)
-    markTabDirty(path, false)
-    // Re-index this file
-    const vault = useVaultStore.getState().vault
-    if (vault) {
-      const name = path.split('/').pop() ?? ''
-      useLinkStore.getState().indexFile(path, name, content, vault.path)
-    }
-  }, [markTabDirty])
-
-  const createFile = useCallback(async (dir: string, name: string) => {
-    const fileName = name.endsWith('.md') ? name : `${name}.md`
-    const filePath = await window.vault.createFile(dir, fileName)
-    // Index new file so it appears in autocomplete and backlinks
-    const vault = useVaultStore.getState().vault
-    if (vault) useLinkStore.getState().indexFile(filePath, fileName, '', vault.path)
-    await refreshFiles()
-    await openFile(filePath, fileName)
-  }, [refreshFiles, openFile])
-
-  const createCanvas = useCallback(async (dir: string, name: string) => {
-    const fileName = name.endsWith('.canvas') ? name : `${name}.canvas`
-    const filePath = await window.vault.createFile(dir, fileName)
-    await window.vault.writeFile(filePath, '{"nodes":[], "edges":[]}')
-    await refreshFiles()
-    await openFile(filePath, fileName)
-  }, [refreshFiles, openFile])
-
-  const createFolder = useCallback(async (parentDir: string) => {
-    const name = window.prompt('Folder name:')
-    if (!name?.trim()) return
-    try {
-      await window.vault.createDir(parentDir, name.trim())
-      await refreshFiles()
-    } catch (e) {
-      console.error('[Bridge] createFolder error', e)
-      window.alert(`Could not create folder: ${e instanceof Error ? e.message : String(e)}`)
-    }
-  }, [refreshFiles])
-
-  const renameFile = useCallback(async (oldPath: string, newName: string) => {
-    try {
-      const newPath = await window.vault.renameFile(oldPath, newName)
-      const { openTabs, activeTabPath } = useVaultStore.getState()
-      const wasActive = activeTabPath === oldPath
-      useVaultStore.setState({
-        openTabs: openTabs.map(t => t.path === oldPath ? { ...t, path: newPath, name: newName } : t),
-        activeTabPath: wasActive ? newPath : activeTabPath,
-      })
-      // Update link index: remove old path, re-index under new name
+  const saveFile = useCallback(
+    async (path: string, content: string) => {
+      await window.vault.writeFile(path, content)
+      markTabDirty(path, false)
+      // Re-index this file
       const vault = useVaultStore.getState().vault
       if (vault) {
-        const tab = openTabs.find(t => t.path === oldPath)
-        const content = tab?.content ?? ''
-        useLinkStore.getState().removeFile(oldPath, vault.path)
-        useLinkStore.getState().indexFile(newPath, newName, content, vault.path)
+        const name = path.split('/').pop() ?? ''
+        useLinkStore.getState().indexFile(path, name, content, vault.path)
       }
-      await refreshFiles()
-    } catch (e) {
-      console.error('[Bridge] renameFile error', e)
-    }
-  }, [refreshFiles])
+    },
+    [markTabDirty]
+  )
 
-  const moveFile = useCallback(async (sourcePath: string, targetDir: string) => {
-    try {
-      const newPath = await window.vault.moveFile(sourcePath, targetDir)
-      const name = newPath.split('/').pop() ?? ''
-      const { openTabs, activeTabPath } = useVaultStore.getState()
-      const wasActive = activeTabPath === sourcePath
-      useVaultStore.setState({
-        openTabs: openTabs.map(t =>
-          t.path === sourcePath ? { ...t, path: newPath, name } : t
-        ),
-        activeTabPath: wasActive ? newPath : activeTabPath,
-      })
+  const createFile = useCallback(
+    async (dir: string, name: string) => {
+      const fileName = name.endsWith('.md') ? name : `${name}.md`
+      const filePath = await window.vault.createFile(dir, fileName)
+      // Index new file so it appears in autocomplete and backlinks
       const vault = useVaultStore.getState().vault
-      if (vault) {
-        const tab = openTabs.find(t => t.path === sourcePath)
-        useLinkStore.getState().removeFile(sourcePath, vault.path)
-        useLinkStore.getState().indexFile(newPath, name, tab?.content ?? '', vault.path)
-      }
+      if (vault) useLinkStore.getState().indexFile(filePath, fileName, '', vault.path)
       await refreshFiles()
-    } catch (e) {
-      console.error('[Bridge] moveFile error', e)
-      window.alert(`Could not move file: ${e instanceof Error ? e.message : String(e)}`)
-    }
-  }, [refreshFiles])
+      await openFile(filePath, fileName)
+    },
+    [refreshFiles, openFile]
+  )
+
+  const createCanvas = useCallback(
+    async (dir: string, name: string) => {
+      const fileName = name.endsWith('.canvas') ? name : `${name}.canvas`
+      const filePath = await window.vault.createFile(dir, fileName)
+      await window.vault.writeFile(filePath, '{"nodes":[], "edges":[]}')
+      await refreshFiles()
+      await openFile(filePath, fileName)
+    },
+    [refreshFiles, openFile]
+  )
+
+  const createFolder = useCallback(
+    async (parentDir: string) => {
+      const name = window.prompt('Folder name:')
+      if (!name?.trim()) return
+      try {
+        await window.vault.createDir(parentDir, name.trim())
+        await refreshFiles()
+      } catch (e) {
+        console.error('[Bridge] createFolder error', e)
+        window.alert(`Could not create folder: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    },
+    [refreshFiles]
+  )
+
+  const renameFile = useCallback(
+    async (oldPath: string, newName: string) => {
+      try {
+        const newPath = await window.vault.renameFile(oldPath, newName)
+        const { openTabs, activeTabPath } = useVaultStore.getState()
+        const wasActive = activeTabPath === oldPath
+        useVaultStore.setState({
+          openTabs: openTabs.map((t) =>
+            t.path === oldPath ? { ...t, path: newPath, name: newName } : t
+          ),
+          activeTabPath: wasActive ? newPath : activeTabPath
+        })
+        // Update link index: remove old path, re-index under new name
+        const vault = useVaultStore.getState().vault
+        if (vault) {
+          const tab = openTabs.find((t) => t.path === oldPath)
+          const content = tab?.content ?? ''
+          useLinkStore.getState().removeFile(oldPath, vault.path)
+          useLinkStore.getState().indexFile(newPath, newName, content, vault.path)
+        }
+        await refreshFiles()
+      } catch (e) {
+        console.error('[Bridge] renameFile error', e)
+      }
+    },
+    [refreshFiles]
+  )
+
+  const moveFile = useCallback(
+    async (sourcePath: string, targetDir: string) => {
+      try {
+        const newPath = await window.vault.moveFile(sourcePath, targetDir)
+        const name = newPath.split('/').pop() ?? ''
+        const { openTabs, activeTabPath } = useVaultStore.getState()
+        const wasActive = activeTabPath === sourcePath
+        useVaultStore.setState({
+          openTabs: openTabs.map((t) =>
+            t.path === sourcePath ? { ...t, path: newPath, name } : t
+          ),
+          activeTabPath: wasActive ? newPath : activeTabPath
+        })
+        const vault = useVaultStore.getState().vault
+        if (vault) {
+          const tab = openTabs.find((t) => t.path === sourcePath)
+          useLinkStore.getState().removeFile(sourcePath, vault.path)
+          useLinkStore.getState().indexFile(newPath, name, tab?.content ?? '', vault.path)
+        }
+        await refreshFiles()
+      } catch (e) {
+        console.error('[Bridge] moveFile error', e)
+        window.alert(`Could not move file: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    },
+    [refreshFiles]
+  )
 
   const revealFile = useCallback(async (path: string) => {
     try {
@@ -194,36 +236,42 @@ export function useVaultBridge() {
     }
   }, [])
 
-  const deleteFile = useCallback(async (path: string) => {
-    try {
-      await window.vault.deleteFile(path)
-      const { openTabs } = useVaultStore.getState()
-      if (openTabs.some(t => t.path === path)) {
-        useVaultStore.getState().closeTab(path)
-      }
-      const vault = useVaultStore.getState().vault
-      if (vault) {
-        const linkStore = useLinkStore.getState()
-        const paths = linkStore.allFiles().filter(filePath => isSameOrChildPath(path, filePath))
-        for (const filePath of paths) {
-          linkStore.removeFile(filePath, vault.path)
+  const deleteFile = useCallback(
+    async (path: string) => {
+      try {
+        await window.vault.deleteFile(path)
+        const { openTabs } = useVaultStore.getState()
+        if (openTabs.some((t) => t.path === path)) {
+          useVaultStore.getState().closeTab(path)
         }
+        const vault = useVaultStore.getState().vault
+        if (vault) {
+          const linkStore = useLinkStore.getState()
+          const paths = linkStore.allFiles().filter((filePath) => isSameOrChildPath(path, filePath))
+          for (const filePath of paths) {
+            linkStore.removeFile(filePath, vault.path)
+          }
+        }
+        await refreshFiles()
+      } catch (e) {
+        console.error('[Bridge] deleteFile error', e)
       }
-      await refreshFiles()
-    } catch (e) {
-      console.error('[Bridge] deleteFile error', e)
-    }
-  }, [refreshFiles])
+    },
+    [refreshFiles]
+  )
 
-  const openVaultByPath = useCallback(async (vaultPath: string) => {
-    try {
-      const config = await window.vault.openByPath(vaultPath)
-      if (!config) return  // null = path doesn't exist or not a directory
-      await initVault(config)
-    } catch (e) {
-      console.error('[Bridge] openVaultByPath error', e)
-    }
-  }, [initVault])
+  const openVaultByPath = useCallback(
+    async (vaultPath: string) => {
+      try {
+        const config = await window.vault.openByPath(vaultPath)
+        if (!config) return // null = path doesn't exist or not a directory
+        await initVault(config)
+      } catch (e) {
+        console.error('[Bridge] openVaultByPath error', e)
+      }
+    },
+    [initVault]
+  )
 
   const openDailyNote = useCallback(async () => {
     const vault = useVaultStore.getState().vault
@@ -235,7 +283,10 @@ export function useVaultBridge() {
     const dailyDir = `${vault.path}/Daily`
     const fullPath = `${dailyDir}/${fileName}`
 
-    const existing = useLinkStore.getState().allFiles().find(f => f === fullPath)
+    const existing = useLinkStore
+      .getState()
+      .allFiles()
+      .find((f) => f === fullPath)
     if (existing) {
       await openFile(existing, fileName)
       return
@@ -257,25 +308,28 @@ export function useVaultBridge() {
     }
   }, [openFile, refreshFiles])
 
-  const saveImage = useCallback(async (base64: string, ext: string): Promise<string | null> => {
-    const vault = useVaultStore.getState().vault
-    if (!vault) return null
-    const timestamp = Date.now()
-    const fileName = `image-${timestamp}.${ext}`
-    const filePath = `${vault.path}/assets/${fileName}`
-    try {
-      await window.vault.writeBinary(filePath, base64)
-      await refreshFiles()
-      return `assets/${fileName}`
-    } catch (e) {
-      console.error('[Bridge] saveImage error', e)
-      return null
-    }
-  }, [refreshFiles])
+  const saveImage = useCallback(
+    async (base64: string, ext: string): Promise<string | null> => {
+      const vault = useVaultStore.getState().vault
+      if (!vault) return null
+      const timestamp = Date.now()
+      const fileName = `image-${timestamp}.${ext}`
+      const filePath = `${vault.path}/assets/${fileName}`
+      try {
+        await window.vault.writeBinary(filePath, base64)
+        await refreshFiles()
+        return `assets/${fileName}`
+      } catch (e) {
+        console.error('[Bridge] saveImage error', e)
+        return null
+      }
+    },
+    [refreshFiles]
+  )
 
   const exportNote = useCallback(async () => {
     const { openTabs, activeTabPath } = useVaultStore.getState()
-    const activeTab = openTabs.find(t => t.path === activeTabPath)
+    const activeTab = openTabs.find((t) => t.path === activeTabPath)
     if (!activeTab) return
 
     try {
@@ -352,9 +406,9 @@ ${bodyHtml}
         '',
         '- **Write** — just start typing in any note',
         '- **Link notes** — type `[[Note Name]]` to create a wiki-link',
-        '- **Daily note** — press `⌘D` to open today\'s note',
+        "- **Daily note** — press `⌘D` to open today's note",
         '- **Search** — press `⌘K` to search across all notes',
-        '- **Graph** — click the 🕸️ tab in the sidebar to see your note network',
+        '- **Graph** — click the Graph tab in the sidebar to see your note network',
         '',
         '## Quick shortcuts',
         '',
@@ -366,7 +420,7 @@ ${bodyHtml}
         '| `⌘E` | Export to HTML |',
         '| `⌘,` | Settings |',
         '',
-        'Happy writing! 📓',
+        'Happy writing! 📓'
       ].join('\n')
 
       try {
@@ -382,5 +436,22 @@ ${bodyHtml}
     }
   }, [initVault, openFile])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createCanvas, createFolder, renameFile, moveFile, deleteFile, revealFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
+  return {
+    openVault,
+    refreshFiles,
+    openFile,
+    saveFile,
+    createFile,
+    createCanvas,
+    createFolder,
+    renameFile,
+    moveFile,
+    deleteFile,
+    revealFile,
+    openVaultByPath,
+    openDailyNote,
+    saveImage,
+    exportNote,
+    createNewVault
+  }
 }

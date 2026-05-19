@@ -1,11 +1,11 @@
 export interface VaultFile {
-  name: string        // filename with extension, e.g. "Notes.md"
-  path: string        // absolute path
+  name: string // filename with extension, e.g. "Notes.md"
+  path: string // absolute path
   relativePath: string // relative to vault root, e.g. "Projects/Notes.md"
   isDirectory: boolean
   children?: VaultFile[]
-  mtime: number       // last modified timestamp (ms)
-  birthtime: number    // file creation timestamp (ms)
+  mtime: number // last modified timestamp (ms)
+  birthtime: number // file creation timestamp (ms)
 }
 
 export interface VaultConfig {
@@ -15,7 +15,7 @@ export interface VaultConfig {
 
 export interface AppConfig {
   recentVaults: VaultConfig[]
-  lastVault: string | null  // path of last opened vault
+  lastVault: string | null // path of last opened vault
   windowBounds: { width: number; height: number; x?: number; y?: number }
 }
 
@@ -43,8 +43,10 @@ export const IPC = {
   VAULT_REVEAL_FILE: 'vault:reveal-file',
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',
-  FILE_CHANGED: 'file:changed',   // main → renderer push event
+  FILE_CHANGED: 'file:changed', // main → renderer push event
   VAULT_EXPORT_HTML: 'vault:export-html',
   VAULT_SAVE_VIDEO: 'vault:save-video',
   MENU_ACTION: 'menu:action',
+  VAULT_FETCH_URL_METADATA: 'vault:fetch-url-metadata',
+  VAULT_OPEN_EXTERNAL: 'vault:open-external'
 } as const

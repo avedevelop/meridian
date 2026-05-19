@@ -1,14 +1,34 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   overflow: hidden;
   background: #1a1a1a;
   color: #ccc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling for custom-tab-bar */
+.custom-tab-bar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-tab-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-tab-bar::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 2px;
+}
+.custom-tab-bar::-webkit-scrollbar-thumb:hover {
+  background: #7c6af7;
 }

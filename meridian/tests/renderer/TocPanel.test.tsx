@@ -8,7 +8,7 @@ describe('parseHeadings', () => {
     expect(result).toEqual([
       { level: 1, text: 'Title', index: 0 },
       { level: 2, text: 'Section', index: 1 },
-      { level: 3, text: 'Subsection', index: 2 },
+      { level: 3, text: 'Subsection', index: 2 }
     ])
   })
 
@@ -29,6 +29,6 @@ describe('parseHeadings', () => {
 
   it('assigns sequential index starting from 0', () => {
     const result = parseHeadings('# A\n## B\n### C')
-    expect(result.map(h => h.index)).toEqual([0, 1, 2])
+    expect(result.map((h) => h.index)).toEqual([0, 1, 2])
   })
 })

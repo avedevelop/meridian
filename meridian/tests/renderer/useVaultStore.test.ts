@@ -5,13 +5,19 @@ import { act, renderHook } from '@testing-library/react'
 vi.stubGlobal('window', {
   vault: {
     listFiles: vi.fn().mockResolvedValue([
-      { name: 'Note.md', path: '/vault/Note.md', relativePath: 'Note.md', isDirectory: false, mtime: 0 }
+      {
+        name: 'Note.md',
+        path: '/vault/Note.md',
+        relativePath: 'Note.md',
+        isDirectory: false,
+        mtime: 0
+      }
     ]),
     readFile: vi.fn().mockResolvedValue('# Note'),
     writeFile: vi.fn().mockResolvedValue(undefined),
-    createFile: vi.fn().mockResolvedValue('/vault/New.md'),
+    createFile: vi.fn().mockResolvedValue('/vault/New.md')
   },
-  settings: { get: vi.fn(), set: vi.fn() },
+  settings: { get: vi.fn(), set: vi.fn() }
 })
 
 import { useVaultStore } from '../../src/renderer/src/store/useVaultStore'
@@ -54,7 +60,7 @@ describe('useVaultStore', () => {
     const { result } = renderHook(() => useVaultStore())
     act(() => result.current.openTab('/vault/Note.md', 'Note.md'))
     act(() => result.current.setTabContent('/vault/Note.md', '# Hello'))
-    const tab = result.current.openTabs.find(t => t.path === '/vault/Note.md')
+    const tab = result.current.openTabs.find((t) => t.path === '/vault/Note.md')
     expect(tab?.content).toBe('# Hello')
   })
 })

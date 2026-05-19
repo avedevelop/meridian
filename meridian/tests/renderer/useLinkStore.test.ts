@@ -30,7 +30,7 @@ describe('useLinkStore', () => {
     act(() => {
       result.current.search('fox')
     })
-    expect(result.current.searchResults.map(r => r.path)).toContain('/vault/Notes.md')
+    expect(result.current.searchResults.map((r) => r.path)).toContain('/vault/Notes.md')
   })
 
   it('returns tags for a file', () => {
@@ -38,7 +38,9 @@ describe('useLinkStore', () => {
     act(() => {
       result.current.indexFile('/vault/A.md', 'A.md', '#project #todo', '/vault')
     })
-    expect(result.current.tagsForFile('/vault/A.md')).toEqual(expect.arrayContaining(['project', 'todo']))
+    expect(result.current.tagsForFile('/vault/A.md')).toEqual(
+      expect.arrayContaining(['project', 'todo'])
+    )
   })
 
   it('bumps indexVersion when files are indexed or removed', () => {
@@ -68,7 +70,7 @@ describe('useLinkStore', () => {
     act(() => {
       result.current.indexFile('/vault/A.md', 'A.md', 'alpha beta', '/vault')
     })
-    expect(result.current.searchResults.map(r => r.path)).toEqual(['/vault/A.md'])
+    expect(result.current.searchResults.map((r) => r.path)).toEqual(['/vault/A.md'])
 
     act(() => {
       result.current.removeFile('/vault/A.md', '/vault')

@@ -4,6 +4,10 @@ import type Konva from 'konva'
 import { Html } from 'react-konva-utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { useVaultStore } from '../../store/useVaultStore'
+import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { useLinkStore } from '../../store/useLinkStore'
+import { TrashIcon, NoteConvertIcon, FrameIcon } from '../Icons'
 
 /* ------------------------------------------------------------------ */
 /*  Data model                                                         */
@@ -73,7 +77,7 @@ function parseCanvasData(raw: string): CanvasData {
     const parsed = JSON.parse(raw) as Partial<CanvasData>
     return {
       nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
-      edges: Array.isArray(parsed.edges) ? parsed.edges : [],
+      edges: Array.isArray(parsed.edges) ? parsed.edges : []
     }
   } catch {
     return { nodes: [], edges: [] }
@@ -90,8 +94,18 @@ function getContrastColor(hexColor: string | undefined): string {
   const r = parseInt(hex.substring(0, 2), 16)
   const g = parseInt(hex.substring(2, 4), 16)
   const b = parseInt(hex.substring(4, 6), 16)
-  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000
-  return (yiq >= 128) ? '#111' : '#ccc'
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000
+  return yiq >= 128 ? '#111' : '#ccc'
+}
+
+function isUrl(str: string): boolean {
+  try {
+    const trimmed = str.trim()
+    const url = new URL(trimmed)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -136,6 +150,9 @@ function DotGrid({ stageX, stageY, stageScale, width, height }: DotGridProps) {
 /* ------------------------------------------------------------------ */
 
 export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
+  const { openFile, refreshFiles } = useVaultBridge()
+  const vault = useVaultStore((s) => s.vault)
+
   /* --- Container sizing ------------------------------------------- */
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 800, height: 600 })
@@ -159,6 +176,68 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     setCanvasData(parseCanvasData(content))
   }, [content])
 
+  // File and URL content loaders
+  const [fileContents, setFileContents] = useState<Record<string, string>>({})
+  const loadedFilesRef = useRef<Set<string>>(new Set())
+  const [urlMetadata, setUrlMetadata] = useState<
+    Record<string, { title: string; description: string; image: string; url: string }>
+  >({})
+  const loadedUrlsRef = useRef<Set<string>>(new Set())
+
+  // Dynamic file loader
+  useEffect(() => {
+    canvasData.nodes.forEach(async (n) => {
+      if (n.type === 'file' && n.file && !loadedFilesRef.current.has(n.file)) {
+        loadedFilesRef.current.add(n.file)
+        try {
+          const content = await window.vault.readFile(n.file)
+          setFileContents((prev) => ({ ...prev, [n.file!]: content }))
+        } catch {
+          setFileContents((prev) => ({ ...prev, [n.file!]: `Error loading: ${n.file}` }))
+        }
+      }
+    })
+  }, [canvasData.nodes])
+
+  // Dynamic URL metadata loader
+  useEffect(() => {
+    canvasData.nodes.forEach(async (n) => {
+      const trimmedText = n.text?.trim()
+      if (
+        n.type === 'text' &&
+        trimmedText &&
+        isUrl(trimmedText) &&
+        !loadedUrlsRef.current.has(trimmedText)
+      ) {
+        loadedUrlsRef.current.add(trimmedText)
+        try {
+          const meta = await window.vault.fetchUrlMetadata(trimmedText)
+          setUrlMetadata((prev) => ({ ...prev, [trimmedText]: meta }))
+        } catch {
+          // ignore
+        }
+      }
+    })
+  }, [canvasData.nodes])
+
+  // Subscribe to vault file changes to update canvas cards reactively
+  useEffect(() => {
+    const unsub = window.vault.onFileChanged((e) => {
+      const relativePath = e.path.replace(e.vaultPath + '/', '').replace(e.vaultPath, '')
+      if (loadedFilesRef.current.has(relativePath)) {
+        if (e.type === 'change' || e.type === 'add') {
+          window.vault
+            .readFile(relativePath)
+            .then((content) => {
+              setFileContents((prev) => ({ ...prev, [relativePath]: content }))
+            })
+            .catch(() => {})
+        }
+      }
+    })
+    return unsub
+  }, [])
+
   /* --- Save debounce ---------------------------------------------- */
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -169,18 +248,18 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         onSave(filePath, JSON.stringify(data, null, 2))
       }, SAVE_DEBOUNCE_MS)
     },
-    [filePath, onSave],
+    [filePath, onSave]
   )
 
   const mutate = useCallback(
     (updater: (prev: CanvasData) => CanvasData) => {
-      setCanvasData(prev => {
+      setCanvasData((prev) => {
         const next = updater(prev)
         scheduleSave(next)
         return next
       })
     },
-    [scheduleSave],
+    [scheduleSave]
   )
 
   /* --- Stage / viewport state ------------------------------------- */
@@ -225,13 +304,27 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       if (e.code === 'Space') setSpaceHeld(false)
       if (e.key === 'Shift') setShiftHeld(false)
     }
+    const blur = () => {
+      setSpaceHeld(false)
+      setShiftHeld(false)
+    }
+    const mouseMove = (e: MouseEvent) => {
+      // Sync shift key state from physical hardware modifier keys on any mouse movement
+      if (e.shiftKey !== shiftHeld) {
+        setShiftHeld(e.shiftKey)
+      }
+    }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
+    window.addEventListener('blur', blur)
+    window.addEventListener('mousemove', mouseMove)
     return () => {
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', blur)
+      window.removeEventListener('mousemove', mouseMove)
     }
-  }, [])
+  }, [shiftHeld])
 
   /* --- Shift-drag edge creation ----------------------------------- */
   const shiftDragOriginRef = useRef<string | null>(null)
@@ -240,25 +333,29 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   /* --- Delete selected node or edge ------------------------------- */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return
+      if (
+        (e.target as HTMLElement).tagName === 'INPUT' ||
+        (e.target as HTMLElement).tagName === 'TEXTAREA'
+      )
+        return
       if (e.key !== 'Delete' && e.key !== 'Backspace') return
       if (editingNodeId) return
 
       if (selectedEdgeId) {
-        mutate(prev => ({
+        mutate((prev) => ({
           ...prev,
-          edges: prev.edges.filter(ed => ed.id !== selectedEdgeId),
+          edges: prev.edges.filter((ed) => ed.id !== selectedEdgeId)
         }))
         setSelectedEdgeId(null)
         return
       }
 
       if (selectedNodeId) {
-        mutate(prev => ({
-          nodes: prev.nodes.filter(n => n.id !== selectedNodeId),
+        mutate((prev) => ({
+          nodes: prev.nodes.filter((n) => n.id !== selectedNodeId),
           edges: prev.edges.filter(
-            ed => ed.fromNode !== selectedNodeId && ed.toNode !== selectedNodeId,
-          ),
+            (ed) => ed.fromNode !== selectedNodeId && ed.toNode !== selectedNodeId
+          )
         }))
         setSelectedNodeId(null)
       }
@@ -272,7 +369,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     const handleCenter = (e: Event) => {
       const customEvent = e as CustomEvent<{ nodeId: string }>
       const nodeId = customEvent.detail.nodeId
-      const node = canvasData.nodes.find(n => n.id === nodeId)
+      const node = canvasData.nodes.find((n) => n.id === nodeId)
       if (node && containerRef.current) {
         setSelectedNodeId(nodeId)
         setSelectedEdgeId(null)
@@ -280,7 +377,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         const { clientWidth, clientHeight } = containerRef.current
         setStagePos({
           x: clientWidth / 2 - (node.x + node.width / 2) * stageScale,
-          y: clientHeight / 2 - (node.y + node.height / 2) * stageScale,
+          y: clientHeight / 2 - (node.y + node.height / 2) * stageScale
         })
       }
     }
@@ -289,34 +386,34 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   }, [canvasData.nodes, stageScale])
 
   /* --- Wheel zoom ------------------------------------------------- */
-  const handleWheel = useCallback(
-    (e: Konva.KonvaEventObject<WheelEvent>) => {
-      e.evt.preventDefault()
-      const stage = stageRef.current
-      if (!stage) return
+  const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault()
+    const stage = stageRef.current
+    if (!stage) return
 
-      const oldScale = stage.scaleX()
-      const pointer = stage.getPointerPosition()
-      if (!pointer) return
+    const oldScale = stage.scaleX()
+    const pointer = stage.getPointerPosition()
+    if (!pointer) return
 
-      const direction = e.evt.deltaY > 0 ? -1 : 1
-      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, direction > 0 ? oldScale * SCALE_BY : oldScale / SCALE_BY))
+    const direction = e.evt.deltaY > 0 ? -1 : 1
+    const newScale = Math.min(
+      MAX_SCALE,
+      Math.max(MIN_SCALE, direction > 0 ? oldScale * SCALE_BY : oldScale / SCALE_BY)
+    )
 
-      const mousePointTo = {
-        x: (pointer.x - stage.x()) / oldScale,
-        y: (pointer.y - stage.y()) / oldScale,
-      }
+    const mousePointTo = {
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale
+    }
 
-      const newPos = {
-        x: pointer.x - mousePointTo.x * newScale,
-        y: pointer.y - mousePointTo.y * newScale,
-      }
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale
+    }
 
-      setStageScale(newScale)
-      setStagePos(newPos)
-    },
-    [],
-  )
+    setStageScale(newScale)
+    setStagePos(newPos)
+  }, [])
 
   /* --- Drag end (pan) --------------------------------------------- */
   const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
@@ -344,44 +441,41 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         y: canvasY - DEFAULT_NODE_H / 2,
         width: DEFAULT_NODE_W,
         height: DEFAULT_NODE_H,
-        text: 'New Card',
+        text: 'New Card'
       }
 
-      mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+      mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
     },
-    [stagePos, stageScale, mutate],
+    [stagePos, stageScale, mutate]
   )
 
   /* --- Click on empty stage to deselect --------------------------- */
-  const handleStageClick = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (e.target === stageRef.current) {
-        setSelectedNodeId(null)
-        setSelectedEdgeId(null)
-      }
-    },
-    [],
-  )
+  const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.target === stageRef.current) {
+      setSelectedNodeId(null)
+      setSelectedEdgeId(null)
+    }
+  }, [])
 
   /* --- Node drag -------------------------------------------------- */
   const frameChildrenRef = useRef<{ id: string; offsetX: number; offsetY: number }[]>([])
 
   const handleNodeDragStart = useCallback(
     (nodeId: string) => {
-      const node = canvasData.nodes.find(n => n.id === nodeId)
+      const node = canvasData.nodes.find((n) => n.id === nodeId)
       if (node?.type === 'frame') {
         const children = canvasData.nodes.filter(
-          n =>
+          (n) =>
             n.id !== nodeId &&
             n.x >= node.x &&
             n.x + n.width <= node.x + node.width &&
             n.y >= node.y &&
             n.y + n.height <= node.y + node.height
         )
-        frameChildrenRef.current = children.map(c => ({
+        frameChildrenRef.current = children.map((c) => ({
           id: c.id,
           offsetX: c.x - node.x,
-          offsetY: c.y - node.y,
+          offsetY: c.y - node.y
         }))
       } else {
         frameChildrenRef.current = []
@@ -390,41 +484,38 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     [canvasData.nodes]
   )
 
-  const handleNodeDragMove = useCallback(
-    (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
-      const x = e.target.x()
-      const y = e.target.y()
-      const isFrame = frameChildrenRef.current.length > 0
-      setCanvasData(prev => ({
-        ...prev,
-        nodes: prev.nodes.map(n => {
-          if (n.id === nodeId) return { ...n, x, y }
-          if (isFrame) {
-            const child = frameChildrenRef.current.find(c => c.id === n.id)
-            if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
-          }
-          return n
-        }),
-      }))
-    },
-    []
-  )
+  const handleNodeDragMove = useCallback((nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
+    const x = e.target.x()
+    const y = e.target.y()
+    const isFrame = frameChildrenRef.current.length > 0
+    setCanvasData((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) => {
+        if (n.id === nodeId) return { ...n, x, y }
+        if (isFrame) {
+          const child = frameChildrenRef.current.find((c) => c.id === n.id)
+          if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
+        }
+        return n
+      })
+    }))
+  }, [])
 
   const handleNodeDragEnd = useCallback(
     (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
       const x = e.target.x()
       const y = e.target.y()
       const isFrame = frameChildrenRef.current.length > 0
-      mutate(prev => ({
+      mutate((prev) => ({
         ...prev,
-        nodes: prev.nodes.map(n => {
+        nodes: prev.nodes.map((n) => {
           if (n.id === nodeId) return { ...n, x, y }
           if (isFrame) {
-            const child = frameChildrenRef.current.find(c => c.id === n.id)
+            const child = frameChildrenRef.current.find((c) => c.id === n.id)
             if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
           }
           return n
-        }),
+        })
       }))
     },
     [mutate]
@@ -434,8 +525,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const handleNodeMouseDown = useCallback(
     (nodeId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
       // Bring node to front
-      mutate(prev => {
-        const nodeIdx = prev.nodes.findIndex(n => n.id === nodeId)
+      mutate((prev) => {
+        const nodeIdx = prev.nodes.findIndex((n) => n.id === nodeId)
         if (nodeIdx === -1 || nodeIdx === prev.nodes.length - 1) return prev
         const newNodes = [...prev.nodes]
         const [node] = newNodes.splice(nodeIdx, 1)
@@ -452,13 +543,13 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           if (pointer) {
             setTempLineEnd({
               x: (pointer.x - stagePos.x) / stageScale,
-              y: (pointer.y - stagePos.y) / stageScale,
+              y: (pointer.y - stagePos.y) / stageScale
             })
           }
         }
       }
     },
-    [stagePos, stageScale, mutate],
+    [stagePos, stageScale, mutate]
   )
 
   /* Stage-level mouseMove: update temp line during shift-drag */
@@ -471,10 +562,10 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       if (!pointer) return
       setTempLineEnd({
         x: (pointer.x - stagePos.x) / stageScale,
-        y: (pointer.y - stagePos.y) / stageScale,
+        y: (pointer.y - stagePos.y) / stageScale
       })
     },
-    [stagePos, stageScale],
+    [stagePos, stageScale]
   )
 
   /* Stage-level mouseUp: detect target node under cursor for edge creation */
@@ -496,18 +587,21 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       const canvasY = (pointer.y - stagePos.y) / stageScale
 
       // Find which node contains this point
-      const targetNode = canvasData.nodes.find(n =>
-        n.id !== origin &&
-        canvasX >= n.x && canvasX <= n.x + n.width &&
-        canvasY >= n.y && canvasY <= n.y + n.height
+      const targetNode = canvasData.nodes.find(
+        (n) =>
+          n.id !== origin &&
+          canvasX >= n.x &&
+          canvasX <= n.x + n.width &&
+          canvasY >= n.y &&
+          canvasY <= n.y + n.height
       )
       if (!targetNode) return
 
-      mutate(prev => {
+      mutate((prev) => {
         const exists = prev.edges.some(
-          ed =>
+          (ed) =>
             (ed.fromNode === origin && ed.toNode === targetNode.id) ||
-            (ed.fromNode === targetNode.id && ed.toNode === origin),
+            (ed.fromNode === targetNode.id && ed.toNode === origin)
         )
         if (exists) return prev
 
@@ -516,12 +610,12 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           fromNode: origin,
           toNode: targetNode.id,
           fromSide: 'right',
-          toSide: 'left',
+          toSide: 'left'
         }
         return { ...prev, edges: [...prev.edges, newEdge] }
       })
     },
-    [mutate, canvasData.nodes, stagePos, stageScale],
+    [mutate, canvasData.nodes, stagePos, stageScale]
   )
 
   /* --- Toolbar actions -------------------------------------------- */
@@ -535,9 +629,9 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       y: cy - DEFAULT_NODE_H / 2,
       width: DEFAULT_NODE_W,
       height: DEFAULT_NODE_H,
-      text: 'New Card',
+      text: 'New Card'
     }
-    mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+    mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
   }, [size, stagePos, stageScale, mutate])
 
   const fitToContent = useCallback(() => {
@@ -547,10 +641,10 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       setStageScale(1)
       return
     }
-    const minX = Math.min(...nodes.map(n => n.x))
-    const minY = Math.min(...nodes.map(n => n.y))
-    const maxX = Math.max(...nodes.map(n => n.x + n.width))
-    const maxY = Math.max(...nodes.map(n => n.y + n.height))
+    const minX = Math.min(...nodes.map((n) => n.x))
+    const minY = Math.min(...nodes.map((n) => n.y))
+    const maxX = Math.max(...nodes.map((n) => n.x + n.width))
+    const maxY = Math.max(...nodes.map((n) => n.y + n.height))
     const contentW = maxX - minX
     const contentH = maxY - minY
 
@@ -565,15 +659,15 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     setStageScale(newScale)
     setStagePos({
       x: size.width / 2 - centerX * newScale,
-      y: size.height / 2 - centerY * newScale,
+      y: size.height / 2 - centerY * newScale
     })
   }, [canvasData, size])
 
   /* --- Build edge lines ------------------------------------------- */
   const edgeLines = useMemo(() => {
-    const nodeMap = new Map(canvasData.nodes.map(n => [n.id, n]))
+    const nodeMap = new Map(canvasData.nodes.map((n) => [n.id, n]))
     return canvasData.edges
-      .map(edge => {
+      .map((edge) => {
         const from = nodeMap.get(edge.fromNode)
         const to = nodeMap.get(edge.toNode)
         if (!from || !to) return null
@@ -590,39 +684,343 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     e.dataTransfer.dropEffect = 'copy'
   }, [])
 
-  const handleContainerDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    const raw = e.dataTransfer.getData('application/meridian-file')
-    if (!raw) return
-    try {
-      const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
-      // Use Konva's setPointersPositions to register the event position
-      const stage = stageRef.current
-      if (stage) {
-        stage.setPointersPositions(e.nativeEvent)
-      }
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const canvasX = (e.clientX - rect.left - stagePos.x) / stageScale
-      const canvasY = (e.clientY - rect.top - stagePos.y) / stageScale
+  const handleContainerDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      const raw = e.dataTransfer.getData('application/meridian-file')
+      if (!raw) return
+      try {
+        const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
+        // Use Konva's setPointersPositions to register the event position
+        const stage = stageRef.current
+        if (stage) {
+          stage.setPointersPositions(e.nativeEvent)
+        }
+        const el = containerRef.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        const canvasX = (e.clientX - rect.left - stagePos.x) / stageScale
+        const canvasY = (e.clientY - rect.top - stagePos.y) / stageScale
 
-      const newNode: CanvasNodeData = {
-        id: crypto.randomUUID(),
-        type: 'file',
-        x: canvasX - DEFAULT_NODE_W / 2,
-        y: canvasY - DEFAULT_NODE_H / 2,
-        width: DEFAULT_NODE_W,
-        height: DEFAULT_NODE_H,
-        text: fileInfo.name.replace(/\.md$/i, ''),
-        file: fileInfo.relativePath,
+        const newNode: CanvasNodeData = {
+          id: crypto.randomUUID(),
+          type: 'file',
+          x: canvasX - DEFAULT_NODE_W / 2,
+          y: canvasY - DEFAULT_NODE_H / 2,
+          width: DEFAULT_NODE_W,
+          height: DEFAULT_NODE_H,
+          text: fileInfo.name.replace(/\.md$/i, ''),
+          file: fileInfo.relativePath
+        }
+        mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+      } catch {
+        /* ignore */
       }
-      mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
-    } catch { /* ignore */ }
-  }, [stagePos, stageScale, mutate])
+    },
+    [stagePos, stageScale, mutate]
+  )
 
   /* --- Zoom percentage label -------------------------------------- */
   const zoomPct = Math.round(stageScale * 100)
+
+  /* --- Render Node Helper ------------------------------------------ */
+  const renderNode = (node: CanvasNodeData) => {
+    const isSelected = node.id === selectedNodeId
+    const displayText =
+      node.type === 'file' && node.file ? (node.file.split('/').pop() ?? node.text) : node.text
+
+    return (
+      <Group
+        key={node.id}
+        ref={(el) => {
+          nodeRefs.current[node.id] = el
+        }}
+        x={node.x}
+        y={node.y}
+        draggable={!spaceHeld && !shiftHeld}
+        onDragStart={() => handleNodeDragStart(node.id)}
+        onDragEnd={(e) => handleNodeDragEnd(node.id, e)}
+        onDragMove={(e) => handleNodeDragMove(node.id, e)}
+        onClick={() => {
+          setSelectedNodeId(node.id)
+          setSelectedEdgeId(null)
+        }}
+        onDblClick={() => {
+          if (node.type === 'text') {
+            if (isUrl(node.text)) {
+              window.vault.openExternal(node.text.trim())
+            } else {
+              setEditingNodeId(node.id)
+              setEditText(node.text)
+              setInitialEditingHeight(node.height)
+            }
+          } else if (node.type === 'file' && node.file) {
+            const fileName = node.file.split('/').pop() ?? ''
+            openFile(node.file, fileName)
+          }
+        }}
+        onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
+        onTransform={(e) => {
+          const el = e.target
+          const scaleX = el.scaleX()
+          const scaleY = el.scaleY()
+          el.scaleX(1)
+          el.scaleY(1)
+          setCanvasData((prev) => ({
+            ...prev,
+            nodes: prev.nodes.map((n) =>
+              n.id === node.id
+                ? {
+                    ...n,
+                    x: el.x(),
+                    y: el.y(),
+                    width: Math.max(150, n.width * scaleX),
+                    height: Math.max(60, n.height * scaleY)
+                  }
+                : n
+            )
+          }))
+        }}
+        onTransformEnd={(e) => {
+          const el = e.target
+          mutate((prev) => ({
+            ...prev,
+            nodes: prev.nodes.map((n) =>
+              n.id === node.id
+                ? {
+                    ...n,
+                    x: el.x(),
+                    y: el.y(),
+                    width: n.width,
+                    height: n.height
+                  }
+                : n
+            )
+          }))
+        }}
+      >
+        <Rect
+          width={node.width}
+          height={node.height}
+          fill={
+            node.type === 'frame'
+              ? node.color
+                ? `${node.color}33`
+                : 'rgba(255,255,255,0.05)'
+              : (node.color ?? NODE_FILL)
+          }
+          stroke={
+            isSelected
+              ? NODE_SELECTED_STROKE
+              : node.type === 'frame'
+                ? (node.color ?? '#555')
+                : NODE_STROKE
+          }
+          strokeWidth={isSelected ? 2 : node.type === 'frame' ? 2 : 1}
+          cornerRadius={8}
+          shadowColor="#000"
+          shadowBlur={isSelected ? 12 : 4}
+          shadowOpacity={isSelected ? 0.4 : 0.2}
+          shadowOffsetY={2}
+        />
+        {node.type === 'frame' && (
+          <Text
+            text={displayText}
+            fill={node.color ?? '#ccc'}
+            fontFamily={FONT_FAMILY}
+            fontSize={18}
+            fontStyle="bold"
+            y={-28}
+            listening={false}
+          />
+        )}
+        {node.type !== 'frame' && (
+          <Html
+            divProps={{
+              style: {
+                pointerEvents: 'none',
+                width: `${node.width}px`,
+                height: `${node.height}px`,
+                overflow: 'hidden',
+                boxSizing: 'border-box'
+              }
+            }}
+          >
+            {node.type === 'text' && isUrl(node.text) ? (
+              (() => {
+                const trimmed = node.text.trim()
+                const meta = urlMetadata[trimmed]
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      height: '100%',
+                      width: '100%',
+                      background: node.color ? `${node.color}55` : 'rgba(25, 25, 30, 0.75)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      boxSizing: 'border-box',
+                      fontFamily: FONT_FAMILY
+                    }}
+                  >
+                    {meta?.image && (
+                      <div
+                        style={{
+                          width: '30%',
+                          minWidth: 70,
+                          height: '100%',
+                          background: `url(${meta.image}) center/cover no-repeat`,
+                          borderRight: '1px solid rgba(255,255,255,0.08)'
+                        }}
+                      />
+                    )}
+                    <div
+                      style={{
+                        flex: 1,
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div style={{ overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 13,
+                            color: '#fff',
+                            marginBottom: 4,
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {meta?.title || trimmed}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: '#aaa',
+                            lineHeight: '1.4em',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {meta?.description || 'No description'}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          fontSize: 10,
+                          color: '#7c6af7',
+                          fontWeight: 500,
+                          marginTop: 4
+                        }}
+                      >
+                        <span
+                          style={{
+                            opacity: 0.8,
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '65%'
+                          }}
+                        >
+                          {(() => {
+                            try {
+                              return new URL(trimmed).hostname
+                            } catch {
+                              return trimmed
+                            }
+                          })()}
+                        </span>
+                        <button
+                          style={{
+                            background: 'rgba(124, 106, 247, 0.2)',
+                            border: 'none',
+                            borderRadius: 4,
+                            color: '#a395ff',
+                            padding: '2px 8px',
+                            fontSize: 10,
+                            cursor: 'pointer',
+                            pointerEvents: 'auto',
+                            fontWeight: 600
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.vault.openExternal(trimmed)
+                          }}
+                        >
+                          Open ↗
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()
+            ) : (
+              <div
+                className="markdown-preview"
+                style={{
+                  color: getContrastColor(node.color),
+                  fontFamily: FONT_FAMILY,
+                  fontSize: 13,
+                  margin: 0,
+                  padding: '16px 20px',
+                  width: '100%',
+                  height: '100%',
+                  boxSizing: 'border-box',
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
+                <div
+                  ref={(el) => {
+                    if (el) {
+                      const contentHeight = el.offsetHeight + 32
+                      nodeMinHeights.current[node.id] = contentHeight
+                      if (node.height < contentHeight) {
+                        setTimeout(() => {
+                          setCanvasData((prev) => ({
+                            ...prev,
+                            nodes: prev.nodes.map((n) =>
+                              n.id === node.id && n.height < contentHeight
+                                ? { ...n, height: contentHeight }
+                                : n
+                            )
+                          }))
+                        }, 0)
+                      }
+                    }
+                  }}
+                >
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {node.type === 'file' && node.file
+                      ? fileContents[node.file] !== undefined
+                        ? `### Note: ${node.file.split('/').pop()?.replace(/\.md$/, '')}\n\n${fileContents[node.file]}`
+                        : `### Note: ${displayText}\nLoading...`
+                      : displayText}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
+          </Html>
+        )}
+      </Group>
+    )
+  }
 
   /* --- Render ----------------------------------------------------- */
   return (
@@ -630,7 +1028,13 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       ref={containerRef}
       onDragOver={handleContainerDragOver}
       onDrop={handleContainerDrop}
-      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: BG }}
+      style={{
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        background: BG
+      }}
     >
       {/* Floating Toolbar */}
       <div
@@ -638,26 +1042,27 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           position: 'absolute',
           top: 12,
           left: 12,
-          zIndex: 10,
+          zIndex: 1000,
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
-          background: 'rgba(22,22,22,0.85)',
-          backdropFilter: 'blur(12px)',
-          borderRadius: 10,
-          border: '1px solid #2a2a2a',
-          padding: '6px 12px',
-          userSelect: 'none',
+          gap: 6,
+          background: '#14141a',
+          borderRadius: 8,
+          border: '1px solid #2a2a35',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          padding: '4px 8px',
+          userSelect: 'none'
         }}
       >
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontFamily: FONT_FAMILY,
             color: '#888',
-            minWidth: 36,
+            minWidth: 38,
             textAlign: 'center',
+            fontWeight: 500
           }}
         >
           {zoomPct}%
@@ -665,23 +1070,27 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         <button
           onClick={fitToContent}
           style={{
-            background: 'transparent',
-            border: '1px solid #3a3a3a',
+            background: '#21212a',
+            border: '1px solid #333342',
             borderRadius: 6,
             color: '#aaa',
-            fontSize: 11,
+            fontSize: 12,
             fontFamily: FONT_FAMILY,
-            padding: '3px 8px',
+            height: 28,
+            padding: '0 10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'all 0.15s',
+            transition: 'all 0.15s'
           }}
-          onMouseEnter={e => {
-            ;(e.target as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
-            ;(e.target as HTMLButtonElement).style.color = '#ddd'
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#ddd'
           }}
-          onMouseLeave={e => {
-            ;(e.target as HTMLButtonElement).style.borderColor = '#3a3a3a'
-            ;(e.target as HTMLButtonElement).style.color = '#aaa'
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#333342'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#aaa'
           }}
         >
           Fit
@@ -690,25 +1099,24 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           onClick={addNodeAtCenter}
           style={{
             background: NODE_SELECTED_STROKE,
-            border: 'none',
+            border: `1px solid ${NODE_SELECTED_STROKE}`,
             borderRadius: 6,
             color: '#fff',
-            fontSize: 14,
-            fontWeight: 600,
-            width: 26,
-            height: 26,
+            fontSize: 18,
+            fontWeight: 500,
+            width: 28,
+            height: 28,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            lineHeight: 1,
-            transition: 'opacity 0.15s',
+            transition: 'opacity 0.15s'
           }}
-          onMouseEnter={e => {
-            ;(e.target as HTMLButtonElement).style.opacity = '0.85'
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.opacity = '0.85'
           }}
-          onMouseLeave={e => {
-            ;(e.target as HTMLButtonElement).style.opacity = '1'
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.opacity = '1'
           }}
         >
           +
@@ -729,24 +1137,39 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               y: canvasY - 150,
               width: 400,
               height: 300,
-              text: 'New Frame',
+              text: 'New Frame'
             }
 
-            mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+            mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
           }}
           title="Add Frame"
           style={{
-            background: 'transparent',
-            border: '1px solid #3a3a3a',
+            background: '#21212a',
+            border: '1px solid #333342',
             borderRadius: 6,
             color: '#ccc',
             fontSize: 12,
-            padding: '4px 8px',
+            fontFamily: FONT_FAMILY,
+            height: 28,
+            padding: '0 10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
             cursor: 'pointer',
-            marginLeft: 8,
+            transition: 'all 0.15s'
+          }}
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#fff'
+          }}
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#333342'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#ccc'
           }}
         >
-          🔲 Frame
+          <FrameIcon size={14} color="#7c6af7" />
+          <span>Frame</span>
         </button>
       </div>
 
@@ -787,9 +1210,14 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           />
         </Layer>
 
-        {/* Edges layer */}
+        {/* Layer 2: Frames */}
         <Layer>
-          {edgeLines.map(edge => {
+          {canvasData.nodes.filter((node) => node.type === 'frame').map((node) => renderNode(node))}
+        </Layer>
+
+        {/* Layer 3: Edges */}
+        <Layer>
+          {edgeLines.map((edge) => {
             const isEdgeSelected = edge.id === selectedEdgeId
             return (
               <Line
@@ -808,164 +1236,36 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
             )
           })}
           {/* Temporary line while shift-dragging */}
-          {shiftDragOriginRef.current && tempLineEnd && (() => {
-            const originNode = canvasData.nodes.find(n => n.id === shiftDragOriginRef.current)
-            if (!originNode) return null
-            const oc = nodeCenter(originNode)
-            return (
-              <Line
-                points={[oc.x, oc.y, tempLineEnd.x, tempLineEnd.y]}
-                stroke={EDGE_COLOR}
-                strokeWidth={2}
-                opacity={0.8}
-                dash={[8, 4]}
-                lineCap="round"
-                listening={false}
-              />
-            )
-          })()}
+          {shiftDragOriginRef.current &&
+            tempLineEnd &&
+            (() => {
+              const originNode = canvasData.nodes.find((n) => n.id === shiftDragOriginRef.current)
+              if (!originNode) return null
+              const oc = nodeCenter(originNode)
+              return (
+                <Line
+                  points={[oc.x, oc.y, tempLineEnd.x, tempLineEnd.y]}
+                  stroke={EDGE_COLOR}
+                  strokeWidth={2}
+                  opacity={0.8}
+                  dash={[8, 4]}
+                  lineCap="round"
+                  listening={false}
+                />
+              )
+            })()}
         </Layer>
 
-        {/* Nodes layer */}
+        {/* Layer 4: Cards & Transformer */}
         <Layer>
-          {canvasData.nodes.map(node => {
-            const isSelected = node.id === selectedNodeId
-            const displayText =
-              node.type === 'file' && node.file
-                ? node.file.split('/').pop() ?? node.text
-                : node.text
-
-            return (
-              <Group
-                key={node.id}
-                ref={el => { nodeRefs.current[node.id] = el }}
-                x={node.x}
-                y={node.y}
-                draggable={!spaceHeld && !shiftHeld}
-                onDragStart={() => handleNodeDragStart(node.id)}
-                onDragEnd={e => handleNodeDragEnd(node.id, e)}
-                onDragMove={e => handleNodeDragMove(node.id, e)}
-                onClick={() => { setSelectedNodeId(node.id); setSelectedEdgeId(null) }}
-                onDblClick={() => {
-                  if (node.type === 'text') {
-                    setEditingNodeId(node.id)
-                    setEditText(node.text)
-                    setInitialEditingHeight(node.height)
-                  }
-                }}
-                onMouseDown={e => handleNodeMouseDown(node.id, e)}
-                onTransform={(e) => {
-                  const el = e.target
-                  const scaleX = el.scaleX()
-                  const scaleY = el.scaleY()
-                  el.scaleX(1)
-                  el.scaleY(1)
-                  setCanvasData(prev => ({
-                    ...prev,
-                    nodes: prev.nodes.map(n => n.id === node.id ? {
-                      ...n,
-                      x: el.x(),
-                      y: el.y(),
-                      width: Math.max(150, n.width * scaleX),
-                      height: Math.max(60, n.height * scaleY),
-                    } : n)
-                  }))
-                }}
-                onTransformEnd={(e) => {
-                  const el = e.target
-                  mutate(prev => ({
-                    ...prev,
-                    nodes: prev.nodes.map(n => n.id === node.id ? {
-                      ...n,
-                      x: el.x(),
-                      y: el.y(),
-                      width: n.width, // already updated in onTransform
-                      height: n.height,
-                    } : n)
-                  }))
-                }}
-              >
-                <Rect
-                  width={node.width}
-                  height={node.height}
-                  fill={node.type === 'frame' ? (node.color ? `${node.color}33` : 'rgba(255,255,255,0.05)') : (node.color ?? NODE_FILL)}
-                  stroke={isSelected ? NODE_SELECTED_STROKE : (node.type === 'frame' ? (node.color ?? '#555') : NODE_STROKE)}
-                  strokeWidth={isSelected ? 2 : (node.type === 'frame' ? 2 : 1)}
-                  cornerRadius={8}
-                  shadowColor="#000"
-                  shadowBlur={isSelected ? 12 : 4}
-                  shadowOpacity={isSelected ? 0.4 : 0.2}
-                  shadowOffsetY={2}
-                />
-                {node.type === 'frame' && (
-                  <Text
-                    text={displayText}
-                    fill={node.color ?? '#ccc'}
-                    fontFamily={FONT_FAMILY}
-                    fontSize={18}
-                    fontStyle="bold"
-                    y={-28}
-                    listening={false}
-                  />
-                )}
-                {node.type !== 'frame' && (
-                  <Html
-                    divProps={{
-                      style: {
-                        pointerEvents: 'none',
-                        width: `${node.width}px`,
-                        height: `${node.height}px`,
-                        overflow: 'hidden',
-                        boxSizing: 'border-box',
-                      }
-                    }}
-                  >
-                    <div className="markdown-preview" style={{ 
-                      color: getContrastColor(node.color),
-                      fontFamily: FONT_FAMILY,
-                      fontSize: 13,
-                      margin: 0, 
-                      padding: '16px 20px', 
-                      width: '100%', 
-                      height: '100%', 
-                      boxSizing: 'border-box',
-                      overflowY: 'auto',
-                      overflowX: 'hidden',
-                      wordBreak: 'break-word',
-                      whiteSpace: 'pre-wrap'
-                    }}>
-                      <div ref={el => {
-                        if (el) {
-                           // Intrinsic height of content + top/bottom padding
-                           const contentHeight = el.offsetHeight + 32
-                           nodeMinHeights.current[node.id] = contentHeight
-                           
-                           // Auto-expand if the box is smaller than content
-                           if (node.height < contentHeight) {
-                              setTimeout(() => {
-                                setCanvasData(prev => ({
-                                   ...prev,
-                                   nodes: prev.nodes.map(n => n.id === node.id && n.height < contentHeight ? { ...n, height: contentHeight } : n)
-                                }))
-                              }, 0)
-                           }
-                        }
-                      }}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {displayText}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  </Html>
-                )}
-              </Group>
-            )
-          })}
-          
+          {canvasData.nodes.filter((node) => node.type !== 'frame').map((node) => renderNode(node))}
           <Transformer
             ref={trRef}
             boundBoxFunc={(oldBox, newBox) => {
-              const minH = Math.max(60, (selectedNodeId && nodeMinHeights.current[selectedNodeId]) || 60)
+              const minH = Math.max(
+                60,
+                (selectedNodeId && nodeMinHeights.current[selectedNodeId]) || 60
+              )
               if (newBox.width < 150 || newBox.height < minH) return oldBox
               return newBox
             }}
@@ -982,59 +1282,37 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         </Layer>
       </Stage>
 
-
       {/* Inline text editing overlay */}
-      {editingNodeId && (() => {
-        const node = canvasData.nodes.find(n => n.id === editingNodeId)
-        if (!node) return null
-        const screenX = node.x * stageScale + stagePos.x
-        const screenY = node.y * stageScale + stagePos.y
-        const screenW = node.width * stageScale
-        const screenH = node.height * stageScale
-        return (
-          <textarea
-            autoFocus
-            value={editText}
-            onChange={e => {
-              setEditText(e.target.value)
-              const el = e.target
-              const oldH = el.style.height
-              el.style.height = '1px'
-              const intrinsicH = el.scrollHeight / stageScale
-              el.style.height = oldH
-              
-              const targetH = Math.max(initialEditingHeight, intrinsicH)
-              if (targetH !== node.height) {
-                setCanvasData(prev => ({
-                  ...prev,
-                  nodes: prev.nodes.map(n => n.id === node.id ? { ...n, height: targetH } : n)
-                }))
-              }
-            }}
-            onBlur={e => {
-              const el = e.target
-              const trimmedText = editText.trimEnd()
-              const oldVal = el.value
-              el.value = trimmedText
-              const oldH = el.style.height
-              el.style.height = '1px'
-              const trimmedH = el.scrollHeight / stageScale
-              el.style.height = oldH
-              el.value = oldVal
+      {editingNodeId &&
+        (() => {
+          const node = canvasData.nodes.find((n) => n.id === editingNodeId)
+          if (!node) return null
+          const screenX = node.x * stageScale + stagePos.x
+          const screenY = node.y * stageScale + stagePos.y
+          const screenW = node.width * stageScale
+          const screenH = node.height * stageScale
+          return (
+            <textarea
+              autoFocus
+              value={editText}
+              onChange={(e) => {
+                setEditText(e.target.value)
+                const el = e.target
+                const oldH = el.style.height
+                el.style.height = '1px'
+                const intrinsicH = el.scrollHeight / stageScale
+                el.style.height = oldH
 
-              const finalH = Math.max(initialEditingHeight, trimmedH)
-
-              mutate(prev => ({
-                ...prev,
-                nodes: prev.nodes.map(n =>
-                  n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
-                ),
-              }))
-              setEditingNodeId(null)
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Escape') {
-                const el = e.currentTarget
+                const targetH = Math.max(initialEditingHeight, intrinsicH)
+                if (targetH !== node.height) {
+                  setCanvasData((prev) => ({
+                    ...prev,
+                    nodes: prev.nodes.map((n) => (n.id === node.id ? { ...n, height: targetH } : n))
+                  }))
+                }
+              }}
+              onBlur={(e) => {
+                const el = e.target
                 const trimmedText = editText.trimEnd()
                 const oldVal = el.value
                 el.value = trimmedText
@@ -1046,135 +1324,228 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
                 const finalH = Math.max(initialEditingHeight, trimmedH)
 
-                mutate(prev => ({
+                mutate((prev) => ({
                   ...prev,
-                  nodes: prev.nodes.map(n =>
+                  nodes: prev.nodes.map((n) =>
                     n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
-                  ),
+                  )
                 }))
                 setEditingNodeId(null)
-              }
-              e.stopPropagation()
-            }}
-            style={{
-              position: 'absolute',
-              left: screenX,
-              top: screenY,
-              width: screenW,
-              height: screenH,
-              background: '#1e1e2e',
-              border: '2px solid #7c6af7',
-              borderRadius: 8 * stageScale,
-              color: '#ccc',
-              fontFamily: FONT_FAMILY,
-              fontSize: 13 * stageScale,
-              padding: `${16 * stageScale}px ${20 * stageScale}px`,
-              resize: 'none',
-              outline: 'none',
-              zIndex: 20,
-              boxSizing: 'border-box',
-            }}
-          />
-        )
-      })()}
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  const el = e.currentTarget
+                  const trimmedText = editText.trimEnd()
+                  const oldVal = el.value
+                  el.value = trimmedText
+                  const oldH = el.style.height
+                  el.style.height = '1px'
+                  const trimmedH = el.scrollHeight / stageScale
+                  el.style.height = oldH
+                  el.value = oldVal
 
-      {/* Floating Node Toolbar (Color Picker & Delete) */}
-      {selectedNodeId && !editingNodeId && !spaceHeld && !shiftHeld && (() => {
-        const node = canvasData.nodes.find(n => n.id === selectedNodeId)
-        if (!node) return null
-        
-        // Position slightly above the node
-        const screenX = node.x * stageScale + stagePos.x
-        const screenY = node.y * stageScale + stagePos.y
-        const toolbarHeight = 36
-        const gap = 8
-        const topPos = screenY - toolbarHeight - gap
+                  const finalH = Math.max(initialEditingHeight, trimmedH)
 
-        // If the node is too close to the top of the container, place toolbar below it
-        const finalTop = topPos < 10 ? screenY + node.height * stageScale + gap : topPos
-
-        const colors = [
-          '#1e1e2e', // Default dark
-          '#7c6af7', // Purple
-          '#38bdf8', // Blue
-          '#34d399', // Green
-          '#facc15', // Yellow
-          '#f472b6', // Pink
-          '#f87171', // Red
-        ]
-
-        return (
-          <div
-            style={{
-              position: 'absolute',
-              left: screenX,
-              top: finalTop,
-              height: toolbarHeight,
-              background: '#2a2a3a',
-              border: '1px solid #444',
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 8px',
-              gap: 8,
-              zIndex: 15,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            }}
-            // Prevent clicks from reaching the canvas and deselecting
-            onMouseDown={e => e.stopPropagation()}
-            onClick={e => e.stopPropagation()}
-          >
-            {colors.map(c => (
-              <button
-                key={c}
-                onClick={() => {
-                  mutate(prev => ({
+                  mutate((prev) => ({
                     ...prev,
-                    nodes: prev.nodes.map(n => n.id === node.id ? { ...n, color: c === '#1e1e2e' ? undefined : c } : n)
+                    nodes: prev.nodes.map((n) =>
+                      n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
+                    )
                   }))
-                }}
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  background: c,
-                  border: (node.color === c || (!node.color && c === '#1e1e2e')) ? '2px solid #fff' : '2px solid transparent',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-                title="Change Color"
-              />
-            ))}
-            <div style={{ width: 1, height: 20, background: '#444', margin: '0 4px' }} />
-            <button
-              onClick={() => {
-                mutate(prev => ({
-                  nodes: prev.nodes.filter(n => n.id !== node.id),
-                  edges: prev.edges.filter(ed => ed.fromNode !== node.id && ed.toNode !== node.id),
-                }))
-                setSelectedNodeId(null)
+                  setEditingNodeId(null)
+                }
+                e.stopPropagation()
               }}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#f87171',
-                cursor: 'pointer',
-                fontSize: 16,
-                padding: '2px 6px',
-                borderRadius: 4,
+                position: 'absolute',
+                left: screenX,
+                top: screenY,
+                width: screenW,
+                height: screenH,
+                background: '#1e1e2e',
+                border: '2px solid #7c6af7',
+                borderRadius: 8 * stageScale,
+                color: '#ccc',
+                fontFamily: FONT_FAMILY,
+                fontSize: 13 * stageScale,
+                padding: `${16 * stageScale}px ${20 * stageScale}px`,
+                resize: 'none',
+                outline: 'none',
+                zIndex: 1200,
+                boxSizing: 'border-box'
+              }}
+            />
+          )
+        })()}
+
+      {/* Floating Node Toolbar (Color Picker & Delete) */}
+      {selectedNodeId &&
+        !editingNodeId &&
+        !spaceHeld &&
+        !shiftHeld &&
+        (() => {
+          const node = canvasData.nodes.find((n) => n.id === selectedNodeId)
+          if (!node) return null
+
+          // Position slightly above the node
+          const screenX = node.x * stageScale + stagePos.x
+          const screenY = node.y * stageScale + stagePos.y
+          const toolbarHeight = 36
+          const gap = 8
+          const topPos = screenY - toolbarHeight - gap
+
+          // If the node is too close to the top of the container, place toolbar below it
+          const finalTop = topPos < 10 ? screenY + node.height * stageScale + gap : topPos
+
+          const colors = [
+            '#1e1e2e', // Default dark
+            '#7c6af7', // Purple
+            '#38bdf8', // Blue
+            '#34d399', // Green
+            '#facc15', // Yellow
+            '#f472b6', // Pink
+            '#f87171' // Red
+          ]
+
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                left: screenX,
+                top: finalTop,
+                height: toolbarHeight,
+                background: '#2a2a3a',
+                border: '1px solid #444',
+                borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                padding: '0 8px',
+                gap: 8,
+                zIndex: 1100,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
               }}
-              title="Delete Card"
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              // Prevent clicks from reaching the canvas and deselecting
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-              🗑️
-            </button>
-          </div>
-        )
-      })()}
+              {colors.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    mutate((prev) => ({
+                      ...prev,
+                      nodes: prev.nodes.map((n) =>
+                        n.id === node.id ? { ...n, color: c === '#1e1e2e' ? undefined : c } : n
+                      )
+                    }))
+                  }}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: c,
+                    border:
+                      node.color === c || (!node.color && c === '#1e1e2e')
+                        ? '2px solid #fff'
+                        : '2px solid transparent',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                  title="Change Color"
+                />
+              ))}
+              {node.type === 'text' && !isUrl(node.text) && (
+                <>
+                  <button
+                    onClick={async () => {
+                      const name = prompt('Enter new note filename:', 'Note.md')
+                      if (!name) return
+                      const fileName = name.endsWith('.md') ? name : `${name}.md`
+                      if (!vault) return
+                      try {
+                        const filePath = await window.vault.createFile(vault.path, fileName)
+                        await window.vault.writeFile(filePath, node.text)
+                        const relativePath = filePath
+                          .replace(vault.path + '/', '')
+                          .replace(vault.path, '')
+
+                        mutate((prev) => ({
+                          ...prev,
+                          nodes: prev.nodes.map((n) =>
+                            n.id === node.id
+                              ? {
+                                  ...n,
+                                  type: 'file',
+                                  file: relativePath,
+                                  text: fileName.replace(/\.md$/, '')
+                                }
+                              : n
+                          )
+                        }))
+
+                        useLinkStore.getState().indexFile(filePath, fileName, node.text, vault.path)
+                        await refreshFiles()
+                      } catch (err: any) {
+                        alert(`Failed to create file: ${err.message}`)
+                      }
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#7c6af7',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 600
+                    }}
+                    title="Create note from text"
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'rgba(124, 106, 247, 0.1)')
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <NoteConvertIcon size={14} />
+                  </button>
+                  <div style={{ width: 1, height: 20, background: '#444' }} />
+                </>
+              )}
+              <button
+                onClick={() => {
+                  mutate((prev) => ({
+                    nodes: prev.nodes.filter((n) => n.id !== node.id),
+                    edges: prev.edges.filter(
+                      (ed) => ed.fromNode !== node.id && ed.toNode !== node.id
+                    )
+                  }))
+                  setSelectedNodeId(null)
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#f87171',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Delete Card"
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)')
+                }
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <TrashIcon size={14} />
+              </button>
+            </div>
+          )
+        })()}
     </div>
   )
 }

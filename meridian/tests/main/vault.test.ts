@@ -22,7 +22,7 @@ describe('VaultManager', () => {
     writeFileSync(join(tmpDir, 'World.md'), '# World')
 
     const files = await vault.listFiles()
-    const names = files.map(f => f.name).sort()
+    const names = files.map((f) => f.name).sort()
     expect(names).toEqual(['Hello.md', 'World.md'])
     expect(files[0].birthtime).toBeGreaterThan(0)
     expect(files[1].birthtime).toBeGreaterThan(0)
@@ -62,7 +62,7 @@ describe('VaultManager', () => {
       name: 'Note.md',
       path: filePath,
       relativePath: 'Note.md',
-      isDirectory: false,
+      isDirectory: false
     })
     expect(file.mtime).toBeGreaterThan(0)
     expect(file.birthtime).toBeGreaterThan(0)
@@ -72,7 +72,7 @@ describe('VaultManager', () => {
     mkdirSync(join(tmpDir, 'Projects'))
     writeFileSync(join(tmpDir, 'Projects', 'Alpha.md'), '')
     const files = await vault.listFiles()
-    const dir = files.find(f => f.isDirectory && f.name === 'Projects')
+    const dir = files.find((f) => f.isDirectory && f.name === 'Projects')
     expect(dir).toBeDefined()
     expect(dir!.children?.length).toBe(1)
     expect(dir!.children?.[0].name).toBe('Alpha.md')

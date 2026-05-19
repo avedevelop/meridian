@@ -7,13 +7,21 @@ import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
 // Must be called before app is ready — tells Chromium vault:// is a secure scheme
 // so it can be loaded from any origin (http://localhost in dev, file:// in prod)
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'vault', privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true } }
+  {
+    scheme: 'vault',
+    privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true }
+  }
 ])
 
 const MIME: Record<string, string> = {
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
-  '.mp4': 'video/mp4', '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
+  '.pdf': 'application/pdf'
 }
 
 const settings = new AppSettings()
@@ -35,8 +43,8 @@ function buildMenu() {
         { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => send('save') },
         { label: 'Export to HTML…', accelerator: 'CmdOrCtrl+E', click: () => send('export-html') },
         { type: 'separator' },
-        { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send('close-tab') },
-      ],
+        { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send('close-tab') }
+      ]
     },
     {
       label: 'Edit',
@@ -49,8 +57,12 @@ function buildMenu() {
         { role: 'paste' },
         { role: 'selectAll' },
         { type: 'separator' },
-        { label: 'Command Palette', accelerator: 'CmdOrCtrl+K', click: () => send('command-palette') },
-      ],
+        {
+          label: 'Command Palette',
+          accelerator: 'CmdOrCtrl+K',
+          click: () => send('command-palette')
+        }
+      ]
     },
     {
       label: 'View',
@@ -58,6 +70,7 @@ function buildMenu() {
         { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => send('settings') },
         { type: 'separator' },
         { label: 'Graph View', accelerator: 'CmdOrCtrl+Shift+G', click: () => send('graph-view') },
+        { label: 'Reset Layout', click: () => send('reset-layout') },
         { type: 'separator' },
         { role: 'reload' },
         { role: 'toggleDevTools' },
@@ -66,27 +79,22 @@ function buildMenu() {
         { role: 'zoomIn' },
         { role: 'zoomOut' },
         { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
+        { role: 'togglefullscreen' }
+      ]
     },
     {
       label: 'Window',
-      submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
-        { type: 'separator' },
-        { role: 'front' },
-      ],
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }]
     },
     {
       label: 'Help',
       submenu: [
         {
           label: 'GitHub Repository',
-          click: () => shell.openExternal('https://github.com/bvsmma/meridian'),
-        },
-      ],
-    },
+          click: () => shell.openExternal('https://github.com/bvsmma/meridian')
+        }
+      ]
+    }
   ]
 
   if (process.platform === 'darwin') {
@@ -101,8 +109,8 @@ function buildMenu() {
         { role: 'hideOthers' },
         { role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit' },
-      ],
+        { role: 'quit' }
+      ]
     })
   }
 
@@ -123,8 +131,8 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false,
-    },
+      nodeIntegration: false
+    }
   })
 
   win.on('resize', () => {
@@ -153,7 +161,7 @@ app.whenReady().then(() => {
     const url = new URL(request.url)
     // Chromium normalizes vault:///a/b.png → vault://a/b.png (host=a, path=/b.png)
     // Reconstruct full relative path from hostname + pathname
-    const raw = (url.hostname ? url.hostname + url.pathname : url.pathname)
+    const raw = url.hostname ? url.hostname + url.pathname : url.pathname
     const relativePath = decodeURIComponent(raw).replace(/^\/+/, '')
     const vm = getVaultManager()
     if (!vm) return new Response('No vault', { status: 503 })

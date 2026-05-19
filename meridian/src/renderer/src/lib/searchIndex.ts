@@ -11,7 +11,7 @@ export class SearchIndex {
     fields: ['name', 'content'],
     storeFields: ['path', 'name'],
     idField: 'id',
-    searchOptions: { boost: { name: 3 }, fuzzy: 0.2, prefix: true },
+    searchOptions: { boost: { name: 3 }, fuzzy: 0.2, prefix: true }
   })
 
   addOrUpdate(path: string, name: string, content: string): void {
@@ -25,10 +25,10 @@ export class SearchIndex {
 
   search(query: string): SearchResult[] {
     if (!query.trim()) return []
-    return this.mini.search(query).map(r => ({
+    return this.mini.search(query).map((r) => ({
       path: r.path as string,
       name: r.name as string,
-      score: r.score,
+      score: r.score
     }))
   }
 }

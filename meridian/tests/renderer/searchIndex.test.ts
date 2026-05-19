@@ -8,8 +8,8 @@ describe('SearchIndex', () => {
     idx.addOrUpdate('/vault/B.md', 'B.md', 'A lazy dog sat here')
 
     const results = idx.search('fox')
-    expect(results.map(r => r.path)).toContain('/vault/A.md')
-    expect(results.map(r => r.path)).not.toContain('/vault/B.md')
+    expect(results.map((r) => r.path)).toContain('/vault/A.md')
+    expect(results.map((r) => r.path)).not.toContain('/vault/B.md')
   })
 
   it('finds files by name', () => {

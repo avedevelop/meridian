@@ -5,21 +5,23 @@ import { VaultFile } from '../shared/types'
 export class VaultManager {
   constructor(public readonly vaultPath: string) {}
 
-  private assertInsideVault(targetPath: string): void {
-    const resolved = resolve(targetPath)
+  private resolveAndAssert(targetPath: string): string {
+    const resolved = resolve(this.vaultPath, targetPath)
     const vaultResolved = resolve(this.vaultPath)
     if (!resolved.startsWith(vaultResolved + sep) && resolved !== vaultResolved) {
       throw new Error(`Path outside vault: ${targetPath}`)
     }
+    return resolved
   }
 
   async listFiles(dir = this.vaultPath): Promise<VaultFile[]> {
-    const entries = await readdir(dir)
+    const resolvedDir = this.resolveAndAssert(dir)
+    const entries = await readdir(resolvedDir)
     const files: VaultFile[] = []
 
     for (const entry of entries) {
       if (entry.startsWith('.')) continue
-      const fullPath = join(dir, entry)
+      const fullPath = join(resolvedDir, entry)
       const info = await stat(fullPath)
       const isDirectory = info.isDirectory()
 
@@ -29,7 +31,7 @@ export class VaultManager {
         relativePath: relative(this.vaultPath, fullPath),
         isDirectory,
         mtime: info.mtimeMs,
-        birthtime: info.birthtimeMs,
+        birthtime: info.birthtimeMs
       }
 
       if (isDirectory) {
@@ -46,71 +48,73 @@ export class VaultManager {
   }
 
   async getFile(filePath: string): Promise<VaultFile> {
-    this.assertInsideVault(filePath)
-    const info = await stat(filePath)
+    const resolvedPath = this.resolveAndAssert(filePath)
+    const info = await stat(resolvedPath)
     const isDirectory = info.isDirectory()
     const file: VaultFile = {
-      name: basename(filePath),
-      path: filePath,
-      relativePath: relative(this.vaultPath, filePath),
+      name: basename(resolvedPath),
+      path: resolvedPath,
+      relativePath: relative(this.vaultPath, resolvedPath),
       isDirectory,
       mtime: info.mtimeMs,
-      birthtime: info.birthtimeMs,
+      birthtime: info.birthtimeMs
     }
 
     if (isDirectory) {
-      file.children = await this.listFiles(filePath)
+      file.children = await this.listFiles(resolvedPath)
     }
 
     return file
   }
 
   async readFile(filePath: string): Promise<string> {
-    this.assertInsideVault(filePath)
-    return readFile(filePath, 'utf-8')
+    const resolvedPath = this.resolveAndAssert(filePath)
+    return readFile(resolvedPath, 'utf-8')
   }
 
   async writeFile(filePath: string, content: string): Promise<void> {
-    this.assertInsideVault(filePath)
-    await writeFile(filePath, content, 'utf-8')
+    const resolvedPath = this.resolveAndAssert(filePath)
+    await writeFile(resolvedPath, content, 'utf-8')
   }
 
   async createFile(dir: string, name: string): Promise<string> {
-    this.assertInsideVault(dir)
-    const filePath = join(dir, name)
-    await writeFile(filePath, '', 'utf-8')
-    return filePath
+    const resolvedDir = this.resolveAndAssert(dir)
+    const filePath = join(resolvedDir, name)
+    const resolvedPath = this.resolveAndAssert(filePath)
+    await writeFile(resolvedPath, '', 'utf-8')
+    return resolvedPath
   }
 
   async deleteFile(filePath: string): Promise<void> {
-    this.assertInsideVault(filePath)
-    await rm(filePath, { recursive: true })
+    const resolvedPath = this.resolveAndAssert(filePath)
+    await rm(resolvedPath, { recursive: true })
   }
 
   async createDirectory(parentDir: string, name: string): Promise<string> {
-    this.assertInsideVault(parentDir)
-    const dirPath = join(parentDir, name)
-    await mkdir(dirPath, { recursive: true })
-    return dirPath
+    const resolvedParent = this.resolveAndAssert(parentDir)
+    const dirPath = join(resolvedParent, name)
+    const resolvedPath = this.resolveAndAssert(dirPath)
+    await mkdir(resolvedPath, { recursive: true })
+    return resolvedPath
   }
 
   async renameFile(oldPath: string, newName: string): Promise<string> {
-    this.assertInsideVault(oldPath)
-    const dir = oldPath.split('/').slice(0, -1).join('/')
+    const resolvedOld = this.resolveAndAssert(oldPath)
+    const dir = resolvedOld.split('/').slice(0, -1).join('/')
     const newPath = dir + '/' + newName
-    this.assertInsideVault(newPath)
-    await rename(oldPath, newPath)
-    return newPath
+    const resolvedNew = this.resolveAndAssert(newPath)
+    await rename(resolvedOld, resolvedNew)
+    return resolvedNew
   }
 
   async moveFile(sourcePath: string, targetDir: string): Promise<string> {
-    this.assertInsideVault(sourcePath)
-    this.assertInsideVault(targetDir)
-    const name = basename(sourcePath)
-    const destPath = join(targetDir, name)
-    this.assertInsideVault(destPath)
-    if (sourcePath === destPath) return destPath
-    await rename(sourcePath, destPath)
-    return destPath
+    const resolvedSource = this.resolveAndAssert(sourcePath)
+    const resolvedTarget = this.resolveAndAssert(targetDir)
+    const name = basename(resolvedSource)
+    const destPath = join(resolvedTarget, name)
+    const resolvedDest = this.resolveAndAssert(destPath)
+    if (resolvedSource === resolvedDest) return resolvedDest
+    await rename(resolvedSource, resolvedDest)
+    return resolvedDest
   }
 }

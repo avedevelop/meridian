@@ -31,10 +31,10 @@ export const useLinkStore = create<LinkState>((set) => ({
   indexFile: (path, name, content, vaultPath) => {
     linkIndex.update(path, content, vaultPath)
     searchIndex.addOrUpdate(path, name, content)
-    set(s => ({
+    set((s) => ({
       indexVersion: s.indexVersion + 1,
       tagsVersion: s.tagsVersion + 1,
-      searchResults: s.searchQuery.trim() ? searchIndex.search(s.searchQuery) : s.searchResults,
+      searchResults: s.searchQuery.trim() ? searchIndex.search(s.searchQuery) : s.searchResults
     }))
   },
 
@@ -51,10 +51,10 @@ export const useLinkStore = create<LinkState>((set) => ({
   removeFile: (path, vaultPath) => {
     linkIndex.remove(path, vaultPath)
     searchIndex.remove(path)
-    set(s => ({
+    set((s) => ({
       indexVersion: s.indexVersion + 1,
       tagsVersion: s.tagsVersion + 1,
-      searchResults: s.searchQuery.trim() ? searchIndex.search(s.searchQuery) : s.searchResults,
+      searchResults: s.searchQuery.trim() ? searchIndex.search(s.searchQuery) : s.searchResults
     }))
   },
 
@@ -62,5 +62,5 @@ export const useLinkStore = create<LinkState>((set) => ({
     linkIndex = new LinkIndex()
     searchIndex = new SearchIndex()
     set({ searchResults: [], searchQuery: '', indexVersion: 0, tagsVersion: 0 })
-  },
+  }
 }))

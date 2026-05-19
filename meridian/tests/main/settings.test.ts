@@ -6,8 +6,8 @@ import { join } from 'path'
 // Mock electron app.getPath to use a temp directory
 vi.mock('electron', () => ({
   app: {
-    getPath: vi.fn(() => mkdtempSync(join(tmpdir(), 'meridian-settings-test-'))),
-  },
+    getPath: vi.fn(() => mkdtempSync(join(tmpdir(), 'meridian-settings-test-')))
+  }
 }))
 
 import { AppSettings } from '../../src/main/settings'

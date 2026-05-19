@@ -7,9 +7,9 @@ beforeEach(() => {
   useVaultStore.setState({
     openTabs: [
       { path: '/v/A.md', name: 'A.md', content: '', isDirty: false },
-      { path: '/v/B.md', name: 'B.md', content: '', isDirty: true },
+      { path: '/v/B.md', name: 'B.md', content: '', isDirty: true }
     ],
-    activeTabPath: '/v/A.md',
+    activeTabPath: '/v/A.md'
   })
 })
 

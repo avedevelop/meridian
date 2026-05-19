@@ -14,7 +14,7 @@ const WATCH_EVENT_TYPES = new Set<VaultFileChangeType>([
   'change',
   'unlink',
   'addDir',
-  'unlinkDir',
+  'unlinkDir'
 ])
 
 function toAbsoluteVaultPath(manager: VaultManager, changedPath: string): string {
@@ -24,14 +24,14 @@ function toAbsoluteVaultPath(manager: VaultManager, changedPath: string): string
 async function emitVaultFileChange(
   manager: VaultManager,
   type: VaultFileChangeType,
-  changedPath: string,
+  changedPath: string
 ): Promise<void> {
   const absolutePath = toAbsoluteVaultPath(manager, changedPath)
   const event: VaultFileChangeEvent = {
     type,
     path: absolutePath,
     vaultPath: manager.vaultPath,
-    file: null,
+    file: null
   }
 
   if (type === 'add' || type === 'change' || type === 'addDir') {
@@ -42,7 +42,7 @@ async function emitVaultFileChange(
     }
   }
 
-  BrowserWindow.getAllWindows().forEach(win => {
+  BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send(IPC.FILE_CHANGED, event)
   })
 }
@@ -56,7 +56,7 @@ function startVaultWatcher(manager: VaultManager): void {
   vaultWatcher = chokidar.watch(manager.vaultPath, {
     ignoreInitial: true,
     ignored: /(^|[/\\])\../,
-    awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 },
+    awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 }
   })
 
   vaultWatcher.on('all', (eventName, changedPath) => {
@@ -65,7 +65,7 @@ function startVaultWatcher(manager: VaultManager): void {
     void emitVaultFileChange(manager, eventName as VaultFileChangeType, String(changedPath))
   })
 
-  vaultWatcher.on('error', error => {
+  vaultWatcher.on('error', (error) => {
     console.error('[Watcher] vault watcher error:', error)
   })
 }
@@ -82,7 +82,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
       title: 'Open Vault',
-      buttonLabel: 'Open Vault',
+      buttonLabel: 'Open Vault'
     })
     if (result.canceled || result.filePaths.length === 0) return null
 
@@ -120,9 +120,39 @@ export function registerIpcHandlers(settings: AppSettings): void {
     if (!vaultManager) throw new Error('No vault open')
     // Reject binary file extensions before trying to read
     const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
-    const binaryExts = ['png','jpg','jpeg','gif','webp','svg','ico','bmp','tiff',
-      'pdf','zip','gz','tar','exe','dmg','app','bin','dll','so','dylib',
-      'mp3','mp4','mov','avi','wav','flac','ogg','woff','woff2','ttf','eot']
+    const binaryExts = [
+      'png',
+      'jpg',
+      'jpeg',
+      'gif',
+      'webp',
+      'svg',
+      'ico',
+      'bmp',
+      'tiff',
+      'pdf',
+      'zip',
+      'gz',
+      'tar',
+      'exe',
+      'dmg',
+      'app',
+      'bin',
+      'dll',
+      'so',
+      'dylib',
+      'mp3',
+      'mp4',
+      'mov',
+      'avi',
+      'wav',
+      'flac',
+      'ogg',
+      'woff',
+      'woff2',
+      'ttf',
+      'eot'
+    ]
     if (binaryExts.includes(ext)) throw new Error(`Cannot read binary file: ${ext}`)
     return vaultManager.readFile(filePath)
   })
@@ -195,7 +225,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
       title: 'Export Note as HTML',
       defaultPath: suggestedName,
       filters: [{ name: 'HTML Files', extensions: ['html'] }],
-      buttonLabel: 'Export',
+      buttonLabel: 'Export'
     })
     if (result.canceled || !result.filePath) return null
     const { writeFile } = await import('fs/promises')
@@ -207,12 +237,70 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const { filePath } = await dialog.showSaveDialog({
       title: 'Export Graph Animation',
       defaultPath: 'meridian-graph.webm',
-      filters: [{ name: 'WebM Video', extensions: ['webm'] }],
+      filters: [{ name: 'WebM Video', extensions: ['webm'] }]
     })
     if (!filePath) return null
     const { writeFile } = await import('fs/promises')
     await writeFile(filePath, data)
     return filePath
+  })
+
+  ipcMain.handle(IPC.VAULT_FETCH_URL_METADATA, async (_event, url: string) => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      })
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`)
+      const html = await response.text()
+
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+      const title = titleMatch ? titleMatch[1].trim() : ''
+
+      const ogTitleMatch =
+        html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i)
+      const ogTitle = ogTitleMatch ? ogTitleMatch[1].trim() : ''
+
+      const ogDescMatch =
+        html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i) ||
+        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i) ||
+        html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
+        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)
+      const ogDesc = ogDescMatch ? ogDescMatch[1].trim() : ''
+
+      const ogImgMatch =
+        html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+        html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
+        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i)
+      const ogImg = ogImgMatch ? ogImgMatch[1].trim() : ''
+
+      return {
+        title: ogTitle || title || url,
+        description: ogDesc,
+        image: ogImg,
+        url
+      }
+    } catch (e) {
+      console.error('[IPC] fetchUrlMetadata error:', e)
+      return {
+        title: url,
+        description: 'Failed to fetch preview metadata',
+        image: '',
+        url
+      }
+    }
+  })
+
+  ipcMain.handle(IPC.VAULT_OPEN_EXTERNAL, async (_event, url: string) => {
+    try {
+      await shell.openExternal(url)
+    } catch (e) {
+      console.error('[IPC] openExternal error:', e)
+    }
   })
 }
 

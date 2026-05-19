@@ -1,19 +1,48 @@
 import { useState, useEffect, useCallback, useMemo, Component, type ReactNode } from 'react'
+import { WarningIcon } from './components/Icons'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null }
-  static getDerivedStateFromError(e: Error) { return { error: e.message } }
+  static getDerivedStateFromError(e: Error) {
+    return { error: e.message }
+  }
   render() {
-    if (this.state.error) return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a', color: '#ccc', gap: 16 }}>
-        <div style={{ fontSize: 32 }}>⚠️</div>
-        <div style={{ fontSize: 14, color: '#f66' }}>Something went wrong</div>
-        <div style={{ fontSize: 12, color: '#555', maxWidth: 400, textAlign: 'center' }}>{this.state.error}</div>
-        <button onClick={() => window.location.reload()} style={{ marginTop: 8, padding: '8px 20px', background: '#7c6af7', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
-          Reload
-        </button>
-      </div>
-    )
+    if (this.state.error)
+      return (
+        <div
+          style={{
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#1a1a1a',
+            color: '#ccc',
+            gap: 16
+          }}
+        >
+          <WarningIcon size={32} />
+          <div style={{ fontSize: 14, color: '#f66' }}>Something went wrong</div>
+          <div style={{ fontSize: 12, color: '#555', maxWidth: 400, textAlign: 'center' }}>
+            {this.state.error}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: 8,
+              padding: '8px 20px',
+              background: '#7c6af7',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 13
+            }}
+          >
+            Reload
+          </button>
+        </div>
+      )
     return this.props.children
   }
 }
@@ -31,6 +60,8 @@ import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
 
+import { useAutoSave } from './hooks/useAutoSave'
+
 declare global {
   interface Window {
     menuAPI: {
@@ -41,26 +72,42 @@ declare global {
 
 export { AppErrorBoundary }
 export default function App() {
-  const vault = useVaultStore(s => s.vault)
-  const closeTab = useVaultStore(s => s.closeTab)
-  const activeTabPath = useVaultStore(s => s.activeTabPath)
-  const openTabs = useVaultStore(s => s.openTabs)
-  const allFiles = useLinkStore(s => s.allFiles)
-  const indexVersion = useLinkStore(s => s.indexVersion)
+  const vault = useVaultStore((s) => s.vault)
+  const closeTab = useVaultStore((s) => s.closeTab)
+  const activeTabPath = useVaultStore((s) => s.activeTabPath)
+  const openTabs = useVaultStore((s) => s.openTabs)
+  const allFiles = useLinkStore((s) => s.allFiles)
+  const indexVersion = useLinkStore((s) => s.indexVersion)
   const { openFile, openVault, openDailyNote, exportNote, createFile, saveFile } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph'>('files')
   useVaultFileWatcher()
+  useAutoSave()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) {
-        if (e.key === 'k') { e.preventDefault(); setPaletteOpen(open => !open) }
-        if (e.key === 'o') { e.preventDefault(); openVault() }
-        if (e.key === ',') { e.preventDefault(); setSettingsOpen(open => !open) }
-        if (e.key === 'd') { e.preventDefault(); openDailyNote() }
-        if (e.key === 'e') { e.preventDefault(); exportNote() }
+        if (e.key === 'k') {
+          e.preventDefault()
+          setPaletteOpen((open) => !open)
+        }
+        if (e.key === 'o') {
+          e.preventDefault()
+          openVault()
+        }
+        if (e.key === ',') {
+          e.preventDefault()
+          setSettingsOpen((open) => !open)
+        }
+        if (e.key === 'd') {
+          e.preventDefault()
+          openDailyNote()
+        }
+        if (e.key === 'e') {
+          e.preventDefault()
+          exportNote()
+        }
       }
     }
     window.addEventListener('keydown', handler)
@@ -81,7 +128,7 @@ export default function App() {
           openVault()
           break
         case 'save': {
-          const tab = openTabs.find(t => t.path === activeTabPath)
+          const tab = openTabs.find((t) => t.path === activeTabPath)
           if (tab) await saveFile(tab.path, tab.content)
           break
         }
@@ -92,29 +139,49 @@ export default function App() {
           if (activeTabPath) closeTab(activeTabPath)
           break
         case 'command-palette':
-          setPaletteOpen(open => !open)
+          setPaletteOpen((open) => !open)
           break
         case 'settings':
-          setSettingsOpen(open => !open)
+          setSettingsOpen((open) => !open)
           break
         case 'graph-view':
           setActiveSidebarTab('graph')
           break
+        case 'reset-layout':
+          window.dispatchEvent(new Event('layout:reset'))
+          break
       }
     })
     return unsub
-  }, [vault, createFile, openDailyNote, openVault, saveFile, exportNote, closeTab, activeTabPath, openTabs])
+  }, [
+    vault,
+    createFile,
+    openDailyNote,
+    openVault,
+    saveFile,
+    exportNote,
+    closeTab,
+    activeTabPath,
+    openTabs
+  ])
 
-  const paletteFiles = useMemo(() => (
-    allFiles().map(path => ({
-      path,
-      name: path.split('/').pop() ?? '',
-    })).filter(f => f.name.endsWith('.md'))
-  ), [allFiles, indexVersion])
+  const paletteFiles = useMemo(
+    () =>
+      allFiles()
+        .map((path) => ({
+          path,
+          name: path.split('/').pop() ?? ''
+        }))
+        .filter((f) => f.name.endsWith('.md')),
+    [allFiles, indexVersion]
+  )
 
-  const handleFileSelect = useCallback((path: string, name: string) => {
-    openFile(path, name)
-  }, [openFile])
+  const handleFileSelect = useCallback(
+    (path: string, name: string) => {
+      openFile(path, name)
+    },
+    [openFile]
+  )
 
   if (!vault) return <VaultPicker />
 
@@ -128,7 +195,13 @@ export default function App() {
             onSettings={() => setSettingsOpen(true)}
           />
         }
-        sidebar={<Sidebar key={vault.path} activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab} />}
+        sidebar={
+          <Sidebar
+            key={vault.path}
+            activeTab={activeSidebarTab}
+            onTabChange={setActiveSidebarTab}
+          />
+        }
         editor={<EditorArea />}
         rightPanel={<RightPanel />}
       />
@@ -139,10 +212,7 @@ export default function App() {
         files={paletteFiles}
         onFileSelect={handleFileSelect}
       />
-      <SettingsModal
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

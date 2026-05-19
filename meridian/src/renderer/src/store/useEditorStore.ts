@@ -7,9 +7,9 @@ interface EditorStoreState {
   setActiveHeading: (heading: string | null) => void
 }
 
-export const useEditorStore = create<EditorStoreState>(set => ({
+export const useEditorStore = create<EditorStoreState>((set) => ({
   cursorPos: null,
   activeHeading: null,
   setCursorPos: (cursorPos) => set({ cursorPos }),
-  setActiveHeading: (activeHeading) => set({ activeHeading }),
+  setActiveHeading: (activeHeading) => set({ activeHeading })
 }))

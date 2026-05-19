@@ -6,14 +6,12 @@ describe('getSegments', () => {
     expect(getSegments('Projects/Notes/ideas.md')).toEqual([
       { name: 'Projects', isLast: false },
       { name: 'Notes', isLast: false },
-      { name: 'ideas.md', isLast: true },
+      { name: 'ideas.md', isLast: true }
     ])
   })
 
   it('handles a root-level file', () => {
-    expect(getSegments('README.md')).toEqual([
-      { name: 'README.md', isLast: true },
-    ])
+    expect(getSegments('README.md')).toEqual([{ name: 'README.md', isLast: true }])
   })
 
   it('returns empty array for empty string', () => {

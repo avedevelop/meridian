@@ -5,7 +5,7 @@ import { CommandPalette } from '../../src/renderer/src/components/CommandPalette
 const mockFiles = [
   { path: '/v/Alpha.md', name: 'Alpha.md' },
   { path: '/v/Beta.md', name: 'Beta.md' },
-  { path: '/v/Gamma.md', name: 'Gamma.md' },
+  { path: '/v/Gamma.md', name: 'Gamma.md' }
 ]
 
 describe('CommandPalette', () => {
@@ -35,7 +35,12 @@ describe('CommandPalette', () => {
   it('calls onFileSelect when item is clicked', () => {
     const onFileSelect = vi.fn()
     render(
-      <CommandPalette isOpen={true} onClose={vi.fn()} files={mockFiles} onFileSelect={onFileSelect} />
+      <CommandPalette
+        isOpen={true}
+        onClose={vi.fn()}
+        files={mockFiles}
+        onFileSelect={onFileSelect}
+      />
     )
     fireEvent.click(screen.getByText('Alpha'))
     expect(onFileSelect).toHaveBeenCalledWith('/v/Alpha.md', 'Alpha.md')

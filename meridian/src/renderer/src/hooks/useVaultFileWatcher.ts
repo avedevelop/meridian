@@ -26,7 +26,10 @@ async function refreshFileTree(): Promise<void> {
   }
 }
 
-async function syncChangedMarkdownFile(event: VaultFileChangeEvent, vaultPath: string): Promise<void> {
+async function syncChangedMarkdownFile(
+  event: VaultFileChangeEvent,
+  vaultPath: string
+): Promise<void> {
   if (!isMarkdownPath(event.path)) return
 
   try {
@@ -34,7 +37,7 @@ async function syncChangedMarkdownFile(event: VaultFileChangeEvent, vaultPath: s
     const name = event.file?.name ?? fileNameFromPath(event.path)
     useLinkStore.getState().indexFile(event.path, name, content, vaultPath)
 
-    const tab = useVaultStore.getState().openTabs.find(t => t.path === event.path)
+    const tab = useVaultStore.getState().openTabs.find((t) => t.path === event.path)
     if (tab && !tab.isDirty) {
       useVaultStore.getState().setTabContent(event.path, content)
       useVaultStore.getState().markTabDirty(event.path, false)
@@ -46,7 +49,7 @@ async function syncChangedMarkdownFile(event: VaultFileChangeEvent, vaultPath: s
 
 function removeDeletedPaths(event: VaultFileChangeEvent, vaultPath: string): void {
   const linkStore = useLinkStore.getState()
-  const paths = linkStore.allFiles().filter(path => isSameOrChildPath(event.path, path))
+  const paths = linkStore.allFiles().filter((path) => isSameOrChildPath(event.path, path))
   for (const path of paths) {
     linkStore.removeFile(path, vaultPath)
   }
@@ -60,7 +63,7 @@ function removeDeletedPaths(event: VaultFileChangeEvent, vaultPath: string): voi
 }
 
 export function useVaultFileWatcher(): void {
-  const vaultPath = useVaultStore(s => s.vault?.path)
+  const vaultPath = useVaultStore((s) => s.vault?.path)
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {

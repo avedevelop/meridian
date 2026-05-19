@@ -28,13 +28,13 @@ export function imagePasteExtension(
           if (!relativePath) return
 
           view.dispatch({
-            changes: { from: cursor, to: cursor, insert: `![](${relativePath})` },
+            changes: { from: cursor, to: cursor, insert: `![](${relativePath})` }
           })
         }
         reader.readAsDataURL(blob)
         return true
       }
       return false
-    },
+    }
   })
 }

@@ -6,11 +6,21 @@ import { VaultFile } from '../../src/shared/types'
 const mockFiles: VaultFile[] = [
   { name: 'Notes.md', path: '/v/Notes.md', relativePath: 'Notes.md', isDirectory: false, mtime: 0 },
   {
-    name: 'Projects', path: '/v/Projects', relativePath: 'Projects', isDirectory: true, mtime: 0,
+    name: 'Projects',
+    path: '/v/Projects',
+    relativePath: 'Projects',
+    isDirectory: true,
+    mtime: 0,
     children: [
-      { name: 'Alpha.md', path: '/v/Projects/Alpha.md', relativePath: 'Projects/Alpha.md', isDirectory: false, mtime: 0 },
-    ],
-  },
+      {
+        name: 'Alpha.md',
+        path: '/v/Projects/Alpha.md',
+        relativePath: 'Projects/Alpha.md',
+        isDirectory: false,
+        mtime: 0
+      }
+    ]
+  }
 ]
 
 describe('FileTree', () => {

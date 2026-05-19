@@ -33,7 +33,7 @@ export const wikiLinkExtension = (onLinkClick: (linkText: string) => void): Exte
         }
       }
     },
-    { decorations: v => v.decorations }
+    { decorations: (v) => v.decorations }
   ),
   EditorView.domEventHandlers({
     click(event, view) {
@@ -54,13 +54,13 @@ export const wikiLinkExtension = (onLinkClick: (linkText: string) => void): Exte
         }
       }
       return false
-    },
+    }
   }),
   EditorView.baseTheme({
     '.cm-wiki-link': {
       color: '#7c6af7',
       textDecoration: 'underline',
-      cursor: 'pointer',
-    },
-  }),
+      cursor: 'pointer'
+    }
+  })
 ]

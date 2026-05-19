@@ -89,38 +89,38 @@ src/
 
 ## IPC Channels (src/shared/types.ts → IPC object)
 
-| Channel | Direction | Description |
-|---------|-----------|-------------|
-| vault:open-dialog | renderer→main | Open system folder picker, returns VaultConfig |
-| vault:open-by-path | renderer→main | Open vault at known path (recent vaults) |
-| vault:list-files | renderer→main | Returns VaultFile[] tree |
-| vault:read-file | renderer→main | Returns file content as UTF-8 string |
-| vault:write-file | renderer→main | Writes text file |
-| vault:create-file | renderer→main | Creates empty file, returns full path |
-| vault:create-dir | renderer→main | Creates directory (recursive) |
-| vault:delete-file | renderer→main | Deletes file or directory (recursive) |
-| vault:rename-file | renderer→main | Renames file, returns new path |
-| vault:write-binary | renderer→main | Writes base64 data as binary file (for image paste) |
-| vault:move-file | renderer→main | Moves file to target directory, returns new path |
-| vault:reveal-file | renderer→main | Opens Finder at file location (shell.showItemInFolder) |
-| vault:export-html | renderer→main | Save dialog + write HTML file |
-| vault:save-video | renderer→main | Save dialog + write WebM video (Uint8Array) — PLANNED Phase 10 |
-| settings:get | renderer→main | Returns AppConfig |
-| settings:set | renderer→main | Sets lastVault |
-| file:changed | main→renderer | Push: chokidar file system change event |
-| menu:action | main→renderer | Native menu item clicked (new-file, save, export-html, etc.) |
+| Channel            | Direction     | Description                                                    |
+| ------------------ | ------------- | -------------------------------------------------------------- |
+| vault:open-dialog  | renderer→main | Open system folder picker, returns VaultConfig                 |
+| vault:open-by-path | renderer→main | Open vault at known path (recent vaults)                       |
+| vault:list-files   | renderer→main | Returns VaultFile[] tree                                       |
+| vault:read-file    | renderer→main | Returns file content as UTF-8 string                           |
+| vault:write-file   | renderer→main | Writes text file                                               |
+| vault:create-file  | renderer→main | Creates empty file, returns full path                          |
+| vault:create-dir   | renderer→main | Creates directory (recursive)                                  |
+| vault:delete-file  | renderer→main | Deletes file or directory (recursive)                          |
+| vault:rename-file  | renderer→main | Renames file, returns new path                                 |
+| vault:write-binary | renderer→main | Writes base64 data as binary file (for image paste)            |
+| vault:move-file    | renderer→main | Moves file to target directory, returns new path               |
+| vault:reveal-file  | renderer→main | Opens Finder at file location (shell.showItemInFolder)         |
+| vault:export-html  | renderer→main | Save dialog + write HTML file                                  |
+| vault:save-video   | renderer→main | Save dialog + write WebM video (Uint8Array) — PLANNED Phase 10 |
+| settings:get       | renderer→main | Returns AppConfig                                              |
+| settings:set       | renderer→main | Sets lastVault                                                 |
+| file:changed       | main→renderer | Push: chokidar file system change event                        |
+| menu:action        | main→renderer | Native menu item clicked (new-file, save, export-html, etc.)   |
 
 ## VaultFile type (src/shared/types.ts)
 
 ```typescript
 export interface VaultFile {
-  name: string        // filename with extension
-  path: string        // absolute path
+  name: string // filename with extension
+  path: string // absolute path
   relativePath: string // relative to vault root
   isDirectory: boolean
   children?: VaultFile[]
-  mtime: number       // last modified timestamp (ms)
-  birthtime: number   // file creation timestamp (ms) — PLANNED Phase 10, add to listFiles/getFile
+  mtime: number // last modified timestamp (ms)
+  birthtime: number // file creation timestamp (ms) — PLANNED Phase 10, add to listFiles/getFile
 }
 ```
 
@@ -129,6 +129,7 @@ export interface VaultFile {
 ## Native Menu (src/main/index.ts)
 
 Built with `Menu.buildFromTemplate`. Menu actions sent to renderer via:
+
 ```typescript
 BrowserWindow.getFocusedWindow()?.webContents.send('menu:action', actionName)
 ```
@@ -190,30 +191,39 @@ Module-level `let dragSourcePath: string | null = null` in `FileTree.tsx` → sh
 ## What's been built (Phases 1–9)
 
 ### Phase 1: Core MVP
+
 Vault picker, file tree (create/rename/delete), CodeMirror editor, tab system, ⌘S save, markdown preview, status bar, error boundary.
 
 ### Phase 2: Links & Discovery
+
 `[[wiki-links]]` decoration + Cmd+Click, `[[` autocomplete, backlinks panel, #tags, MiniSearch search, ⌘K command palette, D3 force graph.
 
 ### Phase 3: Polish
+
 Settings modal (font size/line width), right-click context menu, file deletion confirm, recent vaults, macOS DMG build.
 
 ### Phase 4: Content & Organization
+
 ⌘D daily notes, image paste (clipboard → assets/), right panel tabs (Links | Tags), vault:// protocol.
 
 ### Phase 5: Reliability & Sync
+
 Chokidar file watcher, reactive file tree, auto-reload clean tabs, link index sync on external changes.
 
 ### Phase 6 (Codex)
+
 Chokidar watcher fully integrated, GraphView uses live vault file tree, ghost-node bug fixed.
 
 ### Phase 7: Demo Features
+
 Table of Contents panel (parseHeadings, click to scroll), Export to HTML (remark pipeline, save dialog), Create New Vault button on VaultPicker.
 
 ### Phase 8: VS Code File Management
+
 Drag & drop to move files, context menu (Reveal in Finder, Copy Path, Copy Relative Path), file tree filter input + collapse all (⊟), breadcrumb navigation above editor.
 
 ### Phase 9: VS Code UI
+
 - **Activity Bar**: 48px vertical SVG-icon column (Explorer/Search/Graph/Settings), tab state lifted to App.tsx
 - **File type icons**: colored SVG file shape by extension (FileIcon.tsx)
 - **Native macOS menu**: File/Edit/View/Window/Help via `Menu.buildFromTemplate`
@@ -232,44 +242,52 @@ Drag & drop to move files, context menu (Reveal in Finder, Copy Path, Copy Relat
 **Files to modify:**
 
 **`src/shared/types.ts`** — add to `VaultFile`:
+
 ```typescript
-  birthtime: number    // file creation timestamp (ms)
+birthtime: number // file creation timestamp (ms)
 ```
+
 Add to `IPC` object:
+
 ```typescript
   VAULT_SAVE_VIDEO: 'vault:save-video',
 ```
 
 **`src/main/vault.ts`** — in `listFiles()` and `getFile()`, add to the VaultFile object construction:
+
 ```typescript
   birthtime: info.birthtimeMs,
 ```
+
 (`info` is already from `await stat(fullPath)` — `birthtimeMs` is available on macOS.)
 
 **`src/main/ipc.ts`** — add handler after last `ipcMain.handle`:
+
 ```typescript
-  ipcMain.handle(IPC.VAULT_SAVE_VIDEO, async (_event, data: Uint8Array) => {
-    const { filePath } = await dialog.showSaveDialog({
-      title: 'Export Graph Animation',
-      defaultPath: 'meridian-graph.webm',
-      filters: [{ name: 'WebM Video', extensions: ['webm'] }],
-    })
-    if (!filePath) return null
-    const { writeFile } = await import('fs/promises')
-    await writeFile(filePath, data)
-    return filePath
+ipcMain.handle(IPC.VAULT_SAVE_VIDEO, async (_event, data: Uint8Array) => {
+  const { filePath } = await dialog.showSaveDialog({
+    title: 'Export Graph Animation',
+    defaultPath: 'meridian-graph.webm',
+    filters: [{ name: 'WebM Video', extensions: ['webm'] }]
   })
+  if (!filePath) return null
+  const { writeFile } = await import('fs/promises')
+  await writeFile(filePath, data)
+  return filePath
+})
 ```
 
 **`src/preload/index.ts`** — add to `vaultAPI`:
+
 ```typescript
   saveVideo: (data: Uint8Array): Promise<string | null> =>
     ipcRenderer.invoke(IPC.VAULT_SAVE_VIDEO, data),
 ```
 
 **`src/renderer/src/hooks/useVaultBridge.ts`** — add to `Window.vault` type declaration:
+
 ```typescript
-      saveVideo: (data: Uint8Array) => Promise<string | null>
+saveVideo: (data: Uint8Array) => Promise<string | null>
 ```
 
 Commit: `git commit -m "feat: add birthtime to VaultFile + vault:save-video IPC"`
@@ -652,6 +670,7 @@ Commit: `git commit -m "feat: animated graph with timeline scrubber + video expo
 ---
 
 After both tasks:
+
 ```bash
 npm run typecheck   # must be clean
 npx vitest run      # all tests must pass

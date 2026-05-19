@@ -9,12 +9,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.{ts,tsx}'],
-    passWithNoTests: true,
+    passWithNoTests: true
   },
   resolve: {
     alias: {
       '@shared': resolve(__dirname, 'src/shared'),
-      '@renderer': resolve(__dirname, 'src/renderer/src'),
-    },
-  },
+      '@renderer': resolve(__dirname, 'src/renderer/src')
+    }
+  }
 })

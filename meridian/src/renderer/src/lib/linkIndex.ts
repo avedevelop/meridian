@@ -20,7 +20,7 @@ export class LinkIndex {
       try {
         const data = JSON.parse(content)
         const nodes = data.nodes || []
-        
+
         let allText = ''
         for (const node of nodes) {
           if (node.type === 'file' && node.file) {
@@ -31,7 +31,7 @@ export class LinkIndex {
             allText += node.text + '\n'
           }
         }
-        
+
         // Parse wikilinks and tags from all text nodes
         const parsedText = parseLinks(allText)
         extractedLinks.push(...parsedText.links)
@@ -62,7 +62,7 @@ export class LinkIndex {
     this.outlinks.clear()
     for (const [filePath, links] of this.rawLinks) {
       const resolved = links
-        .map(link => this.resolve(link))
+        .map((link) => this.resolve(link))
         .filter((p): p is string => p !== null)
       this.outlinks.set(filePath, resolved)
     }

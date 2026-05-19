@@ -6,7 +6,7 @@ import { AppConfig } from '../shared/types'
 const DEFAULT_CONFIG: AppConfig = {
   recentVaults: [],
   lastVault: null,
-  windowBounds: { width: 1200, height: 800 },
+  windowBounds: { width: 1200, height: 800 }
 }
 
 export class AppSettings {
@@ -42,7 +42,7 @@ export class AppSettings {
   }
 
   addRecentVault(path: string, name: string): void {
-    const filtered = this.data.recentVaults.filter(v => v.path !== path)
+    const filtered = this.data.recentVaults.filter((v) => v.path !== path)
     filtered.unshift({ path, name })
     this.data.recentVaults = filtered.slice(0, 10)
     this.save()

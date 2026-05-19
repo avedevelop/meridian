@@ -8,7 +8,9 @@ describe('LinkIndex', () => {
     idx.update('/vault/B.md', 'References [[A]].', '/vault')
     idx.update('/vault/C.md', 'Nothing here.', '/vault')
 
-    expect(idx.getOutlinks('/vault/A.md')).toEqual(expect.arrayContaining(['/vault/B.md', '/vault/C.md']))
+    expect(idx.getOutlinks('/vault/A.md')).toEqual(
+      expect.arrayContaining(['/vault/B.md', '/vault/C.md'])
+    )
     expect(idx.getOutlinks('/vault/A.md')).toHaveLength(2)
   })
 
