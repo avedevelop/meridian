@@ -168,11 +168,11 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           .attr('r', nodeR(d))
         
         text.transition()
-          .duration(400)
+          .duration(150)
           .attr('opacity', 1)
 
         group.transition()
-          .duration(300)
+          .duration(100)
           .attr('opacity', 1)
           .style('pointer-events', 'auto')
       } else {
@@ -195,7 +195,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       const sb = birthtimes.get((d.source as GNode).id)
       const tb = birthtimes.get((d.target as GNode).id)
       const visible = sb !== undefined && tb !== undefined && sb <= ts && tb <= ts
-      d3.select(this).transition().duration(visible ? 500 : 150)
+      d3.select(this).transition().duration(visible ? 250 : 150)
         .attr('opacity', visible ? 0.6 : 0)
         .attr('stroke-width', visible ? 1 : 0)
     })
