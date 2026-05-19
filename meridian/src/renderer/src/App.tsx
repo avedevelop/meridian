@@ -29,6 +29,7 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { useVaultBridge } from './hooks/useVaultBridge'
 import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
+import { ActivityBar } from './components/ActivityBar/ActivityBar'
 
 export { AppErrorBoundary }
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
   const { openFile, openVault, openDailyNote, exportNote } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph'>('files')
   useVaultFileWatcher()
 
   useEffect(() => {
@@ -70,7 +72,14 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Layout
-        sidebar={<Sidebar key={vault.path} />}
+        activityBar={
+          <ActivityBar
+            activeTab={activeSidebarTab}
+            onTabChange={setActiveSidebarTab}
+            onSettings={() => setSettingsOpen(true)}
+          />
+        }
+        sidebar={<Sidebar key={vault.path} activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab} />}
         editor={<EditorArea />}
         rightPanel={<RightPanel />}
       />

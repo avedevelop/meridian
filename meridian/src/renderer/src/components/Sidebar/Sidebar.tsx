@@ -6,6 +6,11 @@ import { SearchPanel } from './SearchPanel'
 import { GraphView } from '../Graph/GraphView'
 import type { VaultFile } from '@shared/types'
 
+interface SidebarProps {
+  activeTab: 'files' | 'search' | 'graph'
+  onTabChange: (tab: 'files' | 'search' | 'graph') => void
+}
+
 class GraphErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null }
   static getDerivedStateFromError(e: Error) { return { error: e.message } }
@@ -20,12 +25,9 @@ class GraphErrorBoundary extends Component<{ children: ReactNode }, { error: str
   }
 }
 
-type SidebarTab = 'files' | 'search' | 'graph'
-
-export function Sidebar() {
+export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { vault, files } = useVaultStore()
   const { openFile, createFile, createFolder, openVault, renameFile, moveFile, deleteFile, revealFile } = useVaultBridge()
-  const [activeTab, setActiveTab] = useState<SidebarTab>('files')
   const [filterQuery, setFilterQuery] = useState('')
   const [collapseKey, setCollapseKey] = useState(0)
 
@@ -45,33 +47,8 @@ export function Sidebar() {
 
   if (!vault) return null
 
-  const tabs: { id: SidebarTab; icon: string; label: string }[] = [
-    { id: 'files', icon: '📄', label: 'Files' },
-    { id: 'search', icon: '🔍', label: 'Search' },
-    { id: 'graph', icon: '🕸️', label: 'Graph' },
-  ]
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Tab bar */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #2a2a2a', flexShrink: 0 }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            title={tab.label}
-            style={{
-              flex: 1, padding: '8px 0', border: 'none', cursor: 'pointer', fontSize: 14,
-              background: activeTab === tab.id ? '#1a1a1a' : 'transparent',
-              color: activeTab === tab.id ? '#fff' : '#555',
-              borderBottom: activeTab === tab.id ? '2px solid #7c6af7' : '2px solid transparent',
-            }}
-          >
-            {tab.icon}
-          </button>
-        ))}
-      </div>
-
       {/* Content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'files' && (
@@ -197,7 +174,7 @@ export function Sidebar() {
                 WebkitAppRegion: 'no-drag',
               }}>
                 <button
-                  onClick={() => setActiveTab('files')}
+                  onClick={() => onTabChange('files')}
                   style={{
                     background: 'transparent', border: 'none', color: '#888',
                     cursor: 'pointer', fontSize: 13, padding: '4px 8px',
@@ -209,7 +186,7 @@ export function Sidebar() {
                 <span style={{ color: '#555', fontSize: 13 }}>Graph View</span>
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <GraphView onFileOpen={() => setActiveTab('files')} />
+                <GraphView onFileOpen={() => onTabChange('files')} />
               </div>
             </div>
           </GraphErrorBoundary>
