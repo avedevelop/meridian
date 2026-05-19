@@ -234,23 +234,26 @@ export function useVaultBridge() {
     const activeTab = openTabs.find(t => t.path === activeTabPath)
     if (!activeTab) return
 
-    const { unified } = await import('unified')
-    const { default: remarkParse } = await import('remark-parse')
-    const { default: remarkGfm } = await import('remark-gfm')
-    const { default: remarkRehype } = await import('remark-rehype')
-    const { default: rehypeStringify } = await import('rehype-stringify')
+    try {
+      const { unified } = await import('unified')
+      const { default: remarkParse } = await import('remark-parse')
+      const { default: remarkGfm } = await import('remark-gfm')
+      const { default: remarkRehype } = await import('remark-rehype')
+      const { default: rehypeSanitize } = await import('rehype-sanitize')
+      const { default: rehypeStringify } = await import('rehype-stringify')
 
-    const processor = unified()
-      .use(remarkParse)
-      .use(remarkGfm)
-      .use(remarkRehype)
-      .use(rehypeStringify)
+      const processor = unified()
+        .use(remarkParse)
+        .use(remarkGfm)
+        .use(remarkRehype)
+        .use(rehypeSanitize)
+        .use(rehypeStringify)
 
-    const bodyHtml = String(processor.processSync(activeTab.content))
-    const title = activeTab.name.replace(/\.md$/i, '')
-    const escapedTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      const bodyHtml = String(processor.processSync(activeTab.content))
+      const title = activeTab.name.replace(/\.md$/i, '')
+      const escapedTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-    const fullHtml = `<!DOCTYPE html>
+      const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -283,7 +286,12 @@ ${bodyHtml}
 </body>
 </html>`
 
-    await window.vault.exportHtml(`${title}.html`, fullHtml)
+      const result = await window.vault.exportHtml(`${title}.html`, fullHtml)
+      if (result) console.log('[Bridge] exported to', result)
+    } catch (e) {
+      console.error('[Bridge] exportNote error', e)
+      window.alert(`Could not export note: ${e instanceof Error ? e.message : String(e)}`)
+    }
   }, [])
 
   return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote, saveImage, exportNote }
