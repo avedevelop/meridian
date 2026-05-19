@@ -439,7 +439,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       }
     } else {
       setProgress(0)
-      setIsPlaying(true)
+      setIsPlaying(false)
     }
   }
 
@@ -480,7 +480,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         </button>
       </div>
 
-      <div ref={containerRef} style={{ flex: 1, position: 'relative' }}>
+      <div ref={containerRef} style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
 
