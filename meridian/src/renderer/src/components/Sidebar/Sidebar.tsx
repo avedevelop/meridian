@@ -96,7 +96,7 @@ export function Sidebar() {
             }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 16px', borderBottom: '1px solid #2a2a2a', flexShrink: 0,
+                padding: '10px 16px', paddingTop: 38, borderBottom: '1px solid #2a2a2a', flexShrink: 0,
                 // @ts-ignore
                 WebkitAppRegion: 'no-drag',
               }}>

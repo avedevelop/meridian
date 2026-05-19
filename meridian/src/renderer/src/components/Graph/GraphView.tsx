@@ -24,31 +24,48 @@ export function GraphView() {
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    const files = allFiles().filter(f => f.endsWith('.md'))
-    if (files.length === 0) return
+    const allMdFiles = allFiles().filter(f => f.endsWith('.md'))
+    if (allMdFiles.length === 0) {
+      const g = svg.append('g')
+      g.append('text').attr('x', (svgRef.current.clientWidth || 400) / 2).attr('y', (svgRef.current.clientHeight || 400) / 2)
+        .attr('text-anchor', 'middle').attr('fill', '#444').attr('font-size', 14)
+        .text('No notes indexed. Open a vault first.')
+      return
+    }
 
-    const width = svgRef.current.clientWidth || 400
-    const height = svgRef.current.clientHeight || 400
+    // Build links first, then only show files that have connections
+    const allLinks: GraphLink[] = []
+    for (const file of allMdFiles) {
+      for (const target of outlinks(file)) {
+        if (allMdFiles.includes(target)) {
+          allLinks.push({ source: file, target })
+        }
+      }
+    }
+
+    // Show all files but size connected ones larger
+    const connectedFiles = new Set<string>()
+    allLinks.forEach(l => { connectedFiles.add(l.source as string); connectedFiles.add(l.target as string) })
+
+    // Limit to 200 nodes max to avoid overcrowding
+    const files = allMdFiles.slice(0, 200)
+    const links = allLinks.filter(l => files.includes(l.source as string) && files.includes(l.target as string))
+
+    const width = svgRef.current.clientWidth || 800
+    const height = svgRef.current.clientHeight || 600
 
     const nodes: GraphNode[] = files.map(f => ({
       id: f,
       name: f.split('/').pop()?.replace(/\.md$/, '') ?? '',
     }))
 
-    const links: GraphLink[] = []
-    for (const file of files) {
-      for (const target of outlinks(file)) {
-        if (files.includes(target)) {
-          links.push({ source: file, target })
-        }
-      }
-    }
-
     const simulation = d3.forceSimulation<GraphNode>(nodes)
-      .force('link', d3.forceLink<GraphNode, GraphLink>(links).id(d => d.id).distance(80))
-      .force('charge', d3.forceManyBody().strength(-120))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide(20))
+      .force('link', d3.forceLink<GraphNode, GraphLink>(links).id(d => d.id).distance(60))
+      .force('charge', d3.forceManyBody().strength(-40))
+      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.8))
+      .force('collision', d3.forceCollide(14))
+      .force('x', d3.forceX(width / 2).strength(0.05))
+      .force('y', d3.forceY(height / 2).strength(0.05))
 
     const g = svg.append('g')
 
@@ -69,10 +86,10 @@ export function GraphView() {
       .selectAll('circle')
       .data(nodes)
       .join('circle')
-      .attr('r', 6)
-      .attr('fill', '#7c6af7')
+      .attr('r', d => connectedFiles.has(d.id) ? 8 : 4)
+      .attr('fill', d => connectedFiles.has(d.id) ? '#7c6af7' : '#3a3a5a')
       .attr('stroke', '#161616')
-      .attr('stroke-width', 2)
+      .attr('stroke-width', 1.5)
       .style('cursor', 'pointer')
       .on('click', (_event, d) => {
         const name = d.id.split('/').pop() ?? ''
@@ -91,15 +108,17 @@ export function GraphView() {
           })
       )
 
+    // Only show labels for connected nodes or if vault is small
+    const labelNodes = nodes.filter(d => connectedFiles.has(d.id) || files.length <= 30)
     const label = g.append('g')
       .selectAll('text')
-      .data(nodes)
+      .data(labelNodes)
       .join('text')
       .text(d => d.name)
-      .attr('font-size', 10)
-      .attr('fill', '#888')
+      .attr('font-size', 11)
+      .attr('fill', '#aaa')
       .attr('text-anchor', 'middle')
-      .attr('dy', 18)
+      .attr('dy', 20)
       .style('pointer-events', 'none')
 
     simulation.on('tick', () => {
