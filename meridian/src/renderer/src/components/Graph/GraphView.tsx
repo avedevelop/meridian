@@ -113,7 +113,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       if (visible) {
         circle.transition()
           .duration(800)
-          .ease(d3.easeElasticOut.amplitude(1.1).period(0.4))
+          .ease(d3.easeBackOut)
           .attr('r', nodeR(d))
         
         text.transition()
