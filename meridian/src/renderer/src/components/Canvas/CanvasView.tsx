@@ -910,8 +910,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                     divProps={{
                       style: {
                         pointerEvents: 'none',
-                        width: node.width,
-                        height: node.height,
+                        width: `${node.width}px`,
+                        height: `${node.height}px`,
                         overflow: 'hidden',
                         boxSizing: 'border-box',
                       }
