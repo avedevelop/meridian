@@ -55,16 +55,8 @@ export function ActivityBar({ activeTab, onTabChange, onSettings }: ActivityBarP
       borderRight: '1px solid #2a2a2a',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center',
-      // @ts-ignore
-      WebkitAppRegion: 'no-drag',
     }}>
-      {/* Traffic-lights spacer — same color + border as title bar to avoid visual seam */}
-      <div style={{
-        height: 28, width: '100%', flexShrink: 0,
-        background: '#161616', borderBottom: '1px solid #2a2a2a',
-        // @ts-ignore
-        WebkitAppRegion: 'drag',
-      }} />
+
 
       {TABS.map(({ id, label, Icon }) => {
         const isActive = activeTab === id
