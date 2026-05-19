@@ -89,7 +89,33 @@ export function Sidebar() {
         {activeTab === 'search' && <SearchPanel />}
         {activeTab === 'graph' && (
           <GraphErrorBoundary>
-            <GraphView />
+            {/* Full-screen overlay */}
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 900,
+              background: '#161616', display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 16px', borderBottom: '1px solid #2a2a2a', flexShrink: 0,
+                // @ts-ignore
+                WebkitAppRegion: 'no-drag',
+              }}>
+                <button
+                  onClick={() => setActiveTab('files')}
+                  style={{
+                    background: 'transparent', border: 'none', color: '#888',
+                    cursor: 'pointer', fontSize: 13, padding: '4px 8px',
+                    borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  ← Back
+                </button>
+                <span style={{ color: '#555', fontSize: 13 }}>Graph View</span>
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <GraphView />
+              </div>
+            </div>
           </GraphErrorBoundary>
         )}
       </div>
