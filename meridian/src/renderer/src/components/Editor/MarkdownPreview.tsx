@@ -25,6 +25,11 @@ const processor = unified()
   .use(rehypeSanitize, sanitizeSchema)
   .use(rehypeStringify)
 
+function addHeadingIds(html: string): string {
+  let counter = 0
+  return html.replace(/<(h[1-6])(\s|>)/g, (_m, tag, after) => `<${tag} id="toc-${counter++}"${after}`)
+}
+
 function postprocessWikiLinks(html: string): string {
   return html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
     const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
@@ -46,8 +51,9 @@ export function MarkdownPreview({ content, onLinkClick, fontSize = 15, lineWidth
     try {
       const sanitized = String(processor.processSync(content))
       const withLinks = postprocessWikiLinks(sanitized)
-      if (!vaultPath) return withLinks
-      return withLinks.replace(
+      const withIds = addHeadingIds(withLinks)
+      if (!vaultPath) return withIds
+      return withIds.replace(
         /(<img)([^>]*src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/\/)([^"]+)(")/g,
         (_m, imgTag, pre, src, post) =>
           `${imgTag} style="max-width:100%;height:auto;border-radius:4px"${pre}vault:///${src}${post}`

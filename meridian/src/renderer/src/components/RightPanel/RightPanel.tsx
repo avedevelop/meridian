@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { BacklinksPanel } from './BacklinksPanel'
 import { TagsPanel } from './TagsPanel'
+import { TocPanel } from './TocPanel'
 
-type RightTab = 'backlinks' | 'tags'
+type RightTab = 'backlinks' | 'tags' | 'toc'
 
 export function RightPanel() {
   const [activeTab, setActiveTab] = useState<RightTab>('backlinks')
@@ -10,6 +11,7 @@ export function RightPanel() {
   const tabs: { id: RightTab; label: string }[] = [
     { id: 'backlinks', label: 'Links' },
     { id: 'tags', label: 'Tags' },
+    { id: 'toc', label: 'ToC' },
   ]
 
   return (
@@ -34,6 +36,7 @@ export function RightPanel() {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {activeTab === 'backlinks' && <BacklinksPanel />}
         {activeTab === 'tags' && <TagsPanel />}
+        {activeTab === 'toc' && <TocPanel />}
       </div>
     </div>
   )
