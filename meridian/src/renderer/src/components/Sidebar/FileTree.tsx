@@ -92,6 +92,11 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
               dragSourcePath = file.path
               e.dataTransfer.effectAllowed = 'move'
               e.dataTransfer.setData('text/plain', file.path)
+              e.dataTransfer.setData('application/meridian-file', JSON.stringify({
+                path: file.path,
+                name: file.name,
+                relativePath: file.relativePath,
+              }))
             }}
             onDragEnd={() => { dragSourcePath = null }}
             onDragOver={e => {

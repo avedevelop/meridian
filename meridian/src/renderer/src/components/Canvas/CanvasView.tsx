@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Stage, Layer, Rect, Text, Group, Line, Circle } from 'react-konva'
 import type Konva from 'konva'
 
@@ -178,6 +178,10 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   /* --- Selection -------------------------------------------------- */
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
+  /* --- Inline editing --------------------------------------------- */
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+
   /* --- Space-bar panning ------------------------------------------ */
   const [spaceHeld, setSpaceHeld] = useState(false)
 
@@ -202,7 +206,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   /* --- Delete selected node --------------------------------------- */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId && !editingNodeId) {
         // Don't delete when user is typing in an input
         if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return
         mutate(prev => ({
@@ -402,6 +406,43 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       })
       .filter(Boolean) as { id: string; points: number[] }[]
   }, [canvasData])
+  /* --- Drop handler for files from sidebar ------------------------- */
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('application/meridian-file')) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    const raw = e.dataTransfer.getData('application/meridian-file')
+    if (!raw) return
+    try {
+      const fileInfo = JSON.parse(raw) as { path: string; name: string; relativePath: string }
+      const stage = stageRef.current
+      if (!stage) return
+      const containerEl = containerRef.current
+      if (!containerEl) return
+      const rect = containerEl.getBoundingClientRect()
+      const canvasX = (e.clientX - rect.left - stagePos.x) / stageScale
+      const canvasY = (e.clientY - rect.top - stagePos.y) / stageScale
+
+      const newNode: CanvasNodeData = {
+        id: crypto.randomUUID(),
+        type: 'file',
+        x: canvasX - DEFAULT_NODE_W / 2,
+        y: canvasY - DEFAULT_NODE_H / 2,
+        width: DEFAULT_NODE_W,
+        height: DEFAULT_NODE_H,
+        text: fileInfo.name.replace(/\.md$/i, ''),
+        file: fileInfo.relativePath,
+      }
+      mutate(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+    } catch {
+      // Invalid data, ignore
+    }
+  }, [stagePos, stageScale, mutate])
 
   /* --- Zoom percentage label -------------------------------------- */
   const zoomPct = Math.round(stageScale * 100)
@@ -410,6 +451,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   return (
     <div
       ref={containerRef}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: BG }}
     >
       {/* Floating Toolbar */}
@@ -562,6 +605,12 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                 draggable={!spaceHeld}
                 onDragEnd={e => handleNodeDragEnd(node.id, e)}
                 onClick={() => setSelectedNodeId(node.id)}
+                onDblClick={() => {
+                  if (node.type === 'text') {
+                    setEditingNodeId(node.id)
+                    setEditText(node.text)
+                  }
+                }}
                 onMouseDown={e => handleNodeMouseDown(node.id, e)}
                 onMouseUp={e => handleNodeMouseUp(node.id, e)}
               >
@@ -593,6 +642,62 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           })}
         </Layer>
       </Stage>
+
+      {/* Inline text editing overlay */}
+      {editingNodeId && (() => {
+        const node = canvasData.nodes.find(n => n.id === editingNodeId)
+        if (!node) return null
+        const screenX = node.x * stageScale + stagePos.x
+        const screenY = node.y * stageScale + stagePos.y
+        const screenW = node.width * stageScale
+        const screenH = node.height * stageScale
+        return (
+          <textarea
+            autoFocus
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            onBlur={() => {
+              mutate(prev => ({
+                ...prev,
+                nodes: prev.nodes.map(n =>
+                  n.id === editingNodeId ? { ...n, text: editText } : n
+                ),
+              }))
+              setEditingNodeId(null)
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Escape') {
+                mutate(prev => ({
+                  ...prev,
+                  nodes: prev.nodes.map(n =>
+                    n.id === editingNodeId ? { ...n, text: editText } : n
+                  ),
+                }))
+                setEditingNodeId(null)
+              }
+              e.stopPropagation()
+            }}
+            style={{
+              position: 'absolute',
+              left: screenX,
+              top: screenY,
+              width: screenW,
+              height: screenH,
+              background: '#1e1e2e',
+              border: '2px solid #7c6af7',
+              borderRadius: 8 * stageScale,
+              color: '#ccc',
+              fontFamily: FONT_FAMILY,
+              fontSize: 13 * stageScale,
+              padding: 12 * stageScale,
+              resize: 'none',
+              outline: 'none',
+              zIndex: 20,
+              boxSizing: 'border-box',
+            }}
+          />
+        )
+      })()}
     </div>
   )
 }
