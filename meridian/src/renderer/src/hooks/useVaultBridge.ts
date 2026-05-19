@@ -35,29 +35,28 @@ function flattenFiles(files: VaultFile[]): VaultFile[] {
 export function useVaultBridge() {
   const { setVault, setFiles, openTab, setTabContent, markTabDirty } = useVaultStore()
 
-  const openVault = useCallback(async () => {
-    const config = await window.vault.openDialog()
-    if (!config) return
-    // Reset state for new vault
-    setVault(config)
+  const initVault = useCallback(async (config: import('@shared/types').VaultConfig) => {
     useVaultStore.setState({ openTabs: [], activeTabPath: null })
     useLinkStore.getState().reset()
+    setVault(config)
     const files = await window.vault.listFiles()
     setFiles(files)
-    // Build link + search index — only .md files, skip errors
     const { indexFile } = useLinkStore.getState()
-    const flatFiles = flattenFiles(files)
-    for (const f of flatFiles) {
+    for (const f of flattenFiles(files)) {
       if (!f.isDirectory && f.name.endsWith('.md')) {
         try {
           const content = await window.vault.readFile(f.path)
           indexFile(f.path, f.name, content, config.path)
-        } catch {
-          // skip unreadable files
-        }
+        } catch {}
       }
     }
   }, [setVault, setFiles])
+
+  const openVault = useCallback(async () => {
+    const config = await window.vault.openDialog()
+    if (!config) return
+    await initVault(config)
+  }, [initVault])
 
   const refreshFiles = useCallback(async () => {
     const files = await window.vault.listFiles()
@@ -134,26 +133,14 @@ export function useVaultBridge() {
   }, [refreshFiles])
 
   const openVaultByPath = useCallback(async (vaultPath: string) => {
-    const config = await window.vault.openByPath(vaultPath)
-    if (!config) return
-    useVaultStore.setState({ openTabs: [], activeTabPath: null })
-    useLinkStore.getState().reset()
-    setVault(config)
-    const files = await window.vault.listFiles()
-    setFiles(files)
-    const { indexFile } = useLinkStore.getState()
-    const flat: VaultFile[] = []
-    const flatten = (arr: VaultFile[]) => { for (const f of arr) { flat.push(f); if (f.children) flatten(f.children) } }
-    flatten(files)
-    for (const f of flat) {
-      if (!f.isDirectory && f.name.endsWith('.md')) {
-        try {
-          const content = await window.vault.readFile(f.path)
-          indexFile(f.path, f.name, content, config.path)
-        } catch {}
-      }
+    try {
+      const config = await window.vault.openByPath(vaultPath)
+      if (!config) return  // null = path doesn't exist or not a directory
+      await initVault(config)
+    } catch (e) {
+      console.error('[Bridge] openVaultByPath error', e)
     }
-  }, [setVault, setFiles])
+  }, [initVault])
 
   return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile, deleteFile, openVaultByPath }
 }

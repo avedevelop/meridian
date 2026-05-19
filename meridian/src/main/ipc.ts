@@ -24,6 +24,13 @@ export function registerIpcHandlers(settings: AppSettings): void {
   })
 
   ipcMain.handle(IPC.VAULT_OPEN_BY_PATH, async (_event, vaultPath: string) => {
+    const { stat } = await import('fs/promises')
+    try {
+      const info = await stat(vaultPath)
+      if (!info.isDirectory()) throw new Error('Not a directory')
+    } catch {
+      return null
+    }
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
     settings.addRecentVault(vaultPath, name)

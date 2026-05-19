@@ -7,7 +7,9 @@ export function VaultPicker() {
   const [recents, setRecents] = useState<VaultConfig[]>([])
 
   useEffect(() => {
-    window.settings.get().then(config => setRecents(config.recentVaults ?? []))
+    window.settings.get()
+      .then(config => setRecents(config.recentVaults ?? []))
+      .catch(() => setRecents([]))
   }, [])
 
   return (
