@@ -1,17 +1,17 @@
 import React, { useEffect, useRef } from 'react'
-import ForceGraph from 'force-graph'
+import * as d3 from 'd3'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 
-interface GraphNode {
+interface GNode extends d3.SimulationNodeDatum {
   id: string
   name: string
-  neighbors: number
+  degree: number
 }
 
-interface GraphLink {
-  source: string
-  target: string
+interface GLink extends d3.SimulationLinkDatum<GNode> {
+  source: string | GNode
+  target: string | GNode
 }
 
 export function GraphView() {
@@ -24,103 +24,139 @@ export function GraphView() {
     const el = containerRef.current
     if (!el) return
 
-    const allMdFiles = allFiles().filter(f => f.endsWith('.md'))
-    if (allMdFiles.length === 0) return
+    let sim: d3.Simulation<GNode, GLink> | null = null
 
-    // Build graph data
-    const neighborCount: Record<string, number> = {}
-    const edgeSet = new Set<string>()
-    const links: GraphLink[] = []
-
-    for (const file of allMdFiles) {
-      for (const target of outlinks(file)) {
-        if (!allMdFiles.includes(target)) continue
-        const key = [file, target].sort().join('→')
-        if (edgeSet.has(key)) continue
-        edgeSet.add(key)
-        links.push({ source: file, target })
-        neighborCount[file] = (neighborCount[file] ?? 0) + 1
-        neighborCount[target] = (neighborCount[target] ?? 0) + 1
-      }
-    }
-
-    const nodes: GraphNode[] = allMdFiles.slice(0, 500).map(f => ({
-      id: f,
-      name: f.split('/').pop()?.replace(/\.md$/, '') ?? '',
-      neighbors: neighborCount[f] ?? 0,
-    }))
-
-    // Init force-graph
-    const Graph = ForceGraph()(el)
-      .width(el.clientWidth)
-      .height(el.clientHeight)
-      .backgroundColor('#161616')
-      .graphData({ nodes, links })
-      // Node appearance
-      .nodeId('id')
-      .nodeLabel('name')
-      .nodeRelSize(4)
-      .nodeVal(d => Math.max(1, (d as GraphNode).neighbors * 1.5 + 1))
-      .nodeColor(d => (d as GraphNode).neighbors > 0 ? '#7c6af7' : '#3a3a5a')
-      .nodeCanvasObjectMode(() => 'after')
-      .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-        const n = node as GraphNode & { x: number; y: number }
-        if (globalScale < 0.7 && n.neighbors === 0) return
-        const label = n.name
-        const fontSize = Math.max(10, 12 / globalScale)
-        ctx.font = `${fontSize}px -apple-system, sans-serif`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'top'
-        ctx.fillStyle = n.neighbors > 0 ? 'rgba(200,200,200,0.9)' : 'rgba(120,120,120,0.6)'
-        const r = Math.max(1, n.neighbors * 1.5 + 1) * 4
-        ctx.fillText(label, n.x, n.y + r + 2)
-      })
-      // Link appearance
-      .linkColor(() => 'rgba(100,90,180,0.5)')
-      .linkWidth(1)
-      .linkDirectionalParticles(2)
-      .linkDirectionalParticleWidth((link: any) => {
-        const s = link.source as GraphNode
-        const t = link.target as GraphNode
-        return s.neighbors > 0 || t.neighbors > 0 ? 1.5 : 0
-      })
-      .linkDirectionalParticleSpeed(0.005)
-      // Interactions
-      .onNodeClick((node: any) => {
-        const n = node as GraphNode
-        openFile(n.id, n.name + '.md')
-      })
-      .onNodeHover((node: any) => {
-        el.style.cursor = node ? 'pointer' : 'default'
-      })
-      // Forces
-      .d3Force('charge', null)
-      .d3Force('center', null)
-
-    Graph
-      .d3Force('charge', (window as any).d3?.forceManyBody?.().strength(-80))
-      .d3Force('link', (Graph.d3Force('link') as any)?.distance(60))
-
-    // Fit view after settling
-    setTimeout(() => Graph.zoomToFit(400, 40), 800)
-
-    // Handle resize
-    const ro = new ResizeObserver(() => {
-      Graph.width(el.clientWidth).height(el.clientHeight)
-    })
-    ro.observe(el)
-
-    return () => {
-      ro.disconnect()
-      Graph._destructor?.()
+    const build = () => {
       el.innerHTML = ''
+      const width = el.clientWidth
+      const height = el.clientHeight
+      if (!width || !height) return
+
+      const allMdFiles = allFiles().filter(f => f.endsWith('.md')).slice(0, 400)
+      const degree: Record<string, number> = {}
+      const edgeSet = new Set<string>()
+      const links: GLink[] = []
+
+      for (const file of allMdFiles) {
+        for (const target of outlinks(file)) {
+          if (!allMdFiles.includes(target)) continue
+          const key = [file, target].sort().join('|')
+          if (edgeSet.has(key)) continue
+          edgeSet.add(key)
+          links.push({ source: file, target })
+          degree[file] = (degree[file] ?? 0) + 1
+          degree[target] = (degree[target] ?? 0) + 1
+        }
+      }
+
+      const nodes: GNode[] = allMdFiles.map(f => ({
+        id: f,
+        name: f.split('/').pop()?.replace(/\.md$/, '') ?? '',
+        degree: degree[f] ?? 0,
+        x: width / 2 + (Math.random() - 0.5) * 100,
+        y: height / 2 + (Math.random() - 0.5) * 100,
+      }))
+
+      sim = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink<GNode, GLink>(links).id(d => d.id).distance(70).strength(0.4))
+        .force('charge', d3.forceManyBody().strength(-80).distanceMax(300))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collide', d3.forceCollide<GNode>(d => nodeR(d) + 8))
+
+      const svg = d3.select(el).append('svg')
+        .attr('width', width).attr('height', height)
+        .style('cursor', 'grab')
+        .style('display', 'block')
+
+      const defs = svg.append('defs')
+      defs.append('filter').attr('id', 'glow')
+        .append('feGaussianBlur').attr('stdDeviation', 3).attr('result', 'coloredBlur')
+
+      const root = svg.append('g')
+
+      // Zoom
+      svg.call(
+        d3.zoom<SVGSVGElement, unknown>()
+          .scaleExtent([0.1, 5])
+          .on('zoom', ({ transform }) => root.attr('transform', transform.toString()))
+          .on('start', () => svg.style('cursor', 'grabbing'))
+          .on('end', () => svg.style('cursor', 'grab'))
+      )
+
+      // Links
+      const linkSel = root.append('g').selectAll<SVGLineElement, GLink>('line')
+        .data(links).join('line')
+        .attr('stroke', '#4a4080').attr('stroke-width', 1).attr('stroke-opacity', 0.6)
+
+      // Node groups
+      const nodeG = root.append('g').selectAll<SVGGElement, GNode>('g')
+        .data(nodes).join('g')
+        .style('cursor', 'pointer')
+        .on('click', (_e, d) => openFile(d.id, d.name + '.md'))
+        .on('mouseover', function(_e, d) {
+          d3.select(this).select('circle.vis')
+            .attr('fill', '#a89df7').attr('r', nodeR(d) + 3)
+          d3.select(this).select('text').attr('fill', '#fff').attr('font-size', 13)
+          svg.style('cursor', 'pointer')
+        })
+        .on('mouseout', function(_e, d) {
+          d3.select(this).select('circle.vis')
+            .attr('fill', nodeColor(d)).attr('r', nodeR(d))
+          d3.select(this).select('text').attr('fill', labelColor(d)).attr('font-size', 11)
+          svg.style('cursor', 'grab')
+        })
+        .call(
+          d3.drag<SVGGElement, GNode>()
+            .on('start', (event, d) => { if (!event.active) sim!.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; svg.style('cursor', 'grabbing') })
+            .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y })
+            .on('end', (event, d) => { if (!event.active) sim!.alphaTarget(0); d.fx = null; d.fy = null; svg.style('cursor', 'grab') })
+        )
+
+      // Invisible hit area (larger than visible circle)
+      nodeG.append('circle')
+        .attr('r', d => Math.max(nodeR(d) + 10, 16))
+        .attr('fill', 'transparent')
+
+      // Visible circle
+      nodeG.append('circle').attr('class', 'vis')
+        .attr('r', d => nodeR(d))
+        .attr('fill', d => nodeColor(d))
+        .attr('stroke', d => d.degree > 0 ? '#6a5af7' : '#444')
+        .attr('stroke-width', 1.5)
+
+      // Labels
+      nodeG.append('text')
+        .text(d => d.name)
+        .attr('font-size', 11)
+        .attr('font-family', '-apple-system, sans-serif')
+        .attr('fill', d => labelColor(d))
+        .attr('text-anchor', 'middle')
+        .attr('dy', d => nodeR(d) + 13)
+        .style('pointer-events', 'none')
+        .style('user-select', 'none')
+
+      sim.on('tick', () => {
+        linkSel
+          .attr('x1', d => (d.source as GNode).x!)
+          .attr('y1', d => (d.source as GNode).y!)
+          .attr('x2', d => (d.target as GNode).x!)
+          .attr('y2', d => (d.target as GNode).y!)
+        nodeG.attr('transform', d => `translate(${d.x},${d.y})`)
+      })
     }
+
+    const ro = new ResizeObserver(build)
+    ro.observe(el)
+    build()
+
+    return () => { ro.disconnect(); sim?.stop(); el.innerHTML = '' }
   }, [allFiles, outlinks, openFile])
 
   return (
-    <div
-      ref={containerRef}
-      style={{ flex: 1, width: '100%', height: '100%', overflow: 'hidden', background: '#161616' }}
-    />
+    <div ref={containerRef} style={{ flex: 1, width: '100%', height: '100%', background: '#161616' }} />
   )
 }
+
+const nodeR = (d: GNode) => d.degree > 0 ? 7 + Math.min(d.degree * 2, 10) : 5
+const nodeColor = (d: GNode) => d.degree > 0 ? '#7c6af7' : '#3a3560'
+const labelColor = (d: GNode) => d.degree > 0 ? '#bbb' : '#555'
