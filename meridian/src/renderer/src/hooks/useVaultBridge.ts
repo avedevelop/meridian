@@ -99,15 +99,20 @@ export function useVaultBridge() {
   }, [refreshFiles, openFile])
 
   const renameFile = useCallback(async (oldPath: string, newName: string) => {
-    const newPath = await window.vault.renameFile(oldPath, newName)
-    // Update open tabs if this file is open
-    const { openTabs, activeTabPath } = useVaultStore.getState()
-    const wasActive = activeTabPath === oldPath
-    useVaultStore.setState({
-      openTabs: openTabs.map(t => t.path === oldPath ? { ...t, path: newPath, name: newName } : t),
-      activeTabPath: wasActive ? newPath : activeTabPath,
-    })
-    await refreshFiles()
+    console.log('[Bridge] renameFile', { oldPath, newName })
+    try {
+      const newPath = await window.vault.renameFile(oldPath, newName)
+      console.log('[Bridge] renameFile success', newPath)
+      const { openTabs, activeTabPath } = useVaultStore.getState()
+      const wasActive = activeTabPath === oldPath
+      useVaultStore.setState({
+        openTabs: openTabs.map(t => t.path === oldPath ? { ...t, path: newPath, name: newName } : t),
+        activeTabPath: wasActive ? newPath : activeTabPath,
+      })
+      await refreshFiles()
+    } catch (e) {
+      console.error('[Bridge] renameFile error', e)
+    }
   }, [refreshFiles])
 
   return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile }

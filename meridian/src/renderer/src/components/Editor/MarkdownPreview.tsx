@@ -23,10 +23,6 @@ const processor = unified()
   .use(rehypeSanitize, sanitizeSchema)
   .use(rehypeStringify, { allowDangerousHtml: true })
 
-interface MarkdownPreviewProps {
-  content: string
-}
-
 // Pre-process wiki-links before remark: [[Note]] → styled span
 function preprocessWikiLinks(content: string): string {
   return content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {

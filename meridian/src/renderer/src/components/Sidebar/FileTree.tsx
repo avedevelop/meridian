@@ -14,13 +14,15 @@ export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }:
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  // Keep a ref to always read the latest editValue inside event handlers
+  const editValueRef = useRef('')
+  editValueRef.current = editValue
 
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.focus()
-      // Select name without extension
-      const dotIndex = editValue.lastIndexOf('.')
-      inputRef.current.setSelectionRange(0, dotIndex > 0 ? dotIndex : editValue.length)
+      const dotIndex = editValueRef.current.lastIndexOf('.')
+      inputRef.current.setSelectionRange(0, dotIndex > 0 ? dotIndex : editValueRef.current.length)
     }
   }, [editing])
 
@@ -40,13 +42,14 @@ export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }:
 
   const committingRef = useRef(false)
 
-  const commitEdit = (file: VaultFile) => {
-    if (committingRef.current) return  // prevent double-call from blur after Enter
+  const commitEdit = (filePath: string, originalName: string) => {
+    if (committingRef.current) return
     committingRef.current = true
     setEditing(null)
-    const newName = editValue.trim()
-    if (newName && newName !== file.name && onRename) {
-      onRename(file.path, newName)
+    const newName = editValueRef.current.trim()
+    console.log('[FileTree] commitEdit', { filePath, originalName, newName })
+    if (newName && newName !== originalName && onRename) {
+      onRename(filePath, newName)
     }
     setTimeout(() => { committingRef.current = false }, 100)
   }
@@ -83,10 +86,10 @@ export function FileTree({ files, onFileClick, onRename, vaultPath, depth = 0 }:
                 value={editValue}
                 onChange={e => setEditValue(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === 'Enter') { e.preventDefault(); commitEdit(file) }
+                  if (e.key === 'Enter') { e.preventDefault(); commitEdit(file.path, file.name) }
                   if (e.key === 'Escape') cancelEdit()
                 }}
-                onBlur={() => commitEdit(file)}
+                onBlur={() => commitEdit(file.path, file.name)}
                 onClick={e => e.stopPropagation()}
                 style={{
                   flex: 1, background: '#1a1a2a', border: '1px solid #7c6af7',
