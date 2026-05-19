@@ -210,6 +210,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   /* --- Inline editing --------------------------------------------- */
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [initialEditingHeight, setInitialEditingHeight] = useState<number>(0)
 
   /* --- Space-bar panning / Shift for edge creation ---------------- */
   const [spaceHeld, setSpaceHeld] = useState(false)
@@ -849,6 +850,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                   if (node.type === 'text') {
                     setEditingNodeId(node.id)
                     setEditText(node.text)
+                    setInitialEditingHeight(node.height)
                   }
                 }}
                 onMouseDown={e => handleNodeMouseDown(node.id, e)}
@@ -1000,28 +1002,54 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               el.style.height = '1px'
               const intrinsicH = el.scrollHeight / stageScale
               el.style.height = oldH
-              if (intrinsicH > node.height) {
+              
+              const targetH = Math.max(initialEditingHeight, intrinsicH)
+              if (targetH !== node.height) {
                 setCanvasData(prev => ({
                   ...prev,
-                  nodes: prev.nodes.map(n => n.id === node.id ? { ...n, height: intrinsicH } : n)
+                  nodes: prev.nodes.map(n => n.id === node.id ? { ...n, height: targetH } : n)
                 }))
               }
             }}
-            onBlur={() => {
+            onBlur={e => {
+              const el = e.target
+              const trimmedText = editText.trimEnd()
+              const oldVal = el.value
+              el.value = trimmedText
+              const oldH = el.style.height
+              el.style.height = '1px'
+              const trimmedH = el.scrollHeight / stageScale
+              el.style.height = oldH
+              el.value = oldVal
+
+              const finalH = Math.max(initialEditingHeight, trimmedH)
+
               mutate(prev => ({
                 ...prev,
                 nodes: prev.nodes.map(n =>
-                  n.id === editingNodeId ? { ...n, text: editText } : n
+                  n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
                 ),
               }))
               setEditingNodeId(null)
             }}
             onKeyDown={e => {
               if (e.key === 'Escape') {
+                const el = e.currentTarget
+                const trimmedText = editText.trimEnd()
+                const oldVal = el.value
+                el.value = trimmedText
+                const oldH = el.style.height
+                el.style.height = '1px'
+                const trimmedH = el.scrollHeight / stageScale
+                el.style.height = oldH
+                el.value = oldVal
+
+                const finalH = Math.max(initialEditingHeight, trimmedH)
+
                 mutate(prev => ({
                   ...prev,
                   nodes: prev.nodes.map(n =>
-                    n.id === editingNodeId ? { ...n, text: editText } : n
+                    n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
                   ),
                 }))
                 setEditingNodeId(null)
