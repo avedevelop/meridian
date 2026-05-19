@@ -1,174 +1,126 @@
 import React, { useEffect, useRef } from 'react'
-import * as d3 from 'd3'
+import ForceGraph from 'force-graph'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 
-interface GraphNode extends d3.SimulationNodeDatum {
+interface GraphNode {
   id: string
   name: string
-  linked: boolean
+  neighbors: number
 }
 
-interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
-  source: string | GraphNode
-  target: string | GraphNode
+interface GraphLink {
+  source: string
+  target: string
 }
 
 export function GraphView() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const svgRef = useRef<SVGSVGElement>(null)
   const allFiles = useLinkStore(s => s.allFiles)
   const outlinks = useLinkStore(s => s.outlinks)
   const { openFile } = useVaultBridge()
 
   useEffect(() => {
-    if (!svgRef.current || !containerRef.current) return
+    const el = containerRef.current
+    if (!el) return
 
-    // Wait one frame so the container has real dimensions
-    const frame = requestAnimationFrame(() => {
-      const container = containerRef.current!
-      const width = container.clientWidth || 900
-      const height = container.clientHeight || 600
+    const allMdFiles = allFiles().filter(f => f.endsWith('.md'))
+    if (allMdFiles.length === 0) return
 
-      const svg = d3.select(svgRef.current!)
-      svg.selectAll('*').remove()
-      svg.attr('width', width).attr('height', height)
+    // Build graph data
+    const neighborCount: Record<string, number> = {}
+    const edgeSet = new Set<string>()
+    const links: GraphLink[] = []
 
-      const allMdFiles = allFiles().filter(f => f.endsWith('.md'))
-
-      if (allMdFiles.length === 0) {
-        svg.append('text')
-          .attr('x', width / 2).attr('y', height / 2)
-          .attr('text-anchor', 'middle').attr('fill', '#444').attr('font-size', 14)
-          .text('No notes indexed. Open a vault first.')
-        return
+    for (const file of allMdFiles) {
+      for (const target of outlinks(file)) {
+        if (!allMdFiles.includes(target)) continue
+        const key = [file, target].sort().join('→')
+        if (edgeSet.has(key)) continue
+        edgeSet.add(key)
+        links.push({ source: file, target })
+        neighborCount[file] = (neighborCount[file] ?? 0) + 1
+        neighborCount[target] = (neighborCount[target] ?? 0) + 1
       }
+    }
 
-      // Build edges
-      const edgeSet = new Set<string>()
-      const allEdges: GraphLink[] = []
-      const connectedFiles = new Set<string>()
+    const nodes: GraphNode[] = allMdFiles.slice(0, 500).map(f => ({
+      id: f,
+      name: f.split('/').pop()?.replace(/\.md$/, '') ?? '',
+      neighbors: neighborCount[f] ?? 0,
+    }))
 
-      for (const file of allMdFiles) {
-        for (const target of outlinks(file)) {
-          if (allMdFiles.includes(target)) {
-            const key = [file, target].sort().join('|')
-            if (!edgeSet.has(key)) {
-              edgeSet.add(key)
-              allEdges.push({ source: file, target })
-              connectedFiles.add(file)
-              connectedFiles.add(target)
-            }
-          }
-        }
-      }
-
-      const files = allMdFiles.slice(0, 300)
-      const links = allEdges.filter(
-        l => files.includes(l.source as string) && files.includes(l.target as string)
-      )
-
-      const nodes: GraphNode[] = files.map(f => ({
-        id: f,
-        name: f.split('/').pop()?.replace(/\.md$/, '') ?? '',
-        linked: connectedFiles.has(f),
-        // Start near center
-        x: width / 2 + (Math.random() - 0.5) * 200,
-        y: height / 2 + (Math.random() - 0.5) * 200,
-      }))
-
-      const simulation = d3.forceSimulation<GraphNode>(nodes)
-        .force('link', d3.forceLink<GraphNode, GraphLink>(links).id(d => d.id).distance(80).strength(0.5))
-        .force('charge', d3.forceManyBody().strength(-60))
-        .force('center', d3.forceCenter(width / 2, height / 2))
-        .force('collision', d3.forceCollide(18))
-
-      const g = svg.append('g')
-
-      // Zoom + pan
-      svg.call(
-        d3.zoom<SVGSVGElement, unknown>()
-          .scaleExtent([0.2, 4])
-          .on('zoom', ({ transform }) => g.attr('transform', transform.toString()))
-      )
-
-      // Links
-      const link = g.append('g').selectAll('line')
-        .data(links).join('line')
-        .attr('stroke', '#3a3a5a')
-        .attr('stroke-width', 1.5)
-        .attr('stroke-opacity', 0.8)
-
-      // Nodes
-      const node = g.append('g').selectAll<SVGCircleElement, GraphNode>('circle')
-        .data(nodes).join('circle')
-        .attr('r', d => d.linked ? 9 : 5)
-        .attr('fill', d => d.linked ? '#7c6af7' : '#444')
-        .attr('stroke', d => d.linked ? '#a89df7' : '#555')
-        .attr('stroke-width', 1.5)
-        .style('cursor', 'pointer')
-        .on('mouseover', function(_, d) {
-          d3.select(this).attr('fill', '#a89df7').attr('r', d.linked ? 12 : 7)
-          labelGroup.selectAll<SVGTextElement, GraphNode>('text')
-            .filter(l => l.id === d.id)
-            .attr('fill', '#fff').attr('font-size', 13)
-        })
-        .on('mouseout', function(_, d) {
-          d3.select(this).attr('fill', d.linked ? '#7c6af7' : '#444').attr('r', d.linked ? 9 : 5)
-          labelGroup.selectAll<SVGTextElement, GraphNode>('text')
-            .filter(l => l.id === d.id)
-            .attr('fill', d.linked ? '#ccc' : '#666').attr('font-size', 11)
-        })
-        .on('click', (_event, d) => {
-          const name = d.id.split('/').pop() ?? ''
-          openFile(d.id, name)
-        })
-        .call(
-          d3.drag<SVGCircleElement, GraphNode>()
-            .on('start', (event, d) => {
-              if (!event.active) simulation.alphaTarget(0.3).restart()
-              d.fx = d.x; d.fy = d.y
-            })
-            .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y })
-            .on('end', (event, d) => {
-              if (!event.active) simulation.alphaTarget(0)
-              d.fx = null; d.fy = null
-            })
-        )
-
-      // Labels — show for linked nodes, and all nodes if vault is small
-      const showLabel = (d: GraphNode) => d.linked || files.length <= 25
-      const labelGroup = g.append('g').attr('pointer-events', 'none')
-      const label = labelGroup.selectAll<SVGTextElement, GraphNode>('text')
-        .data(nodes.filter(showLabel)).join('text')
-        .text(d => d.name)
-        .attr('font-size', 11)
-        .attr('fill', d => d.linked ? '#ccc' : '#666')
-        .attr('text-anchor', 'middle')
-        .attr('dy', 22)
-
-      simulation.on('tick', () => {
-        link
-          .attr('x1', d => (d.source as GraphNode).x ?? 0)
-          .attr('y1', d => (d.source as GraphNode).y ?? 0)
-          .attr('x2', d => (d.target as GraphNode).x ?? 0)
-          .attr('y2', d => (d.target as GraphNode).y ?? 0)
-        node.attr('cx', d => d.x ?? 0).attr('cy', d => d.y ?? 0)
-        label.attr('x', d => d.x ?? 0).attr('y', d => d.y ?? 0)
+    // Init force-graph
+    const Graph = ForceGraph()(el)
+      .width(el.clientWidth)
+      .height(el.clientHeight)
+      .backgroundColor('#161616')
+      .graphData({ nodes, links })
+      // Node appearance
+      .nodeId('id')
+      .nodeLabel('name')
+      .nodeRelSize(4)
+      .nodeVal(d => Math.max(1, (d as GraphNode).neighbors * 1.5 + 1))
+      .nodeColor(d => (d as GraphNode).neighbors > 0 ? '#7c6af7' : '#3a3a5a')
+      .nodeCanvasObjectMode(() => 'after')
+      .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+        const n = node as GraphNode & { x: number; y: number }
+        if (globalScale < 0.7 && n.neighbors === 0) return
+        const label = n.name
+        const fontSize = Math.max(10, 12 / globalScale)
+        ctx.font = `${fontSize}px -apple-system, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.fillStyle = n.neighbors > 0 ? 'rgba(200,200,200,0.9)' : 'rgba(120,120,120,0.6)'
+        const r = Math.max(1, n.neighbors * 1.5 + 1) * 4
+        ctx.fillText(label, n.x, n.y + r + 2)
       })
+      // Link appearance
+      .linkColor(() => 'rgba(100,90,180,0.5)')
+      .linkWidth(1)
+      .linkDirectionalParticles(2)
+      .linkDirectionalParticleWidth((link: any) => {
+        const s = link.source as GraphNode
+        const t = link.target as GraphNode
+        return s.neighbors > 0 || t.neighbors > 0 ? 1.5 : 0
+      })
+      .linkDirectionalParticleSpeed(0.005)
+      // Interactions
+      .onNodeClick((node: any) => {
+        const n = node as GraphNode
+        openFile(n.id, n.name + '.md')
+      })
+      .onNodeHover((node: any) => {
+        el.style.cursor = node ? 'pointer' : 'default'
+      })
+      // Forces
+      .d3Force('charge', null)
+      .d3Force('center', null)
 
-      // Let simulation run longer before settling
-      simulation.alpha(1).restart()
+    Graph
+      .d3Force('charge', (window as any).d3?.forceManyBody?.().strength(-80))
+      .d3Force('link', (Graph.d3Force('link') as any)?.distance(60))
 
-      return () => { simulation.stop() }
+    // Fit view after settling
+    setTimeout(() => Graph.zoomToFit(400, 40), 800)
+
+    // Handle resize
+    const ro = new ResizeObserver(() => {
+      Graph.width(el.clientWidth).height(el.clientHeight)
     })
+    ro.observe(el)
 
-    return () => cancelAnimationFrame(frame)
+    return () => {
+      ro.disconnect()
+      Graph._destructor?.()
+      el.innerHTML = ''
+    }
   }, [allFiles, outlinks, openFile])
 
   return (
-    <div ref={containerRef} style={{ flex: 1, width: '100%', height: '100%', overflow: 'hidden', background: '#161616' }}>
-      <svg ref={svgRef} style={{ display: 'block' }} />
-    </div>
+    <div
+      ref={containerRef}
+      style={{ flex: 1, width: '100%', height: '100%', overflow: 'hidden', background: '#161616' }}
+    />
   )
 }
