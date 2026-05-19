@@ -26,6 +26,10 @@ interface D3State {
   linkSel: d3.Selection<SVGLineElement, GLink, SVGGElement, unknown>
   dateLabel: d3.Selection<SVGTextElement, unknown, null, undefined>
   svgEl: SVGSVGElement
+  nodes: GNode[]
+  links: GLink[]
+  width: number
+  height: number
 }
 
 function flattenFiles(files: VaultFile[]): VaultFile[] {
@@ -43,6 +47,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const progressRef = useRef(1)
+  const visibleNodesRef = useRef<Set<string>>(new Set())
 
   const files = useVaultStore(s => s.files)
   const outlinks = useLinkStore(s => s.outlinks)
@@ -102,6 +107,16 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     }
 
     const ts = minTime + (maxTime - minTime) * prog
+    let reheated = false
+    const visibleNodes = new Set<string>()
+
+    state.nodeG.each(function(d) {
+      const birth = birthtimes.get(d.id)
+      const visible = birth !== undefined && birth <= ts
+      if (visible) {
+        visibleNodes.add(d.id)
+      }
+    })
 
     state.nodeG.each(function(d) {
       const birth = birthtimes.get(d.id)
@@ -110,7 +125,43 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       const circle = group.select('circle.vis')
       const text = group.select('text')
 
+      const wasHidden = !visibleNodesRef.current.has(d.id)
+
       if (visible) {
+        if (wasHidden) {
+          const neighbors = state.links.filter(l => 
+            (typeof l.source === 'object' ? l.source.id : l.source) === d.id ||
+            (typeof l.target === 'object' ? l.target.id : l.target) === d.id
+          )
+          
+          let parentNode: GNode | null = null
+          for (const l of neighbors) {
+            const otherId = (typeof l.source === 'object' ? l.source.id : l.source) === d.id
+              ? (typeof l.target === 'object' ? l.target.id : l.target)
+              : (typeof l.source === 'object' ? l.source.id : l.source)
+            
+            if (visibleNodes.has(otherId)) {
+              const foundNode = state.nodes.find(n => n.id === otherId)
+              if (foundNode) {
+                parentNode = foundNode
+                break
+              }
+            }
+          }
+
+          if (parentNode) {
+            d.x = parentNode.x
+            d.y = parentNode.y
+          } else {
+            d.x = state.width / 2 + (Math.random() - 0.5) * 40
+            d.y = state.height / 2 + (Math.random() - 0.5) * 40
+          }
+          
+          d.fx = null
+          d.fy = null
+          reheated = true
+        }
+
         circle.transition()
           .duration(800)
           .ease(d3.easeBackOut)
@@ -148,6 +199,12 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .attr('opacity', visible ? 0.6 : 0)
         .attr('stroke-width', visible ? 1 : 0)
     })
+
+    visibleNodesRef.current = visibleNodes
+
+    if (reheated) {
+      state.sim.alpha(0.3).restart()
+    }
 
     state.dateLabel.text(
       new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
@@ -287,7 +344,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         nodeG.attr('transform', d => `translate(${d.x},${d.y})`)
       })
 
-      d3Ref.current = { sim, nodeG, linkSel, dateLabel, svgEl: svg.node()! }
+      d3Ref.current = { sim, nodeG, linkSel, dateLabel, svgEl: svg.node()!, nodes, links, width, height }
       updateVisibility(progressRef.current, viewModeRef.current)
     }
 
