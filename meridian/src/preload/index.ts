@@ -21,6 +21,9 @@ const vaultAPI = {
   deleteFile: (filePath: string): Promise<void> =>
     ipcRenderer.invoke(IPC.VAULT_DELETE_FILE, filePath),
 
+  renameFile: (oldPath: string, newName: string): Promise<string> =>
+    ipcRenderer.invoke(IPC.VAULT_RENAME_FILE, oldPath, newName),
+
   onFileChanged: (callback: (file: VaultFile) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, file: VaultFile) => callback(file)
     ipcRenderer.on(IPC.FILE_CHANGED, handler)

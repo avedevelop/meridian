@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, stat, mkdir, rm } from 'fs/promises'
+import { readFile, writeFile, readdir, stat, mkdir, rm, rename } from 'fs/promises'
 import { join, relative, resolve, sep } from 'path'
 import { VaultFile } from '../shared/types'
 
@@ -71,5 +71,14 @@ export class VaultManager {
     const dirPath = join(parentDir, name)
     await mkdir(dirPath, { recursive: true })
     return dirPath
+  }
+
+  async renameFile(oldPath: string, newName: string): Promise<string> {
+    this.assertInsideVault(oldPath)
+    const dir = oldPath.split('/').slice(0, -1).join('/')
+    const newPath = dir + '/' + newName
+    this.assertInsideVault(newPath)
+    await rename(oldPath, newPath)
+    return newPath
   }
 }

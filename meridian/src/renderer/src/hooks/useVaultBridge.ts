@@ -12,6 +12,7 @@ declare global {
       writeFile: (path: string, content: string) => Promise<void>
       createFile: (dir: string, name: string) => Promise<string>
       deleteFile: (path: string) => Promise<void>
+      renameFile: (oldPath: string, newName: string) => Promise<string>
       onFileChanged: (cb: (file: VaultFile) => void) => () => void
     }
     settings: {
@@ -94,5 +95,17 @@ export function useVaultBridge() {
     await openFile(filePath, fileName)
   }, [refreshFiles, openFile])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile }
+  const renameFile = useCallback(async (oldPath: string, newName: string) => {
+    const newPath = await window.vault.renameFile(oldPath, newName)
+    // Update open tabs if this file is open
+    const { openTabs, activeTabPath } = useVaultStore.getState()
+    const wasActive = activeTabPath === oldPath
+    useVaultStore.setState({
+      openTabs: openTabs.map(t => t.path === oldPath ? { ...t, path: newPath, name: newName } : t),
+      activeTabPath: wasActive ? newPath : activeTabPath,
+    })
+    await refreshFiles()
+  }, [refreshFiles])
+
+  return { openVault, refreshFiles, openFile, saveFile, createFile, renameFile }
 }

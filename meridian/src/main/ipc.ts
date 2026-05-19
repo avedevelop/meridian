@@ -54,6 +54,11 @@ export function registerIpcHandlers(settings: AppSettings): void {
     return vaultManager.deleteFile(filePath)
   })
 
+  ipcMain.handle(IPC.VAULT_RENAME_FILE, async (_event, oldPath: string, newName: string) => {
+    if (!vaultManager) throw new Error('No vault open')
+    return vaultManager.renameFile(oldPath, newName)
+  })
+
   ipcMain.handle(IPC.SETTINGS_GET, async () => {
     return settings.get()
   })
