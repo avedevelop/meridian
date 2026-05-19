@@ -1,5 +1,5 @@
 import { readFile, writeFile, readdir, stat, mkdir, rm, rename } from 'fs/promises'
-import { join, relative, resolve, sep } from 'path'
+import { basename, join, relative, resolve, sep } from 'path'
 import { VaultFile } from '../shared/types'
 
 export class VaultManager {
@@ -42,6 +42,25 @@ export class VaultManager {
       if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
       return a.name.localeCompare(b.name)
     })
+  }
+
+  async getFile(filePath: string): Promise<VaultFile> {
+    this.assertInsideVault(filePath)
+    const info = await stat(filePath)
+    const isDirectory = info.isDirectory()
+    const file: VaultFile = {
+      name: basename(filePath),
+      path: filePath,
+      relativePath: relative(this.vaultPath, filePath),
+      isDirectory,
+      mtime: info.mtimeMs,
+    }
+
+    if (isDirectory) {
+      file.children = await this.listFiles(filePath)
+    }
+
+    return file
   }
 
   async readFile(filePath: string): Promise<string> {

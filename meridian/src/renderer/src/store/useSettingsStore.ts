@@ -11,7 +11,9 @@ function loadSettings(): { fontSize: number; lineWidth: number } {
   try {
     const raw = localStorage.getItem('meridian-settings')
     if (raw) return { fontSize: 15, lineWidth: 720, ...JSON.parse(raw) }
-  } catch {}
+  } catch {
+    // Ignore malformed localStorage; defaults are safe.
+  }
   return { fontSize: 15, lineWidth: 720 }
 }
 

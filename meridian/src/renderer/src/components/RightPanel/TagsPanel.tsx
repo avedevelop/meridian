@@ -1,17 +1,17 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 
 export function TagsPanel() {
   const linkStore = useLinkStore()
-  const tagsVersion = useLinkStore(s => s.tagsVersion)
+  const indexVersion = useLinkStore(s => s.indexVersion)
   const { openFile } = useVaultBridge()
 
   const tags = useMemo(() => {
     const map = linkStore.allTags()
     return Array.from(map.entries())
       .sort((a, b) => b[1].length - a[1].length)
-  }, [tagsVersion])
+  }, [indexVersion])
 
   if (tags.length === 0) {
     return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Component, ReactNode } from 'react'
+import { useState, useEffect, useCallback, useMemo, Component, type ReactNode } from 'react'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null }
@@ -27,15 +27,18 @@ import { StatusBar } from './components/StatusBar'
 import { RightPanel } from './components/RightPanel/RightPanel'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { useVaultBridge } from './hooks/useVaultBridge'
+import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
 
 export { AppErrorBoundary }
 export default function App() {
   const vault = useVaultStore(s => s.vault)
   const allFiles = useLinkStore(s => s.allFiles)
+  const indexVersion = useLinkStore(s => s.indexVersion)
   const { openFile, openVault, openDailyNote } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  useVaultFileWatcher()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -50,10 +53,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [openVault, openDailyNote])
 
-  const paletteFiles = allFiles().map(path => ({
-    path,
-    name: path.split('/').pop() ?? '',
-  })).filter(f => f.name.endsWith('.md'))
+  const paletteFiles = useMemo(() => (
+    allFiles().map(path => ({
+      path,
+      name: path.split('/').pop() ?? '',
+    })).filter(f => f.name.endsWith('.md'))
+  ), [allFiles, indexVersion])
 
   const handleFileSelect = useCallback((path: string, name: string) => {
     openFile(path, name)

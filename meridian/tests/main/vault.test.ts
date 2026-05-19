@@ -52,6 +52,19 @@ describe('VaultManager', () => {
     expect(files[0].relativePath).toBe('Note.md')
   })
 
+  it('returns metadata for a single vault file', async () => {
+    const filePath = join(tmpDir, 'Note.md')
+    writeFileSync(filePath, '# Note')
+    const file = await vault.getFile(filePath)
+    expect(file).toMatchObject({
+      name: 'Note.md',
+      path: filePath,
+      relativePath: 'Note.md',
+      isDirectory: false,
+    })
+    expect(file.mtime).toBeGreaterThan(0)
+  })
+
   it('lists subdirectory files recursively', async () => {
     mkdirSync(join(tmpDir, 'Projects'))
     writeFileSync(join(tmpDir, 'Projects', 'Alpha.md'), '')

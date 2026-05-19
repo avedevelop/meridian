@@ -40,4 +40,39 @@ describe('useLinkStore', () => {
     })
     expect(result.current.tagsForFile('/vault/A.md')).toEqual(expect.arrayContaining(['project', 'todo']))
   })
+
+  it('bumps indexVersion when files are indexed or removed', () => {
+    const { result } = renderHook(() => useLinkStore())
+    expect(result.current.indexVersion).toBe(0)
+
+    act(() => {
+      result.current.indexFile('/vault/A.md', 'A.md', 'hello', '/vault')
+    })
+    expect(result.current.indexVersion).toBe(1)
+
+    act(() => {
+      result.current.removeFile('/vault/A.md', '/vault')
+    })
+    expect(result.current.indexVersion).toBe(2)
+  })
+
+  it('refreshes active search results when indexed content changes', () => {
+    const { result } = renderHook(() => useLinkStore())
+
+    act(() => {
+      result.current.indexFile('/vault/A.md', 'A.md', 'alpha', '/vault')
+      result.current.search('beta')
+    })
+    expect(result.current.searchResults).toEqual([])
+
+    act(() => {
+      result.current.indexFile('/vault/A.md', 'A.md', 'alpha beta', '/vault')
+    })
+    expect(result.current.searchResults.map(r => r.path)).toEqual(['/vault/A.md'])
+
+    act(() => {
+      result.current.removeFile('/vault/A.md', '/vault')
+    })
+    expect(result.current.searchResults).toEqual([])
+  })
 })

@@ -15,7 +15,7 @@ export function Layout({ sidebar, editor, rightPanel }: LayoutProps) {
         background: '#161616',
         borderBottom: '1px solid #2a2a2a',
         flexShrink: 0,
-        // @ts-ignore — webkit drag region
+        // @ts-ignore -- Electron drag region style is not part of React CSSProperties.
         WebkitAppRegion: 'drag',
       }} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', background: '#1a1a1a' }}>

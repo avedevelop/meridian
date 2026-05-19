@@ -18,6 +18,15 @@ export interface AppConfig {
   windowBounds: { width: number; height: number; x?: number; y?: number }
 }
 
+export type VaultFileChangeType = 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir'
+
+export interface VaultFileChangeEvent {
+  type: VaultFileChangeType
+  path: string
+  vaultPath: string
+  file: VaultFile | null
+}
+
 export const IPC = {
   VAULT_OPEN_DIALOG: 'vault:open-dialog',
   VAULT_OPEN_BY_PATH: 'vault:open-by-path',

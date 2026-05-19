@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
 import { useLinkStore } from '../store/useLinkStore'
-import type { VaultConfig, VaultFile } from '@shared/types'
+import type { VaultConfig, VaultFile, VaultFileChangeEvent } from '@shared/types'
 
 declare global {
   interface Window {
@@ -15,7 +15,7 @@ declare global {
       deleteFile: (path: string) => Promise<void>
       renameFile: (oldPath: string, newName: string) => Promise<string>
       openByPath: (path: string) => Promise<VaultConfig | null>
-      onFileChanged: (cb: (file: VaultFile) => void) => () => void
+      onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
     }
     settings: {
@@ -23,6 +23,12 @@ declare global {
       set: (key: string, value: unknown) => Promise<void>
     }
   }
+}
+
+function isSameOrChildPath(parentPath: string, candidatePath: string): boolean {
+  const parent = parentPath.replace(/\\/g, '/').replace(/\/+$/, '')
+  const candidate = candidatePath.replace(/\\/g, '/')
+  return candidate === parent || candidate.startsWith(`${parent}/`)
 }
 
 function flattenFiles(files: VaultFile[]): VaultFile[] {
@@ -49,7 +55,9 @@ export function useVaultBridge() {
         try {
           const content = await window.vault.readFile(f.path)
           indexFile(f.path, f.name, content, config.path)
-        } catch {}
+        } catch {
+          // Skip files that disappeared or became unreadable during initial indexing.
+        }
       }
     }
   }, [setVault, setFiles])
@@ -150,7 +158,11 @@ export function useVaultBridge() {
       }
       const vault = useVaultStore.getState().vault
       if (vault) {
-        useLinkStore.getState().removeFile(path, vault.path)
+        const linkStore = useLinkStore.getState()
+        const paths = linkStore.allFiles().filter(filePath => isSameOrChildPath(path, filePath))
+        for (const filePath of paths) {
+          linkStore.removeFile(filePath, vault.path)
+        }
       }
       await refreshFiles()
     } catch (e) {
@@ -186,7 +198,9 @@ export function useVaultBridge() {
 
     try {
       await window.vault.createDir(vault.path, 'Daily')
-    } catch {}
+    } catch {
+      // Daily directory may already exist.
+    }
 
     try {
       const filePath = await window.vault.createFile(dailyDir, fileName)

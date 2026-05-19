@@ -1,4 +1,3 @@
-import React from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 
 export function TabBar() {

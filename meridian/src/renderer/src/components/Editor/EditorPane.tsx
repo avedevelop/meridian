@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
-import { useLinkStore } from '../../store/useLinkStore'
 import { createMarkdownExtensions } from './extensions/markdownExtensions'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { TabBar } from './TabBar'
@@ -17,7 +16,6 @@ export function EditorArea() {
   const { openTabs, activeTabPath, markTabDirty, setTabContent, files: vaultFiles } = useVaultStore()
   const vault = useVaultStore(s => s.vault)
   const { saveFile, openFile, saveImage } = useVaultBridge()
-  const allFiles = useLinkStore(s => s.allFiles)
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const activeTab = openTabs.find(t => t.path === activeTabPath)

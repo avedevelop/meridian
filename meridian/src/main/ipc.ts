@@ -1,10 +1,81 @@
-import { ipcMain, dialog } from 'electron'
-import { basename } from 'path'
-import { IPC } from '../shared/types'
+import { BrowserWindow, ipcMain, dialog } from 'electron'
+import { basename, isAbsolute, resolve } from 'path'
+import chokidar, { type FSWatcher } from 'chokidar'
+import { IPC, type VaultFileChangeEvent, type VaultFileChangeType } from '../shared/types'
 import { VaultManager } from './vault'
 import { AppSettings } from './settings'
 
 let vaultManager: VaultManager | null = null
+let vaultWatcher: FSWatcher | null = null
+let watcherSession = 0
+
+const WATCH_EVENT_TYPES = new Set<VaultFileChangeType>([
+  'add',
+  'change',
+  'unlink',
+  'addDir',
+  'unlinkDir',
+])
+
+function toAbsoluteVaultPath(manager: VaultManager, changedPath: string): string {
+  return isAbsolute(changedPath) ? changedPath : resolve(manager.vaultPath, changedPath)
+}
+
+async function emitVaultFileChange(
+  manager: VaultManager,
+  type: VaultFileChangeType,
+  changedPath: string,
+): Promise<void> {
+  const absolutePath = toAbsoluteVaultPath(manager, changedPath)
+  const event: VaultFileChangeEvent = {
+    type,
+    path: absolutePath,
+    vaultPath: manager.vaultPath,
+    file: null,
+  }
+
+  if (type === 'add' || type === 'change' || type === 'addDir') {
+    try {
+      event.file = await manager.getFile(absolutePath)
+    } catch {
+      // File may have disappeared between chokidar emitting and stat/read.
+    }
+  }
+
+  BrowserWindow.getAllWindows().forEach(win => {
+    win.webContents.send(IPC.FILE_CHANGED, event)
+  })
+}
+
+function startVaultWatcher(manager: VaultManager): void {
+  watcherSession += 1
+  const session = watcherSession
+  const previousWatcher = vaultWatcher
+  if (previousWatcher) void previousWatcher.close()
+
+  vaultWatcher = chokidar.watch(manager.vaultPath, {
+    ignoreInitial: true,
+    ignored: /(^|[/\\])\../,
+    awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 },
+  })
+
+  vaultWatcher.on('all', (eventName, changedPath) => {
+    if (!WATCH_EVENT_TYPES.has(eventName as VaultFileChangeType)) return
+    if (session !== watcherSession || manager !== vaultManager) return
+    void emitVaultFileChange(manager, eventName as VaultFileChangeType, String(changedPath))
+  })
+
+  vaultWatcher.on('error', error => {
+    console.error('[Watcher] vault watcher error:', error)
+  })
+}
+
+export function stopVaultWatcher(): void {
+  watcherSession += 1
+  const currentWatcher = vaultWatcher
+  vaultWatcher = null
+  if (currentWatcher) void currentWatcher.close()
+}
 
 export function registerIpcHandlers(settings: AppSettings): void {
   ipcMain.handle(IPC.VAULT_OPEN_DIALOG, async () => {
@@ -18,6 +89,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const vaultPath = result.filePaths[0]
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
+    startVaultWatcher(vaultManager)
     settings.addRecentVault(vaultPath, name)
     settings.setLastVault(vaultPath)
     return { path: vaultPath, name }
@@ -33,6 +105,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     }
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
+    startVaultWatcher(vaultManager)
     settings.addRecentVault(vaultPath, name)
     settings.setLastVault(vaultPath)
     return { path: vaultPath, name }

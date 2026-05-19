@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
 
 export function StatusBar() {

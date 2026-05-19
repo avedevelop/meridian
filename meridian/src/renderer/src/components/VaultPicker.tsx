@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useVaultBridge } from '../hooks/useVaultBridge'
 import type { VaultConfig } from '@shared/types'
 

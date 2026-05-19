@@ -2,7 +2,7 @@ import { app, BrowserWindow, shell, protocol } from 'electron'
 import { join, resolve, sep, extname } from 'path'
 import { readFile } from 'fs/promises'
 import { AppSettings } from './settings'
-import { registerIpcHandlers, getVaultManager } from './ipc'
+import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
 
 // Must be called before app is ready — tells Chromium vault:// is a secure scheme
 // so it can be loaded from any origin (http://localhost in dev, file:// in prod)
@@ -90,4 +90,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+  stopVaultWatcher()
 })

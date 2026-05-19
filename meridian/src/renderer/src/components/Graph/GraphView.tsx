@@ -1,7 +1,9 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
 import { useLinkStore } from '../../store/useLinkStore'
+import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
+import type { VaultFile } from '@shared/types'
 
 interface GNode extends d3.SimulationNodeDatum {
   id: string
@@ -18,10 +20,15 @@ interface GraphViewProps {
   onFileOpen?: () => void
 }
 
+function flattenFiles(files: VaultFile[]): VaultFile[] {
+  return files.flatMap(file => file.children ? [file, ...flattenFiles(file.children)] : [file])
+}
+
 export function GraphView({ onFileOpen }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const allFiles = useLinkStore(s => s.allFiles)
+  const files = useVaultStore(s => s.files)
   const outlinks = useLinkStore(s => s.outlinks)
+  const indexVersion = useLinkStore(s => s.indexVersion)
   const { openFile } = useVaultBridge()
 
   useEffect(() => {
@@ -36,14 +43,18 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       const height = el.clientHeight
       if (!width || !height) return
 
-      const allMdFiles = allFiles().filter(f => f.endsWith('.md')).slice(0, 400)
+      const allMdFiles = flattenFiles(files)
+        .filter(file => !file.isDirectory && file.name.endsWith('.md'))
+        .map(file => file.path)
+        .slice(0, 400)
+      const liveFiles = new Set(allMdFiles)
       const degree: Record<string, number> = {}
       const edgeSet = new Set<string>()
       const links: GLink[] = []
 
       for (const file of allMdFiles) {
         for (const target of outlinks(file)) {
-          if (!allMdFiles.includes(target)) continue
+          if (!liveFiles.has(target)) continue
           const key = [file, target].sort().join('|')
           if (edgeSet.has(key)) continue
           edgeSet.add(key)
@@ -158,7 +169,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     build()
 
     return () => { ro.disconnect(); sim?.stop(); el.innerHTML = '' }
-  }, [allFiles, outlinks, openFile])
+  }, [files, outlinks, openFile, indexVersion])
 
   return (
     <div ref={containerRef} style={{ flex: 1, width: '100%', height: '100%', background: '#161616' }} />

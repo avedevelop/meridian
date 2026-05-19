@@ -134,7 +134,7 @@ Registered in `src/main/index.ts` via `protocol.handle('vault', ...)`.
 
 6. **ESM in electron-vite**: Main process is compiled as ESM. Use `import` not `require`. Dynamic imports: `await import('fs/promises')` works.
 
-## What's been built (Phases 1-4)
+## What's been built (Phases 1-5)
 
 ### Phase 1: Core MVP
 - Vault picker + recent vaults
@@ -172,20 +172,29 @@ Registered in `src/main/index.ts` via `protocol.handle('vault', ...)`.
 - Tags panel shows all `#tags` sorted by frequency, expandable with file lists
 - `vault://` custom Electron protocol for serving vault assets to preview
 
+### Phase 5: Reliability & Sync
+- Main process starts a `chokidar` watcher whenever a vault opens and emits typed `file:changed` events to renderer windows
+- Renderer `useVaultFileWatcher` batches file-tree refreshes and syncs markdown add/change/delete events into the link/search/tag index
+- Clean open tabs update automatically when their file changes externally; dirty tabs are preserved to avoid overwriting unsaved work
+- Deleted files and deleted folders are removed from the link index, and clean tabs under deleted paths are closed
+- GraphView builds nodes from the live file tree and subscribes to `indexVersion`, so deleted files cannot remain as ghost nodes even if the link index briefly lags
+- Command palette and active search results refresh as the link/search index changes
+- ESLint config now matches the existing implicit-return React style while preserving useful unused-variable checks
+
 ## Current bugs / known issues
 
-1. **Graph shows ghost nodes after deletion** — if files were deleted in a previous session before the link index had them removed, reopening the vault fixes it (index rebuilds from disk)
+1. **External rename behavior**: filesystem renames arrive as `unlink` + `add`. The file tree and index update correctly, but an open clean tab for the old path is closed rather than rebound to the new path.
 
-2. **Rename flow**: renameFile now correctly updates link index (remove old + add new). But if a file was renamed BEFORE this fix, the graph may show the old name until vault is reopened.
+2. **Dirty tab conflict UX**: if a file changes externally while its tab has unsaved edits, Meridian preserves the dirty tab and updates the disk-backed index, but there is no conflict banner or merge UI yet.
 
-3. **Graph reactivity**: GraphView's useEffect only runs on mount (deps: stable function refs from Zustand). Graph shows state at mount time. Workaround: close and reopen graph tab.
+3. **Rename flow**: renameFile correctly updates the link index (remove old + add new). But if a file was renamed BEFORE this fix, the graph may show the old name until vault is reopened.
 
-## What could come next (Phase 5 ideas)
+## What could come next (Phase 6 ideas)
 
 - **Note templates**: create new notes from template files in `templates/` folder
+- **External change conflict UI**: show a small banner when disk content changes while the open tab is dirty
 - **Spellcheck**: CodeMirror spellcheck extension or native
 - **Export to HTML/PDF**: export current note
-- **File watcher**: use chokidar (already installed) to watch for external file changes and update the editor
 - **Better onboarding**: "Create new vault" option (currently only "Open existing folder")
 - **Drag & drop**: reorder files in tree
 - **Multiple vaults**: tabbed vault switching
@@ -203,6 +212,6 @@ codex
 Then say: **"Read AGENTS.md to understand the project, then [your task]"**
 
 Codex will read this file and have full context. Example prompts:
-- "Read AGENTS.md. Implement file watcher using chokidar — when a file changes externally, update the open tab content and re-index"
-- "Read AGENTS.md. Fix the graph view to update reactively when files are added/deleted without requiring remount"
 - "Read AGENTS.md. Add note templates — when creating a new note, offer to pick from markdown files in a templates/ folder"
+- "Read AGENTS.md. Add conflict UI for external file changes when a tab has unsaved edits"
+- "Read AGENTS.md. Add export to HTML/PDF for the active note"

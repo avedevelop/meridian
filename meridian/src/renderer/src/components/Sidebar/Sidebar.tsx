@@ -1,4 +1,4 @@
-import React, { useState, Component, ReactNode } from 'react'
+import { useState, Component, type ReactNode } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { FileTree } from './FileTree'
@@ -27,9 +27,6 @@ export function Sidebar() {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files')
 
   if (!vault) return null
-
-  // Safety: if graph tab is open but there's nothing to show, fall back to files
-  const safeTab = activeTab === 'graph' ? activeTab : activeTab
 
   const tabs: { id: SidebarTab; icon: string; label: string }[] = [
     { id: 'files', icon: '📄', label: 'Files' },
@@ -113,7 +110,7 @@ export function Sidebar() {
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 16px', paddingTop: 38, borderBottom: '1px solid #2a2a2a', flexShrink: 0,
-                // @ts-ignore
+                // @ts-ignore -- Electron drag region style is not part of React CSSProperties.
                 WebkitAppRegion: 'no-drag',
               }}>
                 <button

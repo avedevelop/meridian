@@ -10,33 +10,33 @@ export class LinkIndex {
   // all known file paths (for resolution)
   private knownFiles = new Set<string>()
 
-  update(filePath: string, content: string, vaultPath: string): void {
+  update(filePath: string, content: string, _vaultPath: string): void {
     this.knownFiles.add(filePath)
     const { links, tags } = parseLinks(content)
     this.rawLinks.set(filePath, links)
     this.fileTags.set(filePath, tags)
-    this.resolveAll(vaultPath)
+    this.resolveAll()
   }
 
-  remove(filePath: string, vaultPath: string): void {
+  remove(filePath: string, _vaultPath: string): void {
     this.knownFiles.delete(filePath)
     this.rawLinks.delete(filePath)
     this.fileTags.delete(filePath)
     this.outlinks.delete(filePath)
-    this.resolveAll(vaultPath)
+    this.resolveAll()
   }
 
-  private resolveAll(vaultPath: string): void {
+  private resolveAll(): void {
     this.outlinks.clear()
     for (const [filePath, links] of this.rawLinks) {
       const resolved = links
-        .map(link => this.resolve(link, vaultPath))
+        .map(link => this.resolve(link))
         .filter((p): p is string => p !== null)
       this.outlinks.set(filePath, resolved)
     }
   }
 
-  private resolve(linkText: string, vaultPath: string): string | null {
+  private resolve(linkText: string): string | null {
     const lower = linkText.toLowerCase()
     for (const known of this.knownFiles) {
       const name = known.split('/').pop() ?? ''

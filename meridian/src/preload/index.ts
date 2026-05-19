@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/types'
-import type { VaultFile, VaultConfig, AppConfig } from '../shared/types'
+import type { VaultFileChangeEvent, VaultFile, VaultConfig, AppConfig } from '../shared/types'
 
 const vaultAPI = {
   openDialog: (): Promise<VaultConfig | null> =>
@@ -33,8 +33,8 @@ const vaultAPI = {
   openByPath: (vaultPath: string): Promise<VaultConfig | null> =>
     ipcRenderer.invoke(IPC.VAULT_OPEN_BY_PATH, vaultPath),
 
-  onFileChanged: (callback: (file: VaultFile) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, file: VaultFile) => callback(file)
+  onFileChanged: (callback: (event: VaultFileChangeEvent) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, change: VaultFileChangeEvent) => callback(change)
     ipcRenderer.on(IPC.FILE_CHANGED, handler)
     return () => ipcRenderer.removeListener(IPC.FILE_CHANGED, handler)
   },
