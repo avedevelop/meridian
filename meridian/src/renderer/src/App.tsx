@@ -27,6 +27,7 @@ import { StatusBar } from './components/StatusBar'
 import { BacklinksPanel } from './components/RightPanel/BacklinksPanel'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { useVaultBridge } from './hooks/useVaultBridge'
+import { SettingsModal } from './components/Settings/SettingsModal'
 
 export { AppErrorBoundary }
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
   const allFiles = useLinkStore(s => s.allFiles)
   const { openFile } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const { openVault } = useVaultBridge()
 
@@ -42,6 +44,7 @@ export default function App() {
       if (e.metaKey || e.ctrlKey) {
         if (e.key === 'k') { e.preventDefault(); setPaletteOpen(open => !open) }
         if (e.key === 'o') { e.preventDefault(); openVault() }
+        if (e.key === ',') { e.preventDefault(); setSettingsOpen(open => !open) }
       }
     }
     window.addEventListener('keydown', handler)
@@ -72,6 +75,10 @@ export default function App() {
         onClose={() => setPaletteOpen(false)}
         files={paletteFiles}
         onFileSelect={handleFileSelect}
+      />
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
     </div>
   )
