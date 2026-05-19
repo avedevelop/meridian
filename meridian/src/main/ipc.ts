@@ -30,6 +30,12 @@ export function registerIpcHandlers(settings: AppSettings): void {
 
   ipcMain.handle(IPC.VAULT_READ_FILE, async (_event, filePath: string) => {
     if (!vaultManager) throw new Error('No vault open')
+    // Reject binary file extensions before trying to read
+    const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
+    const binaryExts = ['png','jpg','jpeg','gif','webp','svg','ico','bmp','tiff',
+      'pdf','zip','gz','tar','exe','dmg','app','bin','dll','so','dylib',
+      'mp3','mp4','mov','avi','wav','flac','ogg','woff','woff2','ttf','eot']
+    if (binaryExts.includes(ext)) throw new Error(`Cannot read binary file: ${ext}`)
     return vaultManager.readFile(filePath)
   })
 

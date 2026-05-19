@@ -39,13 +39,17 @@ export function useVaultBridge() {
     setVault(config)
     const files = await window.vault.listFiles()
     setFiles(files)
-    // Build link + search index for all .md files
+    // Build link + search index — only .md files, skip errors
     const { indexFile } = useLinkStore.getState()
     const flatFiles = flattenFiles(files)
     for (const f of flatFiles) {
       if (!f.isDirectory && f.name.endsWith('.md')) {
-        const content = await window.vault.readFile(f.path)
-        indexFile(f.path, f.name, content, config.path)
+        try {
+          const content = await window.vault.readFile(f.path)
+          indexFile(f.path, f.name, content, config.path)
+        } catch {
+          // skip unreadable files
+        }
       }
     }
   }, [setVault, setFiles])
@@ -56,9 +60,17 @@ export function useVaultBridge() {
   }, [setFiles])
 
   const openFile = useCallback(async (path: string, name: string) => {
+    // Only open text-like files
+    const ext = path.split('.').pop()?.toLowerCase() ?? ''
+    const textExts = ['md', 'txt', 'markdown', 'mdx', 'mdown', 'canvas', 'json', 'yaml', 'yml', 'toml', 'csv']
+    if (!textExts.includes(ext)) return
     openTab(path, name)
-    const content = await window.vault.readFile(path)
-    setTabContent(path, content)
+    try {
+      const content = await window.vault.readFile(path)
+      setTabContent(path, content)
+    } catch {
+      setTabContent(path, `<!-- Could not read file: ${name} -->`)
+    }
   }, [openTab, setTabContent])
 
   const saveFile = useCallback(async (path: string, content: string) => {
