@@ -7,6 +7,7 @@ import { createMarkdownExtensions } from './extensions/markdownExtensions'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { TabBar } from './TabBar'
 import { MarkdownPreview } from './MarkdownPreview'
+import { Breadcrumb } from './Breadcrumb'
 
 function flattenVaultFiles(files: import('@shared/types').VaultFile[]): import('@shared/types').VaultFile[] {
   return files.flatMap(f => f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f])
@@ -101,6 +102,7 @@ export function EditorArea() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       <TabBar />
+      <Breadcrumb />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <div ref={editorRef} style={{ flex: 1, overflow: 'auto', height: '100%' }} />
         {activeTab && (
