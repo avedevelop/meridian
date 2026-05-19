@@ -25,10 +25,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   fontSize: initial.fontSize,
   lineWidth: initial.lineWidth,
 
-  setFontSize: (fontSize) => {
+  setFontSize: (n) => {
+    const fontSize = Math.max(13, Math.min(22, n))
     set(s => { const next = { ...s, fontSize }; saveSettings(next); return next })
   },
-  setLineWidth: (lineWidth) => {
+  setLineWidth: (n) => {
+    const lineWidth = Math.max(600, Math.min(960, n))
     set(s => { const next = { ...s, lineWidth }; saveSettings(next); return next })
   },
 }))
