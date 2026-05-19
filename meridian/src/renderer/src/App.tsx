@@ -24,7 +24,7 @@ import { Layout } from './components/Layout'
 import { Sidebar } from './components/Sidebar/Sidebar'
 import { EditorArea } from './components/Editor/EditorPane'
 import { StatusBar } from './components/StatusBar'
-import { BacklinksPanel } from './components/RightPanel/BacklinksPanel'
+import { RightPanel } from './components/RightPanel/RightPanel'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { useVaultBridge } from './hooks/useVaultBridge'
 import { SettingsModal } from './components/Settings/SettingsModal'
@@ -66,7 +66,7 @@ export default function App() {
       <Layout
         sidebar={<Sidebar key={vault.path} />}
         editor={<EditorArea />}
-        rightPanel={<BacklinksPanel />}
+        rightPanel={<RightPanel />}
       />
       <StatusBar />
       <CommandPalette
