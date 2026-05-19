@@ -100,4 +100,15 @@ export class VaultManager {
     await rename(oldPath, newPath)
     return newPath
   }
+
+  async moveFile(sourcePath: string, targetDir: string): Promise<string> {
+    this.assertInsideVault(sourcePath)
+    this.assertInsideVault(targetDir)
+    const name = basename(sourcePath)
+    const destPath = join(targetDir, name)
+    this.assertInsideVault(destPath)
+    if (sourcePath === destPath) return destPath
+    await rename(sourcePath, destPath)
+    return destPath
+  }
 }

@@ -33,6 +33,9 @@ const vaultAPI = {
   renameFile: (oldPath: string, newName: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_RENAME_FILE, oldPath, newName),
 
+  moveFile: (sourcePath: string, targetDir: string): Promise<string> =>
+    ipcRenderer.invoke(IPC.VAULT_MOVE_FILE, sourcePath, targetDir),
+
   openByPath: (vaultPath: string): Promise<VaultConfig | null> =>
     ipcRenderer.invoke(IPC.VAULT_OPEN_BY_PATH, vaultPath),
 

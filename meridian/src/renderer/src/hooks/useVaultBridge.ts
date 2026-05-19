@@ -14,6 +14,7 @@ declare global {
       createDir: (parentDir: string, name: string) => Promise<string>
       deleteFile: (path: string) => Promise<void>
       renameFile: (oldPath: string, newName: string) => Promise<string>
+      moveFile: (sourcePath: string, targetDir: string) => Promise<string>
       openByPath: (path: string) => Promise<VaultConfig | null>
       onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
@@ -147,6 +148,31 @@ export function useVaultBridge() {
       await refreshFiles()
     } catch (e) {
       console.error('[Bridge] renameFile error', e)
+    }
+  }, [refreshFiles])
+
+  const moveFile = useCallback(async (sourcePath: string, targetDir: string) => {
+    try {
+      const newPath = await window.vault.moveFile(sourcePath, targetDir)
+      const name = newPath.split('/').pop() ?? ''
+      const { openTabs, activeTabPath } = useVaultStore.getState()
+      const wasActive = activeTabPath === sourcePath
+      useVaultStore.setState({
+        openTabs: openTabs.map(t =>
+          t.path === sourcePath ? { ...t, path: newPath, name } : t
+        ),
+        activeTabPath: wasActive ? newPath : activeTabPath,
+      })
+      const vault = useVaultStore.getState().vault
+      if (vault) {
+        const tab = openTabs.find(t => t.path === sourcePath)
+        useLinkStore.getState().removeFile(sourcePath, vault.path)
+        useLinkStore.getState().indexFile(newPath, name, tab?.content ?? '', vault.path)
+      }
+      await refreshFiles()
+    } catch (e) {
+      console.error('[Bridge] moveFile error', e)
+      window.alert(`Could not move file: ${e instanceof Error ? e.message : String(e)}`)
     }
   }, [refreshFiles])
 
@@ -338,5 +364,5 @@ ${bodyHtml}
     }
   }, [initVault, openFile])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, moveFile, deleteFile, openVaultByPath, openDailyNote, saveImage, exportNote, createNewVault }
 }

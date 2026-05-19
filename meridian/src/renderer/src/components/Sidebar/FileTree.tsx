@@ -8,11 +8,15 @@ interface FileTreeProps {
   onRename?: (oldPath: string, newName: string) => void
   onDelete?: (path: string) => void
   onNewFolder?: (parentDir: string) => void
+  onMove?: (sourcePath: string, targetDir: string) => void
+  collapseKey?: number
   vaultPath: string
   depth?: number
 }
 
-export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, vaultPath, depth = 0 }: FileTreeProps) {
+let dragSourcePath: string | null = null
+
+export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, onMove, collapseKey = 0, vaultPath, depth = 0 }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -29,6 +33,10 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
       inputRef.current.setSelectionRange(0, dotIndex > 0 ? dotIndex : editValueRef.current.length)
     }
   }, [editing])
+
+  useEffect(() => {
+    setExpanded(new Set())
+  }, [collapseKey])
 
   const toggle = (path: string) => {
     setExpanded(prev => {
@@ -76,6 +84,30 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
             }}
             onDoubleClick={e => !file.isDirectory && startEdit(file, e)}
             onContextMenu={e => handleContextMenu(e, file)}
+            draggable={!file.isDirectory}
+            onDragStart={e => {
+              dragSourcePath = file.path
+              e.dataTransfer.effectAllowed = 'move'
+              e.dataTransfer.setData('text/plain', file.path)
+            }}
+            onDragEnd={() => { dragSourcePath = null }}
+            onDragOver={e => {
+              if (!file.isDirectory || !dragSourcePath || dragSourcePath === file.path) return
+              e.preventDefault()
+              e.currentTarget.style.background = '#2a2050'
+            }}
+            onDragLeave={e => {
+              e.currentTarget.style.background = editing === file.path ? 'transparent' : ''
+            }}
+            onDrop={e => {
+              e.preventDefault()
+              e.currentTarget.style.background = ''
+              if (!dragSourcePath || dragSourcePath === file.path) return
+              if (file.isDirectory) {
+                onMove?.(dragSourcePath, file.path)
+              }
+              dragSourcePath = null
+            }}
             style={{
               paddingLeft: 12 + depth * 16, paddingRight: 12,
               paddingTop: 3, paddingBottom: 3,
@@ -120,6 +152,8 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
               onRename={onRename}
               onDelete={onDelete}
               onNewFolder={onNewFolder}
+              onMove={onMove}
+              collapseKey={collapseKey}
               vaultPath={vaultPath}
               depth={depth + 1}
             />
