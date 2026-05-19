@@ -4,6 +4,12 @@ import { readFile } from 'fs/promises'
 import { AppSettings } from './settings'
 import { registerIpcHandlers, getVaultManager } from './ipc'
 
+// Must be called before app is ready — tells Chromium vault:// is a secure scheme
+// so it can be loaded from any origin (http://localhost in dev, file:// in prod)
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'vault', privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true } }
+])
+
 const MIME: Record<string, string> = {
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
