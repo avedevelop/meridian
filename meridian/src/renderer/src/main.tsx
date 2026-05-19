@@ -1,5 +1,4 @@
-import './assets/main.css'
-
+import './assets/meridian.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
