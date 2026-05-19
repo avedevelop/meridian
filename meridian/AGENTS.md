@@ -4,6 +4,10 @@
 
 **Meridian** is a macOS desktop app — a free, open-source Obsidian alternative built with Electron + React + TypeScript. Portfolio project by @bvsmma. GitHub: https://github.com/bvsmma/meridian
 
+## Rules & Conventions
+
+- **Language Constraint**: All markdown notes, diaries, and sample content created or modified in `demo-vault` (or any local workspaces for testing) MUST be written in Russian so that the user can easily read and test the application features.
+
 ## Tech Stack
 
 - **Electron 39** (main process + preload + renderer, contextIsolation: true, sandbox: false)
