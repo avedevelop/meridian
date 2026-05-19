@@ -89,7 +89,7 @@ export function Sidebar() {
         {activeTab === 'search' && <SearchPanel />}
         {activeTab === 'graph' && (
           <GraphErrorBoundary>
-            {/* Full-screen overlay */}
+            {/* Full-screen overlay — note: setActiveTab is in scope */}
             <div style={{
               position: 'fixed', inset: 0, zIndex: 900,
               background: '#161616', display: 'flex', flexDirection: 'column',
@@ -113,7 +113,7 @@ export function Sidebar() {
                 <span style={{ color: '#555', fontSize: 13 }}>Graph View</span>
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <GraphView />
+                <GraphView onFileOpen={() => setActiveTab('files')} />
               </div>
             </div>
           </GraphErrorBoundary>

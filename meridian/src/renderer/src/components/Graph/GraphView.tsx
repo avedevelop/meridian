@@ -14,7 +14,11 @@ interface GLink extends d3.SimulationLinkDatum<GNode> {
   target: string | GNode
 }
 
-export function GraphView() {
+interface GraphViewProps {
+  onFileOpen?: () => void
+}
+
+export function GraphView({ onFileOpen }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const allFiles = useLinkStore(s => s.allFiles)
   const outlinks = useLinkStore(s => s.outlinks)
@@ -92,7 +96,11 @@ export function GraphView() {
       const nodeG = root.append('g').selectAll<SVGGElement, GNode>('g')
         .data(nodes).join('g')
         .style('cursor', 'pointer')
-        .on('click', (_e, d) => openFile(d.id, d.name + '.md'))
+        .on('click', (event, d) => {
+          if (event.defaultPrevented) return // drag consumed the event
+          openFile(d.id, d.name + '.md')
+          onFileOpen?.()
+        })
         .on('mouseover', function(_e, d) {
           d3.select(this).select('circle.vis')
             .attr('fill', '#a89df7').attr('r', nodeR(d) + 3)
