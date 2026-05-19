@@ -84,15 +84,17 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     if (!state) return
 
     if (mode === 'live') {
-      state.nodeG.each(function() {
-        d3.select(this)
-          .transition().duration(300)
-          .attr('opacity', 1)
-          .style('pointer-events', 'auto')
+      state.nodeG.each(function(d) {
+        const group = d3.select(this)
+        group.transition().duration(300).attr('opacity', 1).style('pointer-events', 'auto')
+        group.select('circle.vis').transition().duration(300).attr('r', nodeR(d))
+        group.select('text').transition().duration(300).attr('opacity', 1)
       })
 
       state.linkSel.each(function() {
-        d3.select(this).transition().duration(300).attr('opacity', 0.6)
+        d3.select(this).transition().duration(300)
+          .attr('opacity', 0.6)
+          .attr('stroke-width', 1)
       })
 
       state.dateLabel.text('')
@@ -104,17 +106,47 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     state.nodeG.each(function(d) {
       const birth = birthtimes.get(d.id)
       const visible = birth !== undefined && birth <= ts
-      d3.select(this)
-        .transition().duration(visible ? 500 : 150)
-        .attr('opacity', visible ? 1 : 0)
-        .style('pointer-events', visible ? 'auto' : 'none')
+      const group = d3.select(this)
+      const circle = group.select('circle.vis')
+      const text = group.select('text')
+
+      if (visible) {
+        circle.transition()
+          .duration(800)
+          .ease(d3.easeElasticOut.amplitude(1.1).period(0.4))
+          .attr('r', nodeR(d))
+        
+        text.transition()
+          .duration(400)
+          .attr('opacity', 1)
+
+        group.transition()
+          .duration(300)
+          .attr('opacity', 1)
+          .style('pointer-events', 'auto')
+      } else {
+        circle.transition()
+          .duration(200)
+          .attr('r', 0)
+
+        text.transition()
+          .duration(150)
+          .attr('opacity', 0)
+
+        group.transition()
+          .duration(200)
+          .attr('opacity', 0)
+          .style('pointer-events', 'none')
+      }
     })
 
     state.linkSel.each(function(d) {
       const sb = birthtimes.get((d.source as GNode).id)
       const tb = birthtimes.get((d.target as GNode).id)
       const visible = sb !== undefined && tb !== undefined && sb <= ts && tb <= ts
-      d3.select(this).transition().duration(300).attr('opacity', visible ? 0.6 : 0)
+      d3.select(this).transition().duration(visible ? 500 : 150)
+        .attr('opacity', visible ? 0.6 : 0)
+        .attr('stroke-width', visible ? 1 : 0)
     })
 
     state.dateLabel.text(
@@ -201,7 +233,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
       const linkSel = root.append('g').selectAll<SVGLineElement, GLink>('line')
         .data(links).join('line')
-        .attr('stroke', '#4a4080').attr('stroke-width', 1).attr('opacity', 0)
+        .attr('stroke', '#4a4080').attr('stroke-width', 0).attr('opacity', 0)
 
       const nodeG = root.append('g').selectAll<SVGGElement, GNode>('g')
         .data(nodes).join('g')
@@ -231,12 +263,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
       nodeG.append('circle').attr('r', d => Math.max(nodeR(d) + 10, 16)).attr('fill', 'transparent')
       nodeG.append('circle').attr('class', 'vis')
-        .attr('r', d => nodeR(d)).attr('fill', d => nodeColor(d))
+        .attr('r', 0).attr('fill', d => nodeColor(d))
         .attr('stroke', d => d.degree > 0 ? '#6a5af7' : '#444').attr('stroke-width', 1.5)
       nodeG.append('text').text(d => d.name)
         .attr('font-size', 11).attr('font-family', '-apple-system, sans-serif')
         .attr('fill', d => labelColor(d)).attr('text-anchor', 'middle')
         .attr('dy', d => nodeR(d) + 13)
+        .attr('opacity', 0)
         .style('pointer-events', 'none').style('user-select', 'none')
 
       const dateLabel = svg.append('text')
