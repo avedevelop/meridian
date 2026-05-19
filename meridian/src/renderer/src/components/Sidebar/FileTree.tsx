@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { VaultFile } from '@shared/types'
 import { ContextMenu } from './ContextMenu'
+import { FileIcon } from './FileIcon'
 
 interface FileTreeProps {
   files: VaultFile[]
@@ -122,7 +123,7 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
             <span style={{ fontSize: 11, color: '#555', width: 10, flexShrink: 0 }}>
               {file.isDirectory ? (expanded.has(file.path) ? '▾' : '▸') : ''}
             </span>
-            <span style={{ flexShrink: 0 }}>{file.isDirectory ? '📁' : '📄'}</span>
+            <FileIcon name={file.name} isDirectory={file.isDirectory} isOpen={file.isDirectory && expanded.has(file.path)} />
             {editing === file.path ? (
               <input
                 ref={inputRef}

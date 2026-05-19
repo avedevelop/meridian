@@ -4,6 +4,7 @@ import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { FileTree } from './FileTree'
 import { SearchPanel } from './SearchPanel'
 import { GraphView } from '../Graph/GraphView'
+import { FileIcon } from './FileIcon'
 import type { VaultFile } from '@shared/types'
 
 interface SidebarProps {
@@ -121,7 +122,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                       onMouseEnter={e => (e.currentTarget.style.background = '#2a2a2a')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <span style={{ flexShrink: 0 }}>📄</span>
+                      <FileIcon name={f.name} isDirectory={false} />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                         {f.name}
                       </span>
