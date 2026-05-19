@@ -9,6 +9,7 @@ interface FileTreeProps {
   onRename?: (oldPath: string, newName: string) => void
   onDelete?: (path: string) => void
   onNewFolder?: (parentDir: string) => void
+  onCreateFile?: (dir: string, name: string) => void
   onMove?: (sourcePath: string, targetDir: string) => void
   onReveal?: (path: string) => void
   collapseKey?: number
@@ -18,7 +19,7 @@ interface FileTreeProps {
 
 let dragSourcePath: string | null = null
 
-export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, onMove, onReveal, collapseKey = 0, vaultPath, depth = 0 }: FileTreeProps) {
+export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, onCreateFile, onMove, onReveal, collapseKey = 0, vaultPath, depth = 0 }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -154,6 +155,7 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
               onRename={onRename}
               onDelete={onDelete}
               onNewFolder={onNewFolder}
+              onCreateFile={onCreateFile}
               onMove={onMove}
               onReveal={onReveal}
               collapseKey={collapseKey}
@@ -172,11 +174,57 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
             contextMenu.file.isDirectory
               ? [
                   {
+                    label: 'New Note',
+                    onClick: () => onCreateFile?.(contextMenu.file.path, `Untitled ${Date.now()}.md`),
+                  },
+                  {
                     label: 'New Folder',
                     onClick: () => onNewFolder?.(contextMenu.file.path),
                   },
+                  { separator: true as const },
+                  {
+                    label: 'Rename',
+                    onClick: () => {
+                      setEditing(contextMenu.file.path)
+                      setEditValue(contextMenu.file.name)
+                    },
+                  },
+                  {
+                    label: 'Delete',
+                    danger: true,
+                    onClick: () => {
+                      if (window.confirm(`Delete folder "${contextMenu.file.name}" and all its contents? This cannot be undone.`)) {
+                        onDelete?.(contextMenu.file.path)
+                      }
+                    },
+                  },
+                  { separator: true as const },
+                  {
+                    label: 'Reveal in Finder',
+                    onClick: () => onReveal?.(contextMenu.file.path),
+                  },
+                  {
+                    label: 'Copy Path',
+                    onClick: () => {
+                      navigator.clipboard.writeText(contextMenu.file.path).catch(console.error)
+                    },
+                  },
+                  {
+                    label: 'Copy Relative Path',
+                    onClick: () => {
+                      navigator.clipboard.writeText(contextMenu.file.relativePath).catch(console.error)
+                    },
+                  },
                 ]
               : [
+                  {
+                    label: 'New Note Here',
+                    onClick: () => {
+                      const dir = contextMenu.file.path.split('/').slice(0, -1).join('/')
+                      onCreateFile?.(dir, `Untitled ${Date.now()}.md`)
+                    },
+                  },
+                  { separator: true as const },
                   {
                     label: 'Rename',
                     onClick: () => {
@@ -193,6 +241,7 @@ export function FileTree({ files, onFileClick, onRename, onDelete, onNewFolder, 
                       }
                     },
                   },
+                  { separator: true as const },
                   {
                     label: 'Reveal in Finder',
                     onClick: () => onReveal?.(contextMenu.file.path),

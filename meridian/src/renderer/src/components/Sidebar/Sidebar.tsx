@@ -139,6 +139,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   onRename={renameFile}
                   onDelete={deleteFile}
                   onNewFolder={createFolder}
+                  onCreateFile={createFile}
                   onMove={moveFile}
                   onReveal={revealFile}
                   collapseKey={collapseKey}
