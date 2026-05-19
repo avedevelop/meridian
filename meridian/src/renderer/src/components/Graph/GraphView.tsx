@@ -348,7 +348,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       {/* Mode Selector */}
       <div style={{
         position: 'absolute', top: 12, right: 12,
