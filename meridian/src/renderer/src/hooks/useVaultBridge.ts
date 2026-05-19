@@ -16,6 +16,7 @@ declare global {
       renameFile: (oldPath: string, newName: string) => Promise<string>
       openByPath: (path: string) => Promise<VaultConfig | null>
       onFileChanged: (cb: (file: VaultFile) => void) => () => void
+      writeBinary: (filePath: string, base64: string) => Promise<string>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
@@ -185,5 +186,21 @@ export function useVaultBridge() {
     }
   }, [openFile, refreshFiles])
 
-  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote }
+  const saveImage = useCallback(async (base64: string, ext: string): Promise<string | null> => {
+    const vault = useVaultStore.getState().vault
+    if (!vault) return null
+    const timestamp = Date.now()
+    const fileName = `image-${timestamp}.${ext}`
+    const filePath = `${vault.path}/assets/${fileName}`
+    try {
+      await window.vault.writeBinary(filePath, base64)
+      await refreshFiles()
+      return `assets/${fileName}`
+    } catch (e) {
+      console.error('[Bridge] saveImage error', e)
+      return null
+    }
+  }, [refreshFiles])
+
+  return { openVault, refreshFiles, openFile, saveFile, createFile, createFolder, renameFile, deleteFile, openVaultByPath, openDailyNote, saveImage }
 }

@@ -69,6 +69,19 @@ export function registerIpcHandlers(settings: AppSettings): void {
     return vaultManager.createDirectory(parentDir, name)
   })
 
+  ipcMain.handle(IPC.VAULT_WRITE_BINARY, async (_event, filePath: string, base64: string) => {
+    if (!vaultManager) throw new Error('No vault open')
+    const { resolve: res, sep: s } = await import('path')
+    const resolved = res(filePath)
+    const vaultResolved = res(vaultManager.vaultPath)
+    if (!resolved.startsWith(vaultResolved + s)) throw new Error('Path outside vault')
+    const { writeFile: wf } = await import('fs/promises')
+    const { mkdirSync } = await import('fs')
+    mkdirSync(res(filePath, '..'), { recursive: true })
+    await wf(filePath, Buffer.from(base64, 'base64'))
+    return filePath
+  })
+
   ipcMain.handle(IPC.VAULT_DELETE_FILE, async (_event, filePath: string) => {
     if (!vaultManager) throw new Error('No vault open')
     return vaultManager.deleteFile(filePath)

@@ -1,7 +1,7 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, protocol, net } from 'electron'
 import { join } from 'path'
 import { AppSettings } from './settings'
-import { registerIpcHandlers } from './ipc'
+import { registerIpcHandlers, getVaultManager } from './ipc'
 
 const settings = new AppSettings()
 
@@ -45,6 +45,19 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  protocol.handle('vault', (request) => {
+    const url = new URL(request.url)
+    const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, '')
+    const vm = getVaultManager()
+    if (!vm) return new Response('No vault', { status: 503 })
+    const { resolve: res } = require('path')
+    const fullPath = res(vm.vaultPath, relativePath)
+    if (!fullPath.startsWith(res(vm.vaultPath))) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    return net.fetch(`file://${fullPath}`)
+  })
+
   registerIpcHandlers(settings)
   createWindow()
 

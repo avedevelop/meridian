@@ -18,6 +18,7 @@ import { completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirro
 import { lintKeymap } from '@codemirror/lint'
 import { wikiLinkExtension } from './wikiLinkExtension'
 import { wikiLinkCompletion } from './wikiLinkCompletion'
+import { imagePasteExtension } from './imagePaste'
 
 export function createMeridianTheme(fontSize: number, lineWidth: number) {
   return EditorView.theme({
@@ -35,6 +36,7 @@ export function createMarkdownExtensions(
   getFileNames?: () => string[],
   fontSize = 15,
   lineWidth = 720,
+  onImagePaste?: (base64: string, ext: string) => Promise<string | null>,
 ) {
   return [
     oneDark,
@@ -72,5 +74,6 @@ export function createMarkdownExtensions(
           if (update.docChanged) onChange(update.state.doc.toString())
         })
       : [],
+    onImagePaste ? imagePasteExtension(onImagePaste) : [],
   ]
 }

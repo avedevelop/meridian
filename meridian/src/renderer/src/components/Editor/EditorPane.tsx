@@ -15,7 +15,8 @@ function flattenVaultFiles(files: import('@shared/types').VaultFile[]): import('
 
 export function EditorArea() {
   const { openTabs, activeTabPath, markTabDirty, setTabContent, files: vaultFiles } = useVaultStore()
-  const { saveFile, openFile } = useVaultBridge()
+  const vault = useVaultStore(s => s.vault)
+  const { saveFile, openFile, saveImage } = useVaultBridge()
   const allFiles = useLinkStore(s => s.allFiles)
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -37,6 +38,10 @@ export function EditorArea() {
     })
     if (match) openFile(match.path, match.name)
   }, [vaultFiles, openFile])
+
+  const handleImagePaste = useCallback(async (base64: string, ext: string) => {
+    return saveImage(base64, ext)
+  }, [saveImage])
 
   // Stable ref so CodeMirror always gets latest file list even after re-renders
   const fileNamesRef = useRef<string[]>([])
@@ -63,7 +68,7 @@ export function EditorArea() {
     const view = new EditorView({
       state: EditorState.create({
         doc: activeTab?.content ?? '',
-        extensions: createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames, fontSize, lineWidth),
+        extensions: createMarkdownExtensions(handleChange, handleLinkClick, stableGetFileNames, fontSize, lineWidth, handleImagePaste),
       }),
       parent: editorRef.current,
     })
@@ -103,7 +108,7 @@ export function EditorArea() {
         {activeTab && (
           <>
             <div style={{ width: 1, background: '#2a2a2a' }} />
-            <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} fontSize={fontSize} lineWidth={lineWidth} />
+            <MarkdownPreview content={activeTab.content} onLinkClick={handleLinkClick} fontSize={fontSize} lineWidth={lineWidth} vaultPath={vault?.path} />
           </>
         )}
       </div>

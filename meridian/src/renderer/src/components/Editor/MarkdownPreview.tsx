@@ -30,17 +30,23 @@ interface MarkdownPreviewProps {
   onLinkClick?: (linkText: string) => void
   fontSize?: number
   lineWidth?: number
+  vaultPath?: string
 }
 
-export function MarkdownPreview({ content, onLinkClick, fontSize = 15, lineWidth = 720 }: MarkdownPreviewProps) {
+export function MarkdownPreview({ content, onLinkClick, fontSize = 15, lineWidth = 720, vaultPath }: MarkdownPreviewProps) {
   const html = useMemo(() => {
     try {
       const sanitized = String(processor.processSync(content))
-      return postprocessWikiLinks(sanitized)
+      const withLinks = postprocessWikiLinks(sanitized)
+      if (!vaultPath) return withLinks
+      return withLinks.replace(
+        /(<img[^>]+src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/)([^"]+)(")/g,
+        (_m, pre, src, post) => `${pre}vault://${src}${post}`
+      )
     } catch {
       return '<p>Preview error</p>'
     }
-  }, [content])
+  }, [content, vaultPath])
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = (e.target as HTMLElement).closest('.wiki-link') as HTMLElement | null
