@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell, protocol, net } from 'electron'
-import { join } from 'path'
+import { join, resolve, sep } from 'path'
+import { pathToFileURL } from 'url'
 import { AppSettings } from './settings'
 import { registerIpcHandlers, getVaultManager } from './ipc'
 
@@ -50,12 +51,12 @@ app.whenReady().then(() => {
     const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, '')
     const vm = getVaultManager()
     if (!vm) return new Response('No vault', { status: 503 })
-    const { resolve: res } = require('path')
-    const fullPath = res(vm.vaultPath, relativePath)
-    if (!fullPath.startsWith(res(vm.vaultPath))) {
+    const vaultResolved = resolve(vm.vaultPath)
+    const fullPath = resolve(vm.vaultPath, relativePath)
+    if (!fullPath.startsWith(vaultResolved + sep)) {
       return new Response('Forbidden', { status: 403 })
     }
-    return net.fetch(`file://${fullPath}`)
+    return net.fetch(pathToFileURL(fullPath).href)
   })
 
   registerIpcHandlers(settings)

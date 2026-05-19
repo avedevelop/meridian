@@ -77,7 +77,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     if (!resolved.startsWith(vaultResolved + s)) throw new Error('Path outside vault')
     const { writeFile: wf } = await import('fs/promises')
     const { mkdirSync } = await import('fs')
-    mkdirSync(res(filePath, '..'), { recursive: true })
+    mkdirSync(res(resolved, '..'), { recursive: true })
     await wf(filePath, Buffer.from(base64, 'base64'))
     return filePath
   })

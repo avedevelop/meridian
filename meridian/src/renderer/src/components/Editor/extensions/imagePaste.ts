@@ -23,10 +23,10 @@ export function imagePasteExtension(
           const base64 = dataUrl.split(',')[1]
           if (!base64) return
 
+          const cursor = view.state.selection.main.head
           const relativePath = await onImagePaste(base64, ext)
           if (!relativePath) return
 
-          const cursor = view.state.selection.main.head
           view.dispatch({
             changes: { from: cursor, to: cursor, insert: `![](${relativePath})` },
           })
