@@ -1107,6 +1107,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         mediaRecorderRef.current?.stop()
         setIsRecording(false)
       }
+      // Reset so all nodes are treated as newly visible and get respawn animation
+      visibleNodesRef.current = new Set()
     } else {
       setProgress(1)
       setIsPlaying(false)
