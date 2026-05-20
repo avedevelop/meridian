@@ -1668,21 +1668,23 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       {viewMode === 'history' && (
         <div
           style={{
-            height: 72,
+            height: 80,
             background: 'rgba(18, 18, 22, 0.92)',
             backdropFilter: 'blur(16px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.07)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'stretch',
             gap: 10,
             paddingLeft: isSettingsOpen ? 348 : 16,
             paddingRight: 16,
+            paddingTop: 10,
+            paddingBottom: 10,
             transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
         >
           {/* Date */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0, justifyContent: 'center' }}>
             <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', lineHeight: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Viewing</span>
             <span style={{ fontSize: 12, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {formattedDate}
@@ -1694,10 +1696,10 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            gap: 2,
+            justifyContent: 'space-between',
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 8,
-            padding: '6px 14px 10px',
+            padding: '8px 14px',
             background: 'rgba(255,255,255,0.03)',
             overflow: 'visible'
           }}>
@@ -1757,7 +1759,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           </div>
 
           {/* Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, alignSelf: 'center' }}>
             <button
               onClick={() => {
                 if (progress >= 1) setProgress(0)
@@ -1853,7 +1855,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 88 : 24,
+          bottom: viewMode === 'history' ? 96 : 24,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(20, 20, 26, 0.85)',
@@ -1916,7 +1918,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 88 : 24,
+          bottom: viewMode === 'history' ? 96 : 24,
           right: 24,
           background: 'rgba(20, 20, 26, 0.85)',
           backdropFilter: 'blur(12px)',
