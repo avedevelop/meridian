@@ -68,6 +68,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const progressRef = useRef(1)
   const visibleNodesRef = useRef<Set<string>>(new Set())
   const scrubberRef = useRef<HTMLDivElement>(null)
+  const modeHandlerRef = useRef<(mode: 'live' | 'history') => void>(() => {})
 
   const files = useVaultStore((s) => s.files)
   const outlinks = useLinkStore((s) => s.outlinks)
@@ -1129,12 +1130,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     // Notify header about mode change
     window.dispatchEvent(new CustomEvent('graph:mode-changed', { detail: mode }))
   }
+  modeHandlerRef.current = handleToggleMode
 
   // Listen for mode changes from the Sidebar header
   useEffect(() => {
     const handler = (e: Event) => {
       const mode = (e as CustomEvent).detail as 'live' | 'history'
-      handleToggleMode(mode)
+      modeHandlerRef.current(mode)
     }
     window.addEventListener('graph:set-mode', handler)
     // Notify header about initial mode
