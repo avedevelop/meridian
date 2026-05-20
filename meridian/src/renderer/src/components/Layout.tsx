@@ -423,14 +423,13 @@ export function Layout({
         overflow: 'hidden'
       }}
     >
-      {/* Single full-width title bar — hidden in graph fullscreen */}
+      {/* Single full-width title bar — no seam */}
       <div
         style={{
-          height: isGraphFullscreen ? 0 : 38,
+          height: 38,
           background: 'var(--bg-secondary)',
-          borderBottom: isGraphFullscreen ? 'none' : '1px solid var(--border-color)',
+          borderBottom: '1px solid var(--border-color)',
           flexShrink: 0,
-          overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -507,7 +506,7 @@ export function Layout({
 
           <div style={{ width: 1, height: 14, background: 'var(--border-color)' }} />
 
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {!isGraphFullscreen && <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             {/* Left Sidebar Toggle Button */}
             <button
               onClick={() => {
@@ -567,9 +566,9 @@ export function Layout({
             >
               <SidebarRightIcon active={!rightPanelCollapsed} />
             </button>
-          </div>
+          </div>}
 
-          <div style={{ width: 1, height: 14, background: 'var(--border-color)' }} />
+          {!isGraphFullscreen && <div style={{ width: 1, height: 14, background: 'var(--border-color)' }} />}
 
           <button
             onClick={handleResetLayout}
@@ -609,7 +608,7 @@ export function Layout({
           background: 'var(--bg-primary)'
         }}
       >
-        {!isGraphFullscreen && activityBar}
+        {activityBar}
         <div
           style={{
             width: isGraphFullscreen ? '100%' : (sidebarCollapsed ? 0 : sidebarWidth),
