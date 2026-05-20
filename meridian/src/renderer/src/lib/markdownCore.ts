@@ -31,3 +31,6 @@ export function collectCmDecorations(view: EditorView): CmEntry[] {
 
 import { calloutsFormatter } from './markdownCoreFormatters/calloutsFormatter'
 registerFormatter(calloutsFormatter)
+
+import { highlightsFormatter } from './markdownCoreFormatters/highlightsFormatter'
+registerFormatter(highlightsFormatter)
