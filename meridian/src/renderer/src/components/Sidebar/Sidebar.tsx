@@ -1,6 +1,6 @@
 import { useState, useMemo, Component, type ReactNode, useRef, useEffect } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
-import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { useVaultBridge, uniqueFileName } from '../../hooks/useVaultBridge'
 import { FileTree } from './FileTree'
 import { FolderOpenBtnIcon, CollapseAllIcon } from '../Icons'
 import { GraphView } from '../Graph/GraphView'
@@ -610,7 +610,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               }}
             >
               <button
-                onClick={() => createFile(vault.path, `Untitled ${Date.now()}.md`)}
+                onClick={() => createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', files))}
                 style={{
                   flex: 1,
                   padding: '6px 0',

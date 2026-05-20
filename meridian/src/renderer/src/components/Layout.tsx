@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { SearchIcon, FileIcon, FolderIcon } from './Icons'
 import { useLinkStore } from '../store/useLinkStore'
-import { useVaultBridge } from '../hooks/useVaultBridge'
+import { useVaultBridge, uniqueFileName } from '../hooks/useVaultBridge'
 import { useVaultStore } from '../store/useVaultStore'
 
 const PlusIcon = ({ size = 14, color = 'currentColor', ...props }: { size?: number; color?: string; [key: string]: any }) => (
@@ -280,6 +280,7 @@ export function Layout({
 }: LayoutProps) {
   const { createFile, createCanvas, openDailyNote } = useVaultBridge()
   const vault = useVaultStore((s) => s.vault)
+  const vaultFiles = useVaultStore((s) => s.files)
   const activeTabPath = useVaultStore((s) => s.activeTabPath)
   const vaultName = vault?.name ?? 'No Vault'
 
@@ -487,10 +488,10 @@ export function Layout({
           {/* Quick Actions Row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {renderQuickAction(<PlusIcon size={14} />, "Create New Note", () => {
-              if (vault) createFile(vault.path, `Untitled ${Date.now()}.md`)
+              if (vault) createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', vaultFiles))
             })}
             {renderQuickAction(<CanvasIcon size={13} />, "Create New Canvas", () => {
-              if (vault) createCanvas(vault.path, `Untitled ${Date.now()}.canvas`)
+              if (vault) createCanvas(vault.path, uniqueFileName(vault.path, 'Untitled', 'canvas', vaultFiles))
             })}
             {renderQuickAction(<CalendarIcon size={13} />, "Open Today's Daily Note", () => {
               openDailyNote()

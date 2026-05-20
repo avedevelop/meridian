@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { VaultFile } from '@shared/types'
 import { ContextMenu } from './ContextMenu'
 import { FileIcon } from './FileIcon'
+import { uniqueFileName } from '../../hooks/useVaultBridge'
 
 interface FileTreeProps {
   files: VaultFile[]
@@ -296,7 +297,7 @@ export function FileTree({
                   {
                     label: 'New Note',
                     onClick: () =>
-                      onCreateFile?.(contextMenu.file.path, `Untitled ${Date.now()}.md`)
+                      onCreateFile?.(contextMenu.file.path, uniqueFileName(contextMenu.file.path, 'Untitled', 'md', files))
                   },
                   {
                     label: 'New Folder',
@@ -348,7 +349,7 @@ export function FileTree({
                     label: 'New Note Here',
                     onClick: () => {
                       const dir = contextMenu.file.path.split('/').slice(0, -1).join('/')
-                      onCreateFile?.(dir, `Untitled ${Date.now()}.md`)
+                      onCreateFile?.(dir, uniqueFileName(dir, 'Untitled', 'md', files))
                     }
                   },
                   { separator: true as const },

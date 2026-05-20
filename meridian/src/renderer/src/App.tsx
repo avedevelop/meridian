@@ -55,7 +55,7 @@ import { EditorArea } from './components/Editor/EditorPane'
 import { StatusBar } from './components/StatusBar'
 import { RightPanel } from './components/RightPanel/RightPanel'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
-import { useVaultBridge } from './hooks/useVaultBridge'
+import { useVaultBridge, uniqueFileName } from './hooks/useVaultBridge'
 import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
@@ -78,6 +78,7 @@ export default function App() {
   const closeTab = useVaultStore((s) => s.closeTab)
   const activeTabPath = useVaultStore((s) => s.activeTabPath)
   const openTabs = useVaultStore((s) => s.openTabs)
+  const vaultFiles = useVaultStore((s) => s.files)
   const allFiles = useLinkStore((s) => s.allFiles)
   const indexVersion = useLinkStore((s) => s.indexVersion)
   const { openFile, openVault, openDailyNote, exportNote, exportPdf, createFile, saveFile, listTemplates, applyTemplate } = useVaultBridge()
@@ -286,7 +287,7 @@ export default function App() {
     const unsub = window.menuAPI.onAction(async (action) => {
       switch (action) {
         case 'new-file':
-          if (vault) createFile(vault.path, `Untitled ${Date.now()}.md`)
+          if (vault) createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', vaultFiles))
           break
         case 'daily-note':
           openDailyNote()

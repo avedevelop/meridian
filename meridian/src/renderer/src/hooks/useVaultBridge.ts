@@ -3,6 +3,23 @@ import { useVaultStore } from '../store/useVaultStore'
 import { useLinkStore } from '../store/useLinkStore'
 import type { VaultConfig, VaultFile, VaultFileChangeEvent } from '@shared/types'
 
+function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
+  return files.flatMap((f) => (f.children ? [f, ...flattenVaultFiles(f.children)] : [f]))
+}
+
+export function uniqueFileName(dir: string, base: string, ext: string, files: VaultFile[]): string {
+  const allNames = new Set(
+    flattenVaultFiles(files)
+      .filter((f) => !f.isDirectory && f.path.startsWith(dir))
+      .map((f) => f.name.toLowerCase())
+  )
+  const candidate = `${base}.${ext}`
+  if (!allNames.has(candidate.toLowerCase())) return candidate
+  let n = 2
+  while (allNames.has(`${base} ${n}.${ext}`.toLowerCase())) n++
+  return `${base} ${n}.${ext}`
+}
+
 declare global {
   interface Window {
     vault: {
