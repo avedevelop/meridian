@@ -36,6 +36,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     openFile,
     createFile,
     createCanvas,
+    createDrawing,
     createFolder,
     openVault,
     renameFile,
@@ -260,6 +261,28 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 + New note
               </button>
               <button
+                onClick={() => createDrawing(vault.path, `Drawing ${Date.now()}`)}
+                title="Create a new drawing sketchpad"
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  background: 'var(--bg-surface)',
+                  color: 'var(--accent-color)',
+                  border: '1px solid var(--border-color)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M8 2a6 6 0 1 0 6 6c0-.8-.6-1.5-1.5-1.5h-1c-.8 0-1.5-.7-1.5-1.5v-1C10 3 9 2 8 2z" />
+                  <circle cx="5.5" cy="6.5" r="1" fill="currentColor" />
+                  <circle cx="8" cy="5" r="1" fill="currentColor" />
+                  <circle cx="10.5" cy="8.5" r="1" fill="currentColor" />
+                </svg>
+              </button>
+              <button
                 onClick={() => createCanvas(vault.path, `Canvas ${Date.now()}`)}
                 title="Create a new spatial canvas"
                 style={{
@@ -269,7 +292,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   color: 'var(--accent-color)',
                   border: '1px solid var(--border-color)',
                   fontSize: 12,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 ⊞

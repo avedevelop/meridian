@@ -48,5 +48,8 @@ export const IPC = {
   VAULT_SAVE_VIDEO: 'vault:save-video',
   MENU_ACTION: 'menu:action',
   VAULT_FETCH_URL_METADATA: 'vault:fetch-url-metadata',
-  VAULT_OPEN_EXTERNAL: 'vault:open-external'
+  VAULT_OPEN_EXTERNAL: 'vault:open-external',
+  GIT_STATUS: 'git:status',
+  GIT_COMMIT: 'git:commit',
+  GIT_SYNC: 'git:sync'
 } as const

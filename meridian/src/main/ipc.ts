@@ -302,6 +302,62 @@ export function registerIpcHandlers(settings: AppSettings): void {
       console.error('[IPC] openExternal error:', e)
     }
   })
+
+  ipcMain.handle(IPC.GIT_STATUS, async () => {
+    if (!vaultManager) return { isRepo: false }
+    const cwd = vaultManager.vaultPath
+    const { exec } = await import('child_process')
+    const { promisify } = await import('util')
+    const execAsync = promisify(exec)
+
+    try {
+      await execAsync('git rev-parse --is-inside-work-tree', { cwd })
+      const { stdout } = await execAsync('git status --porcelain', { cwd })
+      const lines = stdout.split('\n').filter(Boolean)
+      return { isRepo: true, clean: lines.length === 0, changesCount: lines.length }
+    } catch (e) {
+      return { isRepo: false }
+    }
+  })
+
+  ipcMain.handle(IPC.GIT_COMMIT, async (_event, message?: string) => {
+    if (!vaultManager) throw new Error('No vault open')
+    const cwd = vaultManager.vaultPath
+    const { exec } = await import('child_process')
+    const { promisify } = await import('util')
+    const execAsync = promisify(exec)
+
+    const msg = message || `Meridian auto-commit: ${new Date().toISOString()}`
+    try {
+      await execAsync('git add .', { cwd })
+      // Check if there are staged changes to commit
+      const { stdout: diffOut } = await execAsync('git diff --cached --name-only', { cwd })
+      if (!diffOut.trim()) {
+        return { success: true, message: 'Nothing to commit' }
+      }
+      await execAsync(`git commit -m "${msg.replace(/"/g, '\\"')}"`, { cwd })
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message || String(e) }
+    }
+  })
+
+  ipcMain.handle(IPC.GIT_SYNC, async () => {
+    if (!vaultManager) throw new Error('No vault open')
+    const cwd = vaultManager.vaultPath
+    const { exec } = await import('child_process')
+    const { promisify } = await import('util')
+    const execAsync = promisify(exec)
+
+    try {
+      // Pull with rebase, then push
+      await execAsync('git pull --rebase', { cwd })
+      await execAsync('git push', { cwd })
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message || String(e) }
+    }
+  })
 }
 
 export function getVaultManager(): VaultManager | null {

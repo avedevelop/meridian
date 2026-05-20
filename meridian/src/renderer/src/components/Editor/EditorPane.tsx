@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useEffect, useRef, useCallback, useMemo } from 'react'
 import { FileIcon } from '../Icons'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
@@ -11,6 +11,7 @@ import { MarkdownPreview } from './MarkdownPreview'
 import { Breadcrumb } from './Breadcrumb'
 import { useEditorStore } from '../../store/useEditorStore'
 import { CanvasView } from '../Canvas/CanvasView'
+import { SketchpadView } from './SketchpadView'
 
 function flattenVaultFiles(
   files: import('@shared/types').VaultFile[]
@@ -18,19 +19,29 @@ function flattenVaultFiles(
   return files.flatMap((f) => (f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f]))
 }
 
-export function EditorArea() {
+interface SinglePaneAreaProps {
+  paneId: string
+  isActive: boolean
+}
+
+function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const {
-    openTabs,
-    activeTabPath,
-    markTabDirty,
+    panes,
+    setActivePane,
     setTabContent,
+    markTabDirty,
     files: vaultFiles
   } = useVaultStore()
   const vault = useVaultStore((s) => s.vault)
   const { saveFile, openFile, saveImage } = useVaultBridge()
+  
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
+
+  const pane = panes.find((p) => p.id === paneId) || panes[0]
+  const { openTabs, activeTabPath } = pane
   const activeTab = openTabs.find((t) => t.path === activeTabPath)
+
   const {
     fontSize,
     lineWidth,
@@ -43,10 +54,11 @@ export function EditorArea() {
     fontWeight,
     lineHeight
   } = useSettingsStore()
-  // Flag to suppress dirty marking during programmatic content sync from store
+
   const isProgrammaticUpdate = useRef(false)
 
   const isCanvasFile = activeTabPath?.endsWith('.canvas') ?? false
+  const isDrawingFile = activeTabPath?.endsWith('.excalidraw') ?? false
 
   const handleChange = useCallback(
     (content: string) => {
@@ -59,7 +71,6 @@ export function EditorArea() {
 
   const handleLinkClick = useCallback(
     (linkText: string) => {
-      // Use vault file tree (always fresh) + link index as fallback
       const flat = flattenVaultFiles(vaultFiles)
       const match = flat.find((f) => {
         const relPathWithoutExt = f.relativePath.replace(/\.md$/i, '')
@@ -123,9 +134,7 @@ export function EditorArea() {
 
       if (!relativePath) return
 
-      // Create a clean wiki link format
       const wikiLink = `[[${relativePath.replace(/\.md$/i, '')}]]`
-
       const view = viewRef.current
       if (view) {
         const state = view.state
@@ -136,7 +145,6 @@ export function EditorArea() {
             selection: { anchor: selection.from + wikiLink.length }
           })
         } else {
-          // Otherwise, append it to the end of the file
           const docLength = state.doc.length
           const insertText =
             docLength === 0 || state.doc.toString().endsWith('\n') ? wikiLink : `\n${wikiLink}`
@@ -151,7 +159,6 @@ export function EditorArea() {
     [vault]
   )
 
-  // Stable ref so CodeMirror always gets latest file list even after re-renders
   const fileNamesRef = useRef<string[]>([])
   fileNamesRef.current = useMemo(
     () =>
@@ -164,18 +171,19 @@ export function EditorArea() {
 
   useEffect(() => {
     const handleKeydown = async (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's' && activeTab) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's' && activeTab && isActive) {
         e.preventDefault()
         await saveFile(activeTab.path, activeTab.content)
+        markTabDirty(activeTab.path, false)
       }
     }
     window.addEventListener('keydown', handleKeydown)
     return () => window.removeEventListener('keydown', handleKeydown)
-  }, [activeTab, saveFile])
+  }, [activeTab, saveFile, isActive, markTabDirty])
 
-  // Only mount CodeMirror for non-canvas tabs
+  // CodeMirror Initialization
   useEffect(() => {
-    if (!editorRef.current || isCanvasFile) return
+    if (!editorRef.current || isCanvasFile || isDrawingFile) return
 
     const view = new EditorView({
       state: EditorState.create({
@@ -211,8 +219,10 @@ export function EditorArea() {
                 break
               }
             }
-            useEditorStore.getState().setCursorPos(cursorPos)
-            useEditorStore.getState().setActiveHeading(activeHeading)
+            if (isActive) {
+              useEditorStore.getState().setCursorPos(cursorPos)
+              useEditorStore.getState().setActiveHeading(activeHeading)
+            }
           })
         ]
       }),
@@ -223,8 +233,10 @@ export function EditorArea() {
     return () => {
       view.destroy()
       viewRef.current = null
-      useEditorStore.getState().setCursorPos(null)
-      useEditorStore.getState().setActiveHeading(null)
+      if (isActive) {
+        useEditorStore.getState().setCursorPos(null)
+        useEditorStore.getState().setActiveHeading(null)
+      }
     }
   }, [
     activeTabPath,
@@ -238,11 +250,14 @@ export function EditorArea() {
     fontFamily,
     fontWeight,
     lineHeight,
-    isCanvasFile
+    isCanvasFile,
+    isDrawingFile,
+    isActive
   ])
 
+  // Sync content programmatically
   useEffect(() => {
-    if (isCanvasFile) return
+    if (isCanvasFile || isDrawingFile) return
     const view = viewRef.current
     if (!view || !activeTab) return
     const current = view.state.doc.toString()
@@ -253,36 +268,64 @@ export function EditorArea() {
       })
       isProgrammaticUpdate.current = false
     }
-  }, [activeTab?.content, isCanvasFile])
+  }, [activeTab?.content, isCanvasFile, isDrawingFile])
 
+  // Show empty pane placeholder
   if (openTabs.length === 0) {
     return (
       <div
+        onClick={() => {
+          if (!isActive) setActivePane(paneId)
+        }}
         style={{
           flex: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'var(--text-secondary)'
+          color: 'var(--text-secondary)',
+          background: 'var(--bg-tertiary)',
+          border: isActive ? '1px solid var(--accent-color)' : '1px solid transparent',
+          boxSizing: 'border-box'
         }}
       >
         <div style={{ textAlign: 'center' }}>
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
             <FileIcon size={48} color="var(--border-color)" />
           </div>
-          <p>Open a note from the sidebar</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>⌘K to search</p>
+          <p>Pane is empty</p>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Open a file or split screen</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-      <TabBar />
-      <Breadcrumb />
+    <div
+      onClick={() => {
+        if (!isActive) setActivePane(paneId)
+      }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        overflow: 'hidden',
+        border: isActive ? '1px solid var(--accent-color)' : '1px solid transparent',
+        boxSizing: 'border-box'
+      }}
+    >
+      <TabBar paneId={paneId} />
+      <Breadcrumb paneId={paneId} />
       {isCanvasFile && activeTab ? (
         <CanvasView
+          filePath={activeTab.path}
+          content={activeTab.content}
+          onSave={(path, content) => {
+            setTabContent(path, content)
+            saveFile(path, content)
+          }}
+        />
+      ) : isDrawingFile && activeTab ? (
+        <SketchpadView
           filePath={activeTab.path}
           content={activeTab.content}
           onSave={(path, content) => {
@@ -315,6 +358,127 @@ export function EditorArea() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+export function EditorArea() {
+  const { panes, activePaneId } = useVaultStore()
+  const paneRefs = useRef<{ [paneId: string]: HTMLDivElement | null }>({})
+
+  const totalOpenTabs = useMemo(() => {
+    return panes.reduce((acc, p) => acc + p.openTabs.length, 0)
+  }, [panes])
+
+  if (panes.length === 0 || (panes.length === 1 && totalOpenTabs === 0)) {
+    return (
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)'
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+            <FileIcon size={48} color="var(--border-color)" />
+          </div>
+          <p>Open a note from the sidebar</p>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>⌘K to search</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Handle panel resizing
+  const startResize = (e: React.MouseEvent, index: number) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const leftPaneId = panes[index].id
+    const rightPaneId = panes[index + 1].id
+    
+    const leftEl = paneRefs.current[leftPaneId]
+    const rightEl = paneRefs.current[rightPaneId]
+    if (!leftEl || !rightEl) return
+
+    const startLeftWidth = leftEl.getBoundingClientRect().width
+    const startRightWidth = rightEl.getBoundingClientRect().width
+
+    const doDrag = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const newLeftWidth = Math.max(150, startLeftWidth + deltaX)
+      const newRightWidth = Math.max(150, startRightWidth - deltaX)
+
+      leftEl.style.flex = 'none'
+      leftEl.style.width = `${newLeftWidth}px`
+      rightEl.style.flex = 'none'
+      rightEl.style.width = `${newRightWidth}px`
+    }
+
+    const stopDrag = () => {
+      window.removeEventListener('mousemove', doDrag)
+      window.removeEventListener('mouseup', stopDrag)
+    }
+
+    window.addEventListener('mousemove', doDrag)
+    window.addEventListener('mouseup', stopDrag)
+  }
+
+  // Detect general layout splits direction
+  const isVertical = panes.every((p) => p.direction !== 'horizontal')
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: isVertical ? 'row' : 'column',
+        flex: 1,
+        overflow: 'hidden',
+        background: 'var(--bg-primary)'
+      }}
+    >
+      {panes.map((pane, index) => {
+        const isActive = pane.id === activePaneId
+        return (
+          <React.Fragment key={pane.id}>
+            {index > 0 && (
+              <div
+                onMouseDown={(e) => startResize(e, index - 1)}
+                style={{
+                  width: isVertical ? 4 : '100%',
+                  height: isVertical ? '100%' : 4,
+                  background: 'var(--border-color)',
+                  cursor: isVertical ? 'col-resize' : 'row-resize',
+                  zIndex: 20,
+                  flexShrink: 0,
+                  transition: 'background 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--accent-color)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--border-color)'
+                }}
+              />
+            )}
+            <div
+              ref={(el) => {
+                paneRefs.current[pane.id] = el
+              }}
+              style={{
+                flex: 1,
+                display: 'flex',
+                overflow: 'hidden',
+                position: 'relative'
+              }}
+            >
+              <SinglePaneArea paneId={pane.id} isActive={isActive} />
+            </div>
+          </React.Fragment>
+        )
+      })}
     </div>
   )
 }

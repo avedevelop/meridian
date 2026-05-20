@@ -50,6 +50,15 @@ const vaultAPI = {
 
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.VAULT_OPEN_EXTERNAL, url),
 
+  gitStatus: (): Promise<{ isRepo: boolean; clean?: boolean; changesCount?: number }> =>
+    ipcRenderer.invoke(IPC.GIT_STATUS),
+
+  gitCommit: (message?: string): Promise<{ success: boolean; error?: string; message?: string }> =>
+    ipcRenderer.invoke(IPC.GIT_COMMIT, message),
+
+  gitSync: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC.GIT_SYNC),
+
   onFileChanged: (callback: (event: VaultFileChangeEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, change: VaultFileChangeEvent) =>
       callback(change)

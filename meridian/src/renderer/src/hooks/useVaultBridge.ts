@@ -25,6 +25,9 @@ declare global {
         url: string
       ) => Promise<{ title: string; description: string; image: string; url: string }>
       openExternal: (url: string) => Promise<void>
+      gitStatus: () => Promise<{ isRepo: boolean; clean?: boolean; changesCount?: number }>
+      gitCommit: (message?: string) => Promise<{ success: boolean; error?: string; message?: string }>
+      gitSync: () => Promise<{ success: boolean; error?: string }>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
@@ -95,6 +98,7 @@ export function useVaultBridge() {
         'mdx',
         'mdown',
         'canvas',
+        'excalidraw',
         'json',
         'yaml',
         'yml',
@@ -151,6 +155,17 @@ export function useVaultBridge() {
       const fileName = name.endsWith('.canvas') ? name : `${name}.canvas`
       const filePath = await window.vault.createFile(dir, fileName)
       await window.vault.writeFile(filePath, '{"nodes":[], "edges":[]}')
+      await refreshFiles()
+      await openFile(filePath, fileName)
+    },
+    [refreshFiles, openFile]
+  )
+
+  const createDrawing = useCallback(
+    async (dir: string, name: string) => {
+      const fileName = name.endsWith('.excalidraw') ? name : `${name}.excalidraw`
+      const filePath = await window.vault.createFile(dir, fileName)
+      await window.vault.writeFile(filePath, '{"type":"meridian-drawing","elements":[]}')
       await refreshFiles()
       await openFile(filePath, fileName)
     },
@@ -443,6 +458,7 @@ ${bodyHtml}
     saveFile,
     createFile,
     createCanvas,
+    createDrawing,
     createFolder,
     renameFile,
     moveFile,

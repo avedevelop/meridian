@@ -3,9 +3,28 @@ import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { ContextMenu } from '../Sidebar/ContextMenu'
 
-export function TabBar() {
-  const { openTabs, activeTabPath, setActiveTab, closeTab, reorderTabs, vault } = useVaultStore()
+interface TabBarProps {
+  paneId: string
+}
+
+export function TabBar({ paneId }: TabBarProps) {
+  const {
+    panes,
+    activePaneId,
+    setActivePane,
+    setActiveTab,
+    closeTab,
+    reorderTabs,
+    splitPane,
+    closePane,
+    moveTab,
+    vault
+  } = useVaultStore()
   const { renameFile, deleteFile, revealFile } = useVaultBridge()
+
+  const pane = panes.find((p) => p.id === paneId) || panes[0]
+  const { openTabs, activeTabPath } = pane
+  const isActivePane = activePaneId === paneId
 
   const [contextMenu, setContextMenu] = useState<{
     x: number
@@ -52,14 +71,9 @@ export function TabBar() {
           const newLeft = el.getBoundingClientRect().left
           const dx = oldLeft - newLeft
           if (dx !== 0) {
-            // 1. Invert: translate back to the old position instantly
             el.style.transform = `translate3d(${dx}px, 0, 0)`
             el.style.transition = 'none'
-
-            // Force reflow
-            el.getBoundingClientRect()
-
-            // 2. Play: animate back to original position (translate3d(0,0,0))
+            el.getBoundingClientRect() // Force reflow
             requestAnimationFrame(() => {
               el.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'
               el.style.transform = 'translate3d(0, 0, 0)'
@@ -68,7 +82,6 @@ export function TabBar() {
         }
       }
     })
-    // Clear old recorded positions
     oldLeftsRef.current = {}
   }, [openTabs])
 
@@ -76,13 +89,17 @@ export function TabBar() {
     setActiveDragIndex(index)
     setHoveredDragIndex(index)
 
-    // Set dragging state in a timeout to allow browser to capture drag ghost image first
     setTimeout(() => {
       setIsDraggingActive(true)
     }, 0)
+    
     ;(window as any).__meridianDragPath = tabPath
+    ;(window as any).__meridianDragSourcePaneId = paneId
+
     e.dataTransfer.effectAllowed = 'copyMove'
     e.dataTransfer.setData('text/plain', tabPath)
+    e.dataTransfer.setData('text/meridian-pane-id', paneId)
+    e.dataTransfer.setData('text/meridian-tab-path', tabPath)
 
     if (vault) {
       const relPath = getRelativePath(tabPath, vault.path)
@@ -102,6 +119,7 @@ export function TabBar() {
     setHoveredDragIndex(null)
     setIsDraggingActive(false)
     ;(window as any).__meridianDragPath = null
+    ;(window as any).__meridianDragSourcePaneId = null
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -110,9 +128,13 @@ export function TabBar() {
 
   const handleContainerDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-    if (activeDragIndex === null) return
+    // Handle tab drag within the same pane or from outside
+    const isExternalDrag = (window as any).__meridianDragPath && (window as any).__meridianDragSourcePaneId !== paneId
+    const isInternalDrag = activeDragIndex !== null
 
-    let closestIndex = activeDragIndex
+    if (!isInternalDrag && !isExternalDrag) return
+
+    let closestIndex = isInternalDrag ? activeDragIndex : openTabs.length
     let minDistance = Infinity
 
     openTabs.forEach((tab, i) => {
@@ -139,10 +161,15 @@ export function TabBar() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    if (
-      activeDragIndex !== null &&
-      hoveredDragIndex !== null
-    ) {
+    const sourcePaneId = e.dataTransfer.getData('text/meridian-pane-id') || (window as any).__meridianDragSourcePaneId
+    const tabPath = e.dataTransfer.getData('text/meridian-tab-path') || (window as any).__meridianDragPath
+
+    if (sourcePaneId && tabPath && sourcePaneId !== paneId) {
+      // Dragged from another pane
+      const targetIndex = hoveredDragIndex !== null ? hoveredDragIndex : openTabs.length
+      moveTab(sourcePaneId, paneId, tabPath, targetIndex)
+    } else if (activeDragIndex !== null && hoveredDragIndex !== null) {
+      // Reordered within same pane
       let targetIndex = hoveredDragIndex
       if (activeDragIndex < hoveredDragIndex) {
         targetIndex = hoveredDragIndex - 1
@@ -152,7 +179,7 @@ export function TabBar() {
         const nextTabs = [...openTabs]
         const [movedTab] = nextTabs.splice(activeDragIndex, 1)
         nextTabs.splice(targetIndex, 0, movedTab)
-        reorderTabs(nextTabs)
+        reorderTabs(nextTabs, paneId)
       }
     }
     handleDragEnd()
@@ -170,22 +197,27 @@ export function TabBar() {
 
   return (
     <div
-      className="custom-tab-bar"
+      className={`custom-tab-bar ${isActivePane ? 'active' : ''}`}
       onDragOver={handleContainerDragOver}
       onDrop={handleDrop}
+      onClick={() => {
+        if (!isActivePane) setActivePane(paneId)
+      }}
       style={{
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'nowrap',
         alignItems: 'center',
         background: 'var(--bg-secondary)',
-        borderBottom: '1px solid var(--border-color)',
+        borderBottom: `1px solid ${isActivePane ? 'var(--accent-color)' : 'var(--border-color)'}`,
         height: 36,
         overflowX: 'auto',
         overflowY: 'hidden',
         flexShrink: 0,
         padding: '0 8px',
-        gap: '4px'
+        gap: '4px',
+        cursor: 'default',
+        transition: 'border-bottom-color 0.2s ease'
       }}
     >
       {openTabs.map((tab, i) => {
@@ -203,7 +235,11 @@ export function TabBar() {
             ref={(el) => {
               tabRefs.current[tab.path] = el
             }}
-            onClick={() => setActiveTab(tab.path)}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (!isActivePane) setActivePane(paneId)
+              setActiveTab(tab.path, paneId)
+            }}
             onContextMenu={(e) => handleContextMenu(e, tab.path, tab.name)}
             draggable={true}
             onDragStart={(e) => handleDragStart(e, i, tab.path, tab.name)}
@@ -278,7 +314,7 @@ export function TabBar() {
             <span
               onClick={(e) => {
                 e.stopPropagation()
-                closeTab(tab.path)
+                closeTab(tab.path, paneId)
               }}
               style={{
                 color: 'var(--text-secondary)',
@@ -307,6 +343,98 @@ export function TabBar() {
           </div>
         )
       })}
+
+      {/* Pane management actions */}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, paddingRight: 4, flexShrink: 0 }}>
+        <button
+          onClick={() => splitPane(paneId, 'vertical')}
+          title="Split Vertically"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            padding: 4,
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-surface)'
+            e.currentTarget.style.color = 'var(--text-primary)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="1.5" />
+            <line x1="8" y1="2" x2="8" y2="14" />
+          </svg>
+        </button>
+
+        <button
+          onClick={() => splitPane(paneId, 'horizontal')}
+          title="Split Horizontally"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            padding: 4,
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-surface)'
+            e.currentTarget.style.color = 'var(--text-primary)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="1.5" />
+            <line x1="2" y1="8" x2="14" y2="8" />
+          </svg>
+        </button>
+
+        {panes.length > 1 && (
+          <button
+            onClick={() => closePane(paneId)}
+            title="Close Pane"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: 4,
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'
+              e.currentTarget.style.color = 'var(--accent-color)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'var(--text-secondary)'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <line x1="4" y1="4" x2="12" y2="12" />
+              <line x1="12" y1="4" x2="4" y2="12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {contextMenu && (
         <ContextMenu

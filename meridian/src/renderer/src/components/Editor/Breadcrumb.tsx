@@ -12,11 +12,18 @@ export function getSegments(relativePath: string): BreadcrumbSegment[] {
   return parts.map((name, i) => ({ name, isLast: i === parts.length - 1 }))
 }
 
-export function Breadcrumb() {
-  const { openTabs, activeTabPath } = useVaultStore()
+interface BreadcrumbProps {
+  paneId?: string
+}
+
+export function Breadcrumb({ paneId }: BreadcrumbProps) {
+  const { panes, activePaneId } = useVaultStore()
   const vault = useVaultStore((s) => s.vault)
-  const activeTab = openTabs.find((t) => t.path === activeTabPath)
   const activeHeading = useEditorStore((s) => s.activeHeading)
+
+  const targetPaneId = paneId || activePaneId
+  const pane = panes.find((p) => p.id === targetPaneId)
+  const activeTab = pane ? pane.openTabs.find((t) => t.path === pane.activeTabPath) : null
 
   if (!activeTab || !vault) return null
 
@@ -36,25 +43,27 @@ export function Breadcrumb() {
         padding: '0 16px',
         gap: 4,
         flexShrink: 0,
-        background: '#1a1a1a',
-        borderBottom: '1px solid #2a2a2a',
+        background: 'var(--bg-primary)',
+        borderBottom: '1px solid var(--border-color)',
         fontSize: 12,
-        color: '#555',
+        color: 'var(--text-secondary)',
         overflowX: 'auto',
         whiteSpace: 'nowrap'
       }}
     >
-      <span style={{ color: '#444' }}>{vault.name}</span>
+      <span style={{ color: 'var(--text-secondary)', opacity: 0.6 }}>{vault.name}</span>
       {segments.map((seg, i) => (
         <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ color: '#333' }}>/</span>
-          <span style={{ color: seg.isLast ? '#aaa' : '#555' }}>{seg.name}</span>
+          <span style={{ color: 'var(--text-secondary)', opacity: 0.4 }}>/</span>
+          <span style={{ color: seg.isLast ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+            {seg.name}
+          </span>
         </span>
       ))}
       {activeHeading && (
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ color: '#333' }}>›</span>
-          <span style={{ color: '#7c6af7' }}>{activeHeading}</span>
+          <span style={{ color: 'var(--text-secondary)', opacity: 0.4 }}>›</span>
+          <span style={{ color: 'var(--accent-color)', fontWeight: 500 }}>{activeHeading}</span>
         </span>
       )}
     </div>

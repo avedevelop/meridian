@@ -23,7 +23,14 @@ vi.stubGlobal('window', {
 import { useVaultStore } from '../../src/renderer/src/store/useVaultStore'
 
 beforeEach(() => {
-  useVaultStore.setState({ files: [], openTabs: [], activeTabPath: null, vault: null })
+  useVaultStore.setState({
+    files: [],
+    openTabs: [],
+    activeTabPath: null,
+    vault: null,
+    panes: [{ id: 'pane-main', openTabs: [], activeTabPath: null }],
+    activePaneId: 'pane-main',
+  })
 })
 
 describe('useVaultStore', () => {
