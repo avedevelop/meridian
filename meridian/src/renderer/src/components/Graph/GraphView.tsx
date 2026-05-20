@@ -1654,75 +1654,83 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       {viewMode === 'history' && (
         <div
           style={{
-            height: 76,
-            background: 'rgba(20, 20, 25, 0.8)',
-            backdropFilter: 'blur(12px)',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            height: 72,
+            background: 'rgba(18, 18, 22, 0.92)',
+            backdropFilter: 'blur(16px)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.07)',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: 10,
             paddingLeft: isSettingsOpen ? 348 : 16,
             paddingRight: 16,
             transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
         >
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
+          {/* Date */}
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', minWidth: 110, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
             {formattedDate}
           </span>
 
-            {/* Grouped scrubber area */}
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 3,
-              background: 'rgba(255,255,255,0.04)',
-              borderRadius: 6,
-              padding: '5px 8px'
-            }}>
-              <svg
-                style={{ display: 'block', width: '100%', height: 12, pointerEvents: 'none', opacity: 0.5 }}
-                preserveAspectRatio="none"
-                viewBox={`0 0 ${activityBuckets.length} 1`}
-              >
-                {activityBuckets.map((h, i) => (
-                  <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
-                ))}
-              </svg>
-              <div style={{ position: 'relative', height: 9 }}>
-                {historyTicks.map(({ frac, year }) => (
-                  <span
-                    key={year}
-                    style={{
-                      position: 'absolute',
-                      left: `${frac * 100}%`,
-                      top: 0,
-                      fontSize: 9,
-                      lineHeight: '9px',
-                      color: 'rgba(255,255,255,0.25)',
-                      transform: 'translateX(-50%)',
-                      pointerEvents: 'none',
-                      userSelect: 'none' as const,
-                      whiteSpace: 'nowrap' as const
-                    }}
-                  >
-                    {year}
-                  </span>
-                ))}
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={1000}
-                value={Math.round(progress * 1000)}
-                onChange={(e) => {
-                  setProgress(Number(e.target.value) / 1000)
-                  setIsPlaying(false)
-                }}
-                style={{ width: '100%', margin: 0, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
-              />
+          {/* Grouped: minimap + ticks + scrubber */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 8,
+            padding: '6px 10px',
+            background: 'rgba(255,255,255,0.03)'
+          }}>
+            {/* Minimap */}
+            <svg
+              style={{ display: 'block', width: '100%', height: 12, pointerEvents: 'none', opacity: 0.55 }}
+              preserveAspectRatio="none"
+              viewBox={`0 0 ${activityBuckets.length} 1`}
+            >
+              {activityBuckets.map((h, i) => (
+                <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
+              ))}
+            </svg>
+            {/* Year ticks — clamped so they don't overflow edges */}
+            <div style={{ position: 'relative', height: 8, overflow: 'hidden' }}>
+              {historyTicks.map(({ frac, year }) => (
+                <span
+                  key={year}
+                  style={{
+                    position: 'absolute',
+                    left: `${frac * 100}%`,
+                    top: 0,
+                    fontSize: 9,
+                    lineHeight: '8px',
+                    color: 'rgba(255,255,255,0.22)',
+                    transform: frac === 0 ? 'none' : frac >= 0.95 ? 'translateX(-100%)' : 'translateX(-50%)',
+                    pointerEvents: 'none',
+                    userSelect: 'none' as const,
+                    whiteSpace: 'nowrap' as const
+                  }}
+                >
+                  {year}
+                </span>
+              ))}
             </div>
+            {/* Scrubber */}
+            <input
+              type="range"
+              min={0}
+              max={1000}
+              value={Math.round(progress * 1000)}
+              onChange={(e) => {
+                setProgress(Number(e.target.value) / 1000)
+                setIsPlaying(false)
+              }}
+              style={{ width: '100%', margin: 0, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
+            />
+          </div>
+
+          {/* Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button
               onClick={() => {
                 if (progress >= 1) setProgress(0)
@@ -1733,9 +1741,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 border: 'none',
                 borderRadius: 6,
                 color: '#fff',
-                padding: '5px 14px',
+                width: 34,
+                height: 34,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer',
-                fontSize: 15,
+                fontSize: 14,
                 flexShrink: 0
               }}
             >
@@ -1745,13 +1757,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               value={playDuration}
               onChange={(e) => setPlayDuration(Number(e.target.value))}
               style={{
-                background: 'rgba(0, 0, 0, 0.25)',
+                background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 color: 'var(--text-secondary)',
-                borderRadius: 4,
-                padding: '4px 6px',
-                fontSize: 12,
-                cursor: 'pointer'
+                borderRadius: 6,
+                padding: '5px 6px',
+                fontSize: 11,
+                cursor: 'pointer',
+                height: 34
               }}
             >
               <option value={10000}>10s</option>
@@ -1767,16 +1780,17 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                   border: 'none',
                   borderRadius: 6,
                   color: '#fff',
-                  padding: '5px 14px',
+                  height: 34,
+                  padding: '0 12px',
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: 12,
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
                 Stop
               </button>
             ) : (
@@ -1784,22 +1798,24 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 onClick={startRecording}
                 title="Record graph animation as WebM video"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 6,
-                  color: 'var(--text-primary)',
-                  padding: '5px 14px',
+                  color: 'var(--text-secondary)',
+                  height: 34,
+                  padding: '0 12px',
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: 12,
                   flexShrink: 0
                 }}
               >
-                ⏺ Record
+                ⏺ Rec
               </button>
             )}
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 4 }}>
-              Space · ←→
-            </span>
+          </div>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
+            Space·←→
+          </span>
         </div>
       )}
 
@@ -1809,7 +1825,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 92 : 24,
+          bottom: viewMode === 'history' ? 88 : 24,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(20, 20, 26, 0.85)',
@@ -1872,7 +1888,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 92 : 24,
+          bottom: viewMode === 'history' ? 88 : 24,
           right: 24,
           background: 'rgba(20, 20, 26, 0.85)',
           backdropFilter: 'blur(12px)',
