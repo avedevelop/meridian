@@ -8,8 +8,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
-
-const IMAGE_EXTS = /\.(png|jpg|jpeg|gif|webp|svg|bmp|tiff)$/i
+import { flattenVaultFiles, postprocessWikiLinks } from './markdownUtils'
 
 const sanitizeSchema = {
   ...defaultSchema,
@@ -35,42 +34,6 @@ function addHeadingIds(html: string): string {
   )
 }
 
-function postprocessWikiLinks(
-  html: string,
-  files: import('@shared/types').VaultFile[]
-): string {
-  const flatFiles = flattenVaultFiles(files)
-
-  // 1. Process ![[...]] embeds
-  let processed = html.replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
-    const linkText = link.trim()
-
-    if (linkText.endsWith('.excalidraw')) {
-      const escapedLink = linkText.replace(/"/g, '&quot;')
-      return `<div class="excalidraw-embed" data-link="${escapedLink}" style="border:1px solid var(--border-color);border-radius:8px;padding:16px;background:var(--bg-secondary);margin:16px 0;max-width:100%;height:320px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;box-sizing:border-box">Loading drawing...</div>`
-    }
-
-    if (IMAGE_EXTS.test(linkText)) {
-      const match = flatFiles.find(
-        (f) =>
-          f.name.toLowerCase() === linkText.toLowerCase() ||
-          f.relativePath.toLowerCase() === linkText.toLowerCase()
-      )
-      const src = match ? `vault:///${match.relativePath}` : `vault:///${linkText}`
-      const alt = (alias?.trim() ?? linkText).replace(/"/g, '&quot;')
-      return `<img src="${src}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0" />`
-    }
-
-    return _match
-  })
-
-  // 2. Process standard [[wiki links]]
-  return processed.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
-    const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
-    const linkAttr = link.trim().replace(/"/g, '&quot;')
-    return `<span class="wiki-link" data-link="${linkAttr}" style="color:var(--accent-color);text-decoration:underline;cursor:pointer">${label}</span>`
-  })
-}
 
 function renderDrawingToSVG(elements: any[]): string {
   return elements
@@ -120,11 +83,6 @@ function renderDrawingToSVG(elements: any[]): string {
     .join('\n')
 }
 
-function flattenVaultFiles(
-  files: import('@shared/types').VaultFile[]
-): import('@shared/types').VaultFile[] {
-  return files.flatMap((f) => (f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f]))
-}
 
 interface MarkdownPreviewProps {
   content: string
