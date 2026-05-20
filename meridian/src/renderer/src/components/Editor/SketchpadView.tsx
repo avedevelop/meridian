@@ -72,23 +72,46 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
     setRedoStack([]) // Clear redo
   }
 
+  // Use refs so keydown handler always sees latest stacks without stale closure
+  const undoStackRef = useRef(undoStack)
+  undoStackRef.current = undoStack
+  const redoStackRef = useRef(redoStack)
+  redoStackRef.current = redoStack
+  const elementsRef = useRef(elements)
+  elementsRef.current = elements
+
   const handleUndo = () => {
-    if (undoStack.length === 0) return
-    const prev = undoStack[undoStack.length - 1]
-    setUndoStack((stack) => stack.slice(0, -1))
-    setRedoStack((stack) => [...stack, elements])
+    if (undoStackRef.current.length === 0) return
+    const prev = undoStackRef.current[undoStackRef.current.length - 1]
+    setUndoStack(stack => stack.slice(0, -1))
+    setRedoStack(stack => [...stack, elementsRef.current])
     setElements(prev)
     saveDrawing(prev)
   }
 
   const handleRedo = () => {
-    if (redoStack.length === 0) return
-    const next = redoStack[redoStack.length - 1]
-    setRedoStack((stack) => stack.slice(0, -1))
-    setUndoStack((stack) => [...stack, elements])
+    if (redoStackRef.current.length === 0) return
+    const next = redoStackRef.current[redoStackRef.current.length - 1]
+    setRedoStack(stack => stack.slice(0, -1))
+    setUndoStack(stack => [...stack, elementsRef.current])
     setElements(next)
     saveDrawing(next)
   }
+
+  // ⌘Z / ⌘⇧Z keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== 'z') return
+      e.preventDefault()
+      if (e.shiftKey) {
+        handleRedo()
+      } else {
+        handleUndo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, []) // empty deps — handleUndo/Redo use refs, always fresh
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (textPos) {

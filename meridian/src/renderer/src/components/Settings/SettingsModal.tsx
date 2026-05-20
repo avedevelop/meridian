@@ -1465,47 +1465,65 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         }}
                       >
                         {[
-                          { action: 'Open Command Palette', keys: ['⌘', 'K'] },
-                          { action: 'Save Current File', keys: ['⌘', 'S'] },
-                          { action: 'New Note Markdown File', keys: ['⌘', 'N'] },
-                          { action: 'Toggle Sidebar Explorer', keys: ['⌘', 'B'] },
-                          { action: 'Reset Workspace Interface Layout', keys: ['⌘', 'R'] },
-                          { action: 'Quick Open search files', keys: ['⌘', 'P'] }
-                        ].map((hk) => (
-                          <div
-                            key={hk.action}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 16px',
-                              background: '#161616'
-                            }}
-                          >
-                            <span style={{ color: '#ddd', fontSize: 13, fontWeight: 500 }}>
-                              {hk.action}
-                            </span>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              {hk.keys.map((k, i) => (
-                                <kbd
-                                  key={i}
-                                  style={{
-                                    background: '#222',
-                                    border: '1px solid #3c3c3c',
-                                    borderRadius: 4,
-                                    color: '#aaa',
-                                    fontSize: 11,
-                                    padding: '2px 6px',
-                                    fontFamily: 'monospace',
-                                    boxShadow: '0 2px 0 #111'
-                                  }}
-                                >
-                                  {k}
-                                </kbd>
-                              ))}
+                          { group: 'General' },
+                          { action: 'Command Palette', keys: ['⌘', 'K'] },
+                          { action: 'Settings', keys: ['⌘', ','] },
+                          { action: 'Open Vault', keys: ['⌘', 'O'] },
+                          { group: 'Files' },
+                          { action: 'New Note', keys: ['⌘', 'N'] },
+                          { action: 'New Daily Note', keys: ['⌘', 'D'] },
+                          { action: 'Save', keys: ['⌘', 'S'] },
+                          { action: 'Export to HTML', keys: ['⌘', 'E'] },
+                          { action: 'Close Tab', keys: ['⌘', 'W'] },
+                          { group: 'View' },
+                          { action: 'Graph View', keys: ['⌘', '⇧', 'G'] },
+                          { group: 'Sketchpad' },
+                          { action: 'Undo stroke', keys: ['⌘', 'Z'] },
+                          { action: 'Redo stroke', keys: ['⌘', '⇧', 'Z'] },
+                        ].map((hk, idx) => {
+                          if ('group' in hk) {
+                            return (
+                              <div key={idx} style={{
+                                padding: '8px 16px 4px',
+                                background: '#161616',
+                                color: '#555',
+                                fontSize: 10,
+                                fontWeight: 700,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                borderTop: idx > 0 ? '1px solid #252525' : 'none',
+                              }}>
+                                {hk.group}
+                              </div>
+                            )
+                          }
+                          return (
+                            <div
+                              key={hk.action}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '10px 16px',
+                                background: '#161616',
+                              }}
+                            >
+                              <span style={{ color: '#ddd', fontSize: 13 }}>{hk.action}</span>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                {hk.keys.map((k, i) => (
+                                  <kbd key={i} style={{
+                                    background: '#222', border: '1px solid #3c3c3c',
+                                    borderRadius: 4, color: '#aaa', fontSize: 11,
+                                    padding: '2px 6px', fontFamily: 'monospace',
+                                    boxShadow: '0 2px 0 #111',
+                                  }}>
+                                    {k}
+                                  </kbd>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   )}
