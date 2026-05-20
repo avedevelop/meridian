@@ -15,6 +15,7 @@ export interface SettingsState {
   fontFamily: 'Georgia' | 'Inter' | 'Fira Code' | 'system-ui' | 'JetBrains Mono'
   fontWeight: '300' | '400' | '500' | '700'
   lineHeight: number // 1.2 to 2.4
+  editorMode: 'live-preview' | 'source' // live-preview = inline rendering; source = raw editor + preview pane
 
   // New Auto-Save Settings
   autoSaveTrigger: 'off' | 'afterDelay' | 'onFocusChange' | 'onWindowBlur'
@@ -80,6 +81,7 @@ const DEFAULTS: Omit<
   fontFamily: 'Georgia',
   fontWeight: '400',
   lineHeight: 1.8,
+  editorMode: 'live-preview' as const,
   autoSaveTrigger: 'afterDelay',
   autoSaveDelay: 5,
   closeBehavior: 'ask',

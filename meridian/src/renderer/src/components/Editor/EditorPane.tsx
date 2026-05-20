@@ -315,7 +315,9 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     fontFamily,
     fontWeight,
     lineHeight,
-    pluginsEnabled
+    pluginsEnabled,
+    editorMode,
+    updateSetting
   } = useSettingsStore()
 
   const isProgrammaticUpdate = useRef(false)
@@ -474,7 +476,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             fontFamily,
             fontWeight,
             lineHeight,
-            pluginsEnabled.slashCommands
+            pluginsEnabled.slashCommands,
+            editorMode === 'live-preview'
           ),
           EditorView.updateListener.of((update) => {
             if (!update.selectionSet && !update.docChanged) return
@@ -588,7 +591,43 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
         boxSizing: 'border-box'
       }}
     >
-      <TabBar paneId={paneId} />
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <TabBar paneId={paneId} />
+        <div style={{ display: 'flex', gap: 2, padding: '0 8px', flexShrink: 0 }}>
+          <button
+            title="Live Preview mode"
+            onClick={() => updateSetting('editorMode', 'live-preview')}
+            style={{
+              background: editorMode === 'live-preview' ? 'var(--accent-color)' : 'transparent',
+              border: '1px solid ' + (editorMode === 'live-preview' ? 'transparent' : 'rgba(255,255,255,0.12)'),
+              borderRadius: 4,
+              color: editorMode === 'live-preview' ? '#fff' : 'var(--text-secondary)',
+              padding: '3px 8px',
+              fontSize: 11,
+              cursor: 'pointer',
+              fontWeight: 500
+            }}
+          >
+            Live
+          </button>
+          <button
+            title="Source + Preview mode"
+            onClick={() => updateSetting('editorMode', 'source')}
+            style={{
+              background: editorMode === 'source' ? 'var(--accent-color)' : 'transparent',
+              border: '1px solid ' + (editorMode === 'source' ? 'transparent' : 'rgba(255,255,255,0.12)'),
+              borderRadius: 4,
+              color: editorMode === 'source' ? '#fff' : 'var(--text-secondary)',
+              padding: '3px 8px',
+              fontSize: 11,
+              cursor: 'pointer',
+              fontWeight: 500
+            }}
+          >
+            Source
+          </button>
+        </div>
+      </div>
       <Breadcrumb paneId={paneId} />
       {isDiffFile && activeTab ? (
         <DiffPane filePath={actualPath!} fileName={activeTab.name} />
@@ -622,7 +661,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             onContextMenu={handleContextMenu}
             style={{ flex: 1, overflow: 'auto', height: '100%', background: 'var(--bg-tertiary)' }}
           />
-          {activeTab && (
+          {activeTab && editorMode === 'source' && (
             <>
               <div style={{ width: 1, background: 'var(--border-color)' }} />
               <MarkdownPreview

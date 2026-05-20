@@ -113,7 +113,8 @@ export function createMarkdownExtensions(
   fontFamily = 'Georgia',
   fontWeight = '400',
   lineHeight = 1.8,
-  slashCommandsEnabled = false
+  slashCommandsEnabled = false,
+  livePreviewEnabled = true
 ) {
   return [
     oneDark,
@@ -145,7 +146,7 @@ export function createMarkdownExtensions(
       ...lintKeymap
     ]),
     markdown({ base: markdownLanguage, codeLanguages: languages }),
-    livePreviewExtension,
+    livePreviewEnabled ? livePreviewExtension : [],
     onLinkClick ? wikiLinkExtension(onLinkClick) : [],
     // Single autocompletion with all sources — avoids "Config merge conflict for field override"
     autocompletion({

@@ -1,5 +1,5 @@
-import React from 'react'
 import { SearchIcon, SettingsIcon, LinkIcon } from '../Icons'
+
 
 export const GROUP_COLORS = {
   canvas: '#b4befe', // Lavender
