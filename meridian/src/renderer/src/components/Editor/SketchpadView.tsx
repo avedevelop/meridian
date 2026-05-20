@@ -165,34 +165,60 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
     setElements((prev) => [...prev, newElement])
   }
 
-  const ERASER_RADIUS = 18 // px — eraser brush size
+  const ERASER_RADIUS = 18
 
-  const hitTest = (el: DrawingElement, x: number, y: number): boolean => {
+  // Check if eraser touches a non-pencil shape (erase the whole shape)
+  const hitTestShape = (el: DrawingElement, x: number, y: number): boolean => {
     if (el.type === 'rectangle' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
-      const minX = Math.min(el.x, el.x + el.w) - ERASER_RADIUS
-      const maxX = Math.max(el.x, el.x + el.w) + ERASER_RADIUS
-      const minY = Math.min(el.y, el.y + el.h) - ERASER_RADIUS
-      const maxY = Math.max(el.y, el.y + el.h) + ERASER_RADIUS
-      return x >= minX && x <= maxX && y >= minY && y <= maxY
+      return x >= Math.min(el.x, el.x + el.w) - ERASER_RADIUS
+          && x <= Math.max(el.x, el.x + el.w) + ERASER_RADIUS
+          && y >= Math.min(el.y, el.y + el.h) - ERASER_RADIUS
+          && y <= Math.max(el.y, el.y + el.h) + ERASER_RADIUS
     }
     if (el.type === 'circle' && el.x !== undefined && el.y !== undefined && el.w !== undefined) {
-      return Math.sqrt((x - el.x) ** 2 + (y - el.y) ** 2) <= el.w + ERASER_RADIUS
+      return Math.hypot(x - el.x, y - el.y) <= el.w + ERASER_RADIUS
     }
     if (el.type === 'line' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
-      // Distance from point to line segment
       const dx = el.w - el.x; const dy = el.h - el.y
       const len2 = dx * dx + dy * dy
-      if (len2 === 0) return Math.sqrt((x - el.x) ** 2 + (y - el.y) ** 2) < ERASER_RADIUS
+      if (len2 === 0) return Math.hypot(x - el.x, y - el.y) < ERASER_RADIUS
       const t = Math.max(0, Math.min(1, ((x - el.x) * dx + (y - el.y) * dy) / len2))
-      return Math.sqrt((x - el.x - t * dx) ** 2 + (y - el.y - t * dy) ** 2) < ERASER_RADIUS
-    }
-    if (el.type === 'pencil' && el.points) {
-      return el.points.some(([px, py]) => Math.sqrt((x - px) ** 2 + (y - py) ** 2) < ERASER_RADIUS)
+      return Math.hypot(x - el.x - t * dx, y - el.y - t * dy) < ERASER_RADIUS
     }
     if (el.type === 'text' && el.x !== undefined && el.y !== undefined) {
       return Math.abs(x - el.x) < 60 && Math.abs(y - el.y) < 20
     }
     return false
+  }
+
+  // Apply eraser at (x, y): pencil strokes split into segments, shapes erased whole
+  const applyEraserAt = (elements: DrawingElement[], x: number, y: number): DrawingElement[] => {
+    const result: DrawingElement[] = []
+    for (const el of elements) {
+      if (el.type === 'pencil' && el.points) {
+        // Split stroke into contiguous segments not touching the eraser
+        const segments: [number, number][][] = []
+        let seg: [number, number][] = []
+        for (const pt of el.points as [number, number][]) {
+          if (Math.hypot(x - pt[0], y - pt[1]) < ERASER_RADIUS) {
+            if (seg.length >= 2) segments.push(seg)
+            seg = []
+          } else {
+            seg.push(pt)
+          }
+        }
+        if (seg.length >= 2) segments.push(seg)
+        segments.forEach((s, i) => result.push({
+          ...el,
+          id: i === 0 ? el.id : `${el.id}-${i}-${Date.now()}`,
+          points: s,
+        }))
+        // stroke with 0-1 points is dropped
+      } else {
+        if (!hitTestShape(el, x, y)) result.push(el)
+      }
+    }
+    return result
   }
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -203,11 +229,10 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
 
     if (tool === 'eraser') {
       setMousePos({ x, y })
-      // e.buttons === 1 = primary button held → erase as we drag
       if (e.buttons === 1) {
         setElements(prev => {
-          const next = prev.filter(el => !hitTest(el, x, y))
-          if (next.length !== prev.length) saveDrawing(next)
+          const next = applyEraserAt(prev, x, y)
+          if (next.length !== prev.length || next.some((el, i) => el !== prev[i])) saveDrawing(next)
           return next
         })
       }

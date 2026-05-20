@@ -1151,167 +1151,90 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       }}
     >
       {/* Floating Toolbar */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          left: 12,
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6,
-          background: '#14141a',
-          borderRadius: 8,
-          border: '1px solid #2a2a35',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-          padding: '4px 8px',
-          userSelect: 'none'
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            fontFamily: FONT_FAMILY,
-            color: '#888',
-            minWidth: 38,
-            textAlign: 'center',
-            fontWeight: 500
-          }}
-        >
-          {zoomPct}%
-        </span>
-        <button
-          onClick={fitToContent}
-          style={{
-            background: '#21212a',
-            border: '1px solid #333342',
-            borderRadius: 6,
-            color: '#aaa',
-            fontSize: 12,
-            fontFamily: FONT_FAMILY,
-            height: 28,
-            padding: '0 10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.15s'
-          }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#ddd'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#333342'
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#aaa'
-          }}
-        >
-          Fit
-        </button>
-        <button
-          onClick={addNodeAtCenter}
-          style={{
-            background: NODE_SELECTED_STROKE,
-            border: `1px solid ${NODE_SELECTED_STROKE}`,
-            borderRadius: 6,
-            color: '#fff',
-            fontSize: 18,
-            fontWeight: 500,
-            width: 28,
-            height: 28,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'opacity 0.15s'
-          }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.opacity = '0.85'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.opacity = '1'
-          }}
-        >
-          +
-        </button>
-        <button
-          onClick={() => {
-            const stage = stageRef.current
-            if (!stage) return
-            const stagePos = stage.position()
-            const stageScale = stage.scaleX()
-            const canvasX = (stage.width() / 2 - stagePos.x) / stageScale
-            const canvasY = (stage.height() / 2 - stagePos.y) / stageScale
+      {(() => {
+        const sep = <div style={{ width: 1, height: 20, background: '#2a2a35', flexShrink: 0 }} />
+        const btn = (
+          onClick: () => void,
+          title: string,
+          content: React.ReactNode,
+          accent = false
+        ) => (
+          <button
+            key={title}
+            onClick={onClick}
+            title={title}
+            style={{
+              background: accent ? NODE_SELECTED_STROKE : 'transparent',
+              border: accent ? `1px solid ${NODE_SELECTED_STROKE}` : '1px solid transparent',
+              borderRadius: 6,
+              color: accent ? '#fff' : '#999',
+              height: 28,
+              padding: '0 10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              cursor: 'pointer', fontSize: 12, fontFamily: FONT_FAMILY, flexShrink: 0,
+            }}
+            onMouseEnter={e => {
+              if (!accent) {
+                e.currentTarget.style.background = '#21212a'
+                e.currentTarget.style.color = '#ddd'
+              } else {
+                e.currentTarget.style.opacity = '0.85'
+              }
+            }}
+            onMouseLeave={e => {
+              if (!accent) {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = '#999'
+              } else {
+                e.currentTarget.style.opacity = '1'
+              }
+            }}
+          >
+            {content}
+          </button>
+        )
 
-            const newNode: CanvasNodeData = {
-              id: Date.now().toString() + Math.random().toString(36).slice(2),
-              type: 'frame',
-              x: canvasX - 200,
-              y: canvasY - 150,
-              width: 400,
-              height: 300,
-              text: 'New Frame'
-            }
+        return (
+          <div style={{
+            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 1000, display: 'flex', alignItems: 'center', gap: 4,
+            background: '#14141a', borderRadius: 10,
+            border: '1px solid #2a2a35',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            padding: '4px 8px', userSelect: 'none',
+          }}>
+            {/* Create group */}
+            {btn(addNodeAtCenter, 'New Card (double-click on canvas)', <><span style={{ fontSize: 15, fontWeight: 600 }}>+</span><span>Card</span></>, true)}
+            {btn(() => {
+              const stage = stageRef.current
+              if (!stage) return
+              const sp = stage.position(); const ss = stage.scaleX()
+              const cx = (stage.width() / 2 - sp.x) / ss
+              const cy = (stage.height() / 2 - sp.y) / ss
+              mutateWithUndo(prev => ({ ...prev, nodes: [...prev.nodes, {
+                id: `${Date.now()}${Math.random().toString(36).slice(2)}`,
+                type: 'frame' as const, x: cx - 200, y: cy - 150, width: 400, height: 300, text: 'Frame',
+              }] }))
+            }, 'Add Frame — group cards visually', <><FrameIcon size={13} color="#7c6af7" /><span>Frame</span></>)}
 
-            mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
-          }}
-          title="Add Frame"
-          style={{
-            background: '#21212a',
-            border: '1px solid #333342',
-            borderRadius: 6,
-            color: '#ccc',
-            fontSize: 12,
-            fontFamily: FONT_FAMILY,
-            height: 28,
-            padding: '0 10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            cursor: 'pointer',
-            transition: 'all 0.15s'
-          }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#fff'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#333342'
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#ccc'
-          }}
-        >
-          <FrameIcon size={14} color="#7c6af7" />
-          <span>Frame</span>
-        </button>
+            {sep}
 
-        {/* Separator */}
-        <div style={{ width: 1, height: 20, background: '#333342', margin: '0 4px', flexShrink: 0 }} />
+            {/* View group */}
+            {btn(fitToContent, 'Fit all cards in view', <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M1 5V2a1 1 0 011-1h3M11 1h3a1 1 0 011 1v3M15 11v3a1 1 0 01-1 1h-3M5 15H2a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>)}
+            <span style={{ fontSize: 12, color: '#555', minWidth: 34, textAlign: 'center', fontFamily: FONT_FAMILY }}>
+              {zoomPct}%
+            </span>
 
-        {/* Mind Map auto-arrange */}
-        <button
-          onClick={autoArrangeMindMap}
-          title="Auto-arrange as Mind Map"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 6, border: '1px solid #333342',
-            background: 'transparent', color: '#ccc', cursor: 'pointer',
-            fontSize: 12, fontFamily: 'inherit', flexShrink: 0,
-          }}
-          onMouseEnter={e => {
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#fff'
-          }}
-          onMouseLeave={e => {
-            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#333342'
-            ;(e.currentTarget as HTMLButtonElement).style.color = '#ccc'
-          }}
-        >
-          <span style={{ fontSize: 14 }}>🌿</span>
-          <span>Mind Map</span>
-        </button>
-      </div>
+            {sep}
+
+            {/* Arrange group */}
+            {btn(autoArrangeMindMap,
+              'Auto Layout — arrange cards as a tree based on their connections (edges between cards)',
+              <><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="3" r="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="3" cy="12" r="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="13" cy="12" r="2" stroke="currentColor" strokeWidth="1.4"/><path d="M8 5v2M6.5 7.5L4 10M9.5 7.5L12 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg><span>Auto Layout</span></>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Konva Stage */}
       <Stage
