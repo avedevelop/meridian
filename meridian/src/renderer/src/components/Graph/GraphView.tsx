@@ -1108,7 +1108,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         setIsRecording(false)
       }
     } else {
-      setProgress(0)
+      setProgress(1)
       setIsPlaying(false)
       setIsSettingsOpen(false)
     }
@@ -1698,7 +1698,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               ))}
             </svg>
             {/* Year ticks — clamped so they don't overflow edges */}
-            <div style={{ position: 'relative', height: 8, overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: 8 }}>
               {historyTicks.map(({ frac, year }) => (
                 <span
                   key={year}
