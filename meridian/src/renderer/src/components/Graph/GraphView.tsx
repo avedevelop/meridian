@@ -1653,118 +1653,155 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       {viewMode === 'history' && (
         <div
           style={{
-            height: 60,
+            height: 76,
             background: 'rgba(20, 20, 25, 0.8)',
             backdropFilter: 'blur(12px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '0 16px',
+            flexDirection: 'column',
             paddingLeft: isSettingsOpen ? 348 : 16,
+            paddingRight: 16,
+            paddingTop: 6,
+            paddingBottom: 6,
             transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
         >
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
-            {formattedDate}
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={1000}
-            value={Math.round(progress * 1000)}
-            onChange={(e) => {
-              setProgress(Number(e.target.value) / 1000)
-              setIsPlaying(false)
-            }}
-            style={{ flex: 1, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
-          />
-          <button
-            onClick={() => {
-              if (progress >= 1) setProgress(0)
-              setIsPlaying((p) => !p)
-            }}
-            style={{
-              background: 'var(--accent-color)',
-              border: 'none',
-              borderRadius: 6,
-              color: '#fff',
-              padding: '5px 14px',
-              cursor: 'pointer',
-              fontSize: 15,
-              flexShrink: 0
-            }}
-          >
-            {isPlaying ? '⏸' : '▶'}
-          </button>
-          <select
-            value={playDuration}
-            onChange={(e) => setPlayDuration(Number(e.target.value))}
-            style={{
-              background: 'rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              color: 'var(--text-secondary)',
-              borderRadius: 4,
-              padding: '4px 6px',
-              fontSize: 12,
-              cursor: 'pointer'
-            }}
-          >
-            <option value={10000}>10s</option>
-            <option value={20000}>20s</option>
-            <option value={40000}>40s</option>
-            <option value={60000}>60s</option>
-          </select>
-          {isRecording ? (
+          {/* Top row: minimap + year ticks */}
+          <div style={{ position: 'relative', height: 22, flexShrink: 0 }}>
+            <svg
+              style={{ position: 'absolute', inset: '0 0 8px 0', width: '100%', height: 14, pointerEvents: 'none', opacity: 0.5 }}
+              preserveAspectRatio="none"
+              viewBox={`0 0 ${activityBuckets.length} 1`}
+            >
+              {activityBuckets.map((h, i) => (
+                <rect key={i} x={i} y={1 - h} width={0.85} height={h} fill="var(--accent-color)" />
+              ))}
+              <line
+                x1={progress * activityBuckets.length}
+                y1={0}
+                x2={progress * activityBuckets.length}
+                y2={1}
+                stroke="#fff"
+                strokeWidth={0.5}
+                opacity={0.9}
+              />
+            </svg>
+            {historyTicks.map(({ frac, year }) => (
+              <div
+                key={year}
+                style={{
+                  position: 'absolute',
+                  left: `${frac * 100}%`,
+                  bottom: 0,
+                  fontSize: 9,
+                  color: 'rgba(255,255,255,0.28)',
+                  transform: 'translateX(-50%)',
+                  pointerEvents: 'none',
+                  userSelect: 'none' as const,
+                  whiteSpace: 'nowrap' as const,
+                  lineHeight: 1
+                }}
+              >
+                {year}
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom row: controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
+              {formattedDate}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={1000}
+              value={Math.round(progress * 1000)}
+              onChange={(e) => {
+                setProgress(Number(e.target.value) / 1000)
+                setIsPlaying(false)
+              }}
+              style={{ flex: 1, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
+            />
             <button
-              onClick={stopRecording}
+              onClick={() => {
+                if (progress >= 1) setProgress(0)
+                setIsPlaying((p) => !p)
+              }}
               style={{
-                background: '#c62828',
+                background: 'var(--accent-color)',
                 border: 'none',
                 borderRadius: 6,
                 color: '#fff',
                 padding: '5px 14px',
                 cursor: 'pointer',
-                fontSize: 13,
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: '#fff',
-                  display: 'inline-block'
-                }}
-              />
-              Stop
-            </button>
-          ) : (
-            <button
-              onClick={startRecording}
-              title="Record graph animation as WebM video"
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: 6,
-                color: 'var(--text-primary)',
-                padding: '5px 14px',
-                cursor: 'pointer',
-                fontSize: 13,
+                fontSize: 15,
                 flexShrink: 0
               }}
             >
-              ⏺ Record
+              {isPlaying ? '⏸' : '▶'}
             </button>
-          )}
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 4 }}>
-            Space · ←→
-          </span>
+            <select
+              value={playDuration}
+              onChange={(e) => setPlayDuration(Number(e.target.value))}
+              style={{
+                background: 'rgba(0, 0, 0, 0.25)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: 'var(--text-secondary)',
+                borderRadius: 4,
+                padding: '4px 6px',
+                fontSize: 12,
+                cursor: 'pointer'
+              }}
+            >
+              <option value={10000}>10s</option>
+              <option value={20000}>20s</option>
+              <option value={40000}>40s</option>
+              <option value={60000}>60s</option>
+            </select>
+            {isRecording ? (
+              <button
+                onClick={stopRecording}
+                style={{
+                  background: '#c62828',
+                  border: 'none',
+                  borderRadius: 6,
+                  color: '#fff',
+                  padding: '5px 14px',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={startRecording}
+                title="Record graph animation as WebM video"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 6,
+                  color: 'var(--text-primary)',
+                  padding: '5px 14px',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  flexShrink: 0
+                }}
+              >
+                ⏺ Record
+              </button>
+            )}
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 4 }}>
+              Space · ←→
+            </span>
+          </div>
         </div>
       )}
 
@@ -1774,7 +1811,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 80 : 24,
+          bottom: viewMode === 'history' ? 92 : 24,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(20, 20, 26, 0.85)',
@@ -1837,7 +1874,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 80 : 24,
+          bottom: viewMode === 'history' ? 92 : 24,
           right: 24,
           background: 'rgba(20, 20, 26, 0.85)',
           backdropFilter: 'blur(12px)',
