@@ -28,3 +28,6 @@ export function applyPostprocessors(html: string, files: VaultFile[]): string {
 export function collectCmDecorations(view: EditorView): CmEntry[] {
   return registry.flatMap((f) => (f.cmDecorations ? f.cmDecorations(view) : []))
 }
+
+import { calloutsFormatter } from './markdownCoreFormatters/calloutsFormatter'
+registerFormatter(calloutsFormatter)
