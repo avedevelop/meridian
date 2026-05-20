@@ -1697,8 +1697,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             gap: 2,
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 8,
-            padding: '6px 10px 10px',
-            background: 'rgba(255,255,255,0.03)'
+            padding: '6px 14px 10px',
+            background: 'rgba(255,255,255,0.03)',
+            overflow: 'visible'
           }}>
             {/* Minimap */}
             <svg
