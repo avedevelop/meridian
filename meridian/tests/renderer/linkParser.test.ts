@@ -32,4 +32,52 @@ describe('parseLinks', () => {
     const { links } = parseLinks('[[My Note|click here]]')
     expect(links).toEqual(['My Note'])
   })
+
+  it('extracts inline #tags', () => {
+    const { tags } = parseLinks('Hello #world and #foo')
+    expect(tags).toContain('world')
+    expect(tags).toContain('foo')
+  })
+
+  it('extracts tags from frontmatter array format: tags: [a, b, c]', () => {
+    const content = '---\ntags: [work, ideas, todo]\n---\n\nContent'
+    const { tags } = parseLinks(content)
+    expect(tags).toContain('work')
+    expect(tags).toContain('ideas')
+    expect(tags).toContain('todo')
+  })
+
+  it('extracts tags from frontmatter list format (YAML list)', () => {
+    const content = '---\ntags:\n  - work\n  - ideas\n---\n\nContent'
+    const { tags } = parseLinks(content)
+    expect(tags).toContain('work')
+    expect(tags).toContain('ideas')
+  })
+
+  it('deduplicates tags from frontmatter and inline', () => {
+    const content = '---\ntags: [work]\n---\n\nHello #work and #extra'
+    const { tags } = parseLinks(content)
+    const workCount = tags.filter(t => t === 'work').length
+    expect(workCount).toBe(1)
+    expect(tags).toContain('extra')
+  })
+
+  it('handles frontmatter with quoted tag values', () => {
+    const content = '---\ntags: ["my-tag", \'another\']\n---'
+    const { tags } = parseLinks(content)
+    expect(tags).toContain('my-tag')
+    expect(tags).toContain('another')
+  })
+
+  it('does not extract non-tag frontmatter fields as tags', () => {
+    const content = '---\ntitle: Not a tag\ndate: 2026-01-01\n---\n\nContent'
+    const { tags } = parseLinks(content)
+    expect(tags).not.toContain('Not a tag')
+    expect(tags).not.toContain('2026-01-01')
+  })
+
+  it('extracts [[wiki links]] from content', () => {
+    const { links } = parseLinks('See [[My Note]] for details')
+    expect(links).toContain('My Note')
+  })
 })
