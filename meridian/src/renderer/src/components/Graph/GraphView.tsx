@@ -1659,20 +1659,23 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             backdropFilter: 'blur(12px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
             paddingLeft: isSettingsOpen ? 348 : 16,
             paddingRight: 16,
-            paddingTop: 6,
-            paddingBottom: 6,
             transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
         >
-          {/* Top row: minimap + year ticks */}
-          <div style={{ position: 'relative', height: 24, flexShrink: 0 }}>
-            {/* Minimap sparkline */}
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
+            {formattedDate}
+          </span>
+
+          {/* Scrubber column: minimap + ticks + range input stacked */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Minimap sparkline — exact width of scrubber */}
             <svg
-              style={{ display: 'block', width: '100%', height: 16, pointerEvents: 'none', opacity: 0.55 }}
+              style={{ display: 'block', width: '100%', height: 14, pointerEvents: 'none', opacity: 0.55 }}
               preserveAspectRatio="none"
               viewBox={`0 0 ${activityBuckets.length} 1`}
             >
@@ -1689,8 +1692,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 opacity={0.9}
               />
             </svg>
-            {/* Year tick labels */}
-            <div style={{ position: 'relative', height: 8 }}>
+            {/* Year tick labels — same width, aligned to minimap */}
+            <div style={{ position: 'relative', height: 9 }}>
               {historyTicks.map(({ frac, year }) => (
                 <span
                   key={year}
@@ -1699,7 +1702,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                     left: `${frac * 100}%`,
                     top: 0,
                     fontSize: 9,
-                    lineHeight: '8px',
+                    lineHeight: '9px',
                     color: 'rgba(255,255,255,0.25)',
                     transform: 'translateX(-50%)',
                     pointerEvents: 'none',
@@ -1711,13 +1714,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 </span>
               ))}
             </div>
-          </div>
-
-          {/* Bottom row: controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
-              {formattedDate}
-            </span>
             <input
               type="range"
               min={0}
@@ -1727,7 +1723,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 setProgress(Number(e.target.value) / 1000)
                 setIsPlaying(false)
               }}
-              style={{ flex: 1, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
+              style={{ width: '100%', accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
             />
             <button
               onClick={() => {
