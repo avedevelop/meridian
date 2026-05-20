@@ -28,6 +28,7 @@ import { lintKeymap } from '@codemirror/lint'
 import { wikiLinkExtension } from './wikiLinkExtension'
 import { wikiLinkCompletion } from './wikiLinkCompletion'
 import { imagePasteExtension } from './imagePaste'
+import { slashCommandExtension } from './slashCommands'
 
 function getFontFamilyValue(font: string) {
   switch (font) {
@@ -110,7 +111,8 @@ export function createMarkdownExtensions(
   closeBracketsEnabled = true,
   fontFamily = 'Georgia',
   fontWeight = '400',
-  lineHeight = 1.8
+  lineHeight = 1.8,
+  slashCommandsEnabled = false
 ) {
   return [
     oneDark,
@@ -149,6 +151,7 @@ export function createMarkdownExtensions(
           if (update.docChanged) onChange(update.state.doc.toString())
         })
       : [],
-    onImagePaste ? imagePasteExtension(onImagePaste) : []
+    onImagePaste ? imagePasteExtension(onImagePaste) : [],
+    slashCommandsEnabled ? slashCommandExtension() : []
   ]
 }

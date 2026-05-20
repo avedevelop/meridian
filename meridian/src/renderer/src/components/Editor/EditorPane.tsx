@@ -52,7 +52,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     closeBrackets,
     fontFamily,
     fontWeight,
-    lineHeight
+    lineHeight,
+    pluginsEnabled
   } = useSettingsStore()
 
   const isProgrammaticUpdate = useRef(false)
@@ -203,7 +204,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             closeBrackets,
             fontFamily,
             fontWeight,
-            lineHeight
+            lineHeight,
+            pluginsEnabled.slashCommands
           ),
           EditorView.updateListener.of((update) => {
             if (!update.selectionSet && !update.docChanged) return
@@ -250,6 +252,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     fontFamily,
     fontWeight,
     lineHeight,
+    pluginsEnabled,
     isCanvasFile,
     isDrawingFile,
     isActive
@@ -284,7 +287,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
           justifyContent: 'center',
           color: 'var(--text-secondary)',
           background: 'var(--bg-tertiary)',
-          border: isActive ? '1px solid var(--accent-color)' : '1px solid transparent',
+          
           boxSizing: 'border-box'
         }}
       >
@@ -309,7 +312,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
         flexDirection: 'column',
         flex: 1,
         overflow: 'hidden',
-        border: isActive ? '1px solid var(--accent-color)' : '1px solid transparent',
+        
         boxSizing: 'border-box'
       }}
     >
