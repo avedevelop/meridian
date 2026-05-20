@@ -363,8 +363,15 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
 }
 
 export function EditorArea() {
-  const { panes, activePaneId } = useVaultStore()
+  const { panes, activePaneId, mergeAllPanes } = useVaultStore()
   const paneRefs = useRef<{ [paneId: string]: HTMLDivElement | null }>({})
+
+  // Reset Layout also merges all split panes into one
+  useEffect(() => {
+    const handler = () => mergeAllPanes()
+    window.addEventListener('layout:reset', handler)
+    return () => window.removeEventListener('layout:reset', handler)
+  }, [mergeAllPanes])
 
   const totalOpenTabs = useMemo(() => {
     return panes.reduce((acc, p) => acc + p.openTabs.length, 0)

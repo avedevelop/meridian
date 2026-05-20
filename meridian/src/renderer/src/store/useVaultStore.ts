@@ -43,6 +43,7 @@ interface VaultState {
   closePane: (paneId: string) => void
   setActivePane: (paneId: string) => void
   moveTab: (fromPaneId: string, toPaneId: string, tabPath: string, toIndex?: number) => void
+  mergeAllPanes: () => void
 }
 
 export const useVaultStore = create<VaultState>((set, get) => {
@@ -87,7 +88,7 @@ export const useVaultStore = create<VaultState>((set, get) => {
     closeTab: (path, paneId) => {
       const { panes, activePaneId } = get()
       const targetPaneId = paneId || activePaneId
-      const updated = panes.map((p) => {
+      let updated = panes.map((p) => {
         if (p.id !== targetPaneId) return p
         const index = p.openTabs.findIndex((t) => t.path === path)
         const nextTabs = p.openTabs.filter((t) => t.path !== path)
@@ -95,12 +96,17 @@ export const useVaultStore = create<VaultState>((set, get) => {
         if (p.activeTabPath === path) {
           nextActive = nextTabs[Math.max(0, index - 1)]?.path ?? nextTabs[0]?.path ?? null
         }
-        return {
-          ...p,
-          openTabs: nextTabs,
-          activeTabPath: nextActive
-        }
+        return { ...p, openTabs: nextTabs, activeTabPath: nextActive }
       })
+      // Auto-close empty pane if it's not the last one
+      if (updated.length > 1) {
+        const emptyPane = updated.find((p) => p.id === targetPaneId && p.openTabs.length === 0)
+        if (emptyPane) {
+          updated = updated.filter((p) => p.id !== targetPaneId)
+          const nextActive = updated.find((p) => p.id === activePaneId)?.id ?? updated[0]?.id ?? 'pane-main'
+          return set(syncLegacyState(updated, nextActive))
+        }
+      }
       set(syncLegacyState(updated, activePaneId))
     },
 
@@ -242,6 +248,25 @@ export const useVaultStore = create<VaultState>((set, get) => {
       })
 
       set(syncLegacyState(updated, toPaneId))
-    }
+    },
+
+    mergeAllPanes: () => {
+      const { panes } = get()
+      if (panes.length <= 1) return
+      // Collect all unique tabs from all panes into the main pane
+      const seen = new Set<string>()
+      const mergedTabs: Tab[] = []
+      panes.forEach(p => {
+        p.openTabs.forEach(t => {
+          if (!seen.has(t.path)) { seen.add(t.path); mergedTabs.push(t) }
+        })
+      })
+      const mainPane: Pane = {
+        id: 'pane-main',
+        openTabs: mergedTabs,
+        activeTabPath: mergedTabs[0]?.path ?? null,
+      }
+      set(syncLegacyState([mainPane], 'pane-main'))
+    },
   }
 })

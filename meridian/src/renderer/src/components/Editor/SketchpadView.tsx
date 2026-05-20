@@ -37,6 +37,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
   const svgRef = useRef<SVGSVGElement>(null)
   const isDrawing = useRef(false)
   const currentElementId = useRef<string | null>(null)
+  const eraserActiveRef = useRef(false) // separate flag for eraser drag
 
   // Refs always holding the latest values — used in stable callbacks below
   const undoStackRef = useRef(undoStack)
@@ -134,10 +135,9 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
     const y = e.clientY - rect.top
 
     if (tool === 'eraser') {
-      // Start eraser drag — push undo once at the beginning
+      // Push undo once at stroke start; actual erasing happens in mousemove
       pushState(elements)
-      isDrawing.current = true
-      currentElementId.current = 'eraser'
+      eraserActiveRef.current = true
       return
     }
 
@@ -200,19 +200,21 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
     const rect = svgRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
-    if (tool === 'eraser') setMousePos({ x, y })
 
-    if (!isDrawing.current || !currentElementId.current) return
-
-    // Eraser brush — erase any element the cursor touches while dragging
     if (tool === 'eraser') {
-      setElements(prev => {
-        const next = prev.filter(el => !hitTest(el, x, y))
-        if (next.length !== prev.length) saveDrawing(next)
-        return next
-      })
+      setMousePos({ x, y })
+      // e.buttons === 1 = primary button held → erase as we drag
+      if (e.buttons === 1) {
+        setElements(prev => {
+          const next = prev.filter(el => !hitTest(el, x, y))
+          if (next.length !== prev.length) saveDrawing(next)
+          return next
+        })
+      }
       return
     }
+
+    if (!isDrawing.current || !currentElementId.current) return
 
     setElements((prev) =>
       prev.map((el) => {
@@ -245,11 +247,11 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
   }
 
   const handleMouseUp = () => {
+    eraserActiveRef.current = false
     if (isDrawing.current) {
       isDrawing.current = false
       currentElementId.current = null
-      // Use ref to get the latest elements (avoids stale closure during eraser drag)
-      if (tool !== 'eraser') saveDrawing(elementsRef.current)
+      saveDrawing(elementsRef.current)
     }
   }
 
