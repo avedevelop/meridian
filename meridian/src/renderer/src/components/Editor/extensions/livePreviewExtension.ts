@@ -1,6 +1,8 @@
 import { ViewPlugin, ViewUpdate, Decoration, DecorationSet, WidgetType, EditorView } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
+import { collectCmDecorations } from '../../../lib/markdownCore'
+import '../../../lib/markdownCore'
 
 class HRWidget extends WidgetType {
   toDOM() {
@@ -23,6 +25,10 @@ type Entry = { from: number; to: number; deco: Decoration }
 function buildDecos(view: EditorView): DecorationSet {
   const { state } = view
   const entries: Entry[] = []
+
+  // Collect decorations from registered core formatters
+  const coreEntries = collectCmDecorations(view)
+  entries.push(...coreEntries)
 
   syntaxTree(state).iterate({
     enter(node) {
