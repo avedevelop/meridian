@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { FolderOpenBtnIcon, SearchIcon, WebIcon, SettingsIcon, GitIcon } from '../Icons'
+import { FolderOpenBtnIcon, WebIcon, SettingsIcon, GitIcon } from '../Icons'
 
 type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
 
@@ -82,7 +82,6 @@ const TABS: {
   Icon: React.ComponentType<{ size?: number; color?: string }>
 }[] = [
   { id: 'files', label: 'Files', Icon: (props) => <FolderOpenBtnIcon size={20} {...props} /> },
-  { id: 'search', label: 'Search', Icon: (props) => <SearchIcon size={20} {...props} /> },
   { id: 'git', label: 'Source Control', Icon: (props) => <GitIcon size={20} {...props} /> },
   { id: 'graph', label: 'Graph', Icon: (props) => <WebIcon size={20} {...props} /> },
   { id: 'calendar', label: 'Calendar', Icon: (props) => <CalendarIcon size={20} {...props} /> },

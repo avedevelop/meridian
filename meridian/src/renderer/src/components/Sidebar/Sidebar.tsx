@@ -2,7 +2,6 @@ import { useState, useMemo, Component, type ReactNode, useRef, useEffect } from 
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { FileTree } from './FileTree'
-import { SearchPanel } from './SearchPanel'
 import { FolderOpenBtnIcon, CollapseAllIcon } from '../Icons'
 import { GraphView } from '../Graph/GraphView'
 import { FileIcon } from './FileIcon'
@@ -629,7 +628,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             </div>
           </>
         )}
-        {activeTab === 'search' && <SearchPanel />}
         {activeTab === 'git' && <GitPanel />}
         {activeTab === 'graph' && (
           <GraphErrorBoundary>
