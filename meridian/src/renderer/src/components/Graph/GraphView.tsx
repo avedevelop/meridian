@@ -4,7 +4,7 @@ import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import type { VaultFile } from '@shared/types'
-import { SearchIcon, SettingsIcon } from '../Icons'
+import { SearchIcon, SettingsIcon, LinkIcon } from '../Icons'
 
 interface GNode extends d3.SimulationNodeDatum {
   id: string
@@ -81,15 +81,180 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
   // Graph View Settings State
   const [searchQuery, setSearchQuery] = useState('')
-  const [showOrphans, setShowOrphans] = useState(true)
-  const [showCanvases, setShowCanvases] = useState(true)
-  const [showDaily, setShowDaily] = useState(true)
   const [linkDistance, setLinkDistance] = useState(70)
   const [repulsionStrength, setRepulsionStrength] = useState(-80)
   const [showArrows, setShowArrows] = useState(false)
   const [textSize, setTextSize] = useState(11)
   const [linkThickness, setLinkThickness] = useState(1)
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
+
+  const [strictFilter, setStrictFilter] = useState(false)
+  const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set())
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'filters' | 'analytics'>('filters')
+  const zoomBehaviorRef = useRef<any>(null)
+  const [isPhysicsRunning, setIsPhysicsRunning] = useState(true)
+  const isPhysicsRunningRef = useRef(isPhysicsRunning)
+  useEffect(() => {
+    isPhysicsRunningRef.current = isPhysicsRunning
+  }, [isPhysicsRunning])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const graphStats = useMemo(() => {
+    const allFiles = flattenFiles(files)
+      .filter((f) => !f.isDirectory && (f.name.endsWith('.md') || f.name.endsWith('.canvas')))
+      .map((f) => f.path)
+
+    const liveSet = new Set(allFiles)
+    const degree: Record<string, number> = {}
+    const edgeSet = new Set<string>()
+    const linksCount: { s: string; t: string }[] = []
+
+    for (const file of allFiles) {
+      for (const target of outlinks(file)) {
+        if (!liveSet.has(target)) continue
+        const key = [file, target].sort().join('|')
+        if (edgeSet.has(key)) continue
+        edgeSet.add(key)
+        linksCount.push({ s: file, t: target })
+        degree[file] = (degree[file] ?? 0) + 1
+        degree[target] = (degree[target] ?? 0) + 1
+      }
+    }
+
+    const hubs = allFiles
+      .map((path) => ({
+        id: path,
+        name: path.split('/').pop()?.replace(/\.(md|canvas)$/, '') ?? '',
+        degree: degree[path] ?? 0
+      }))
+      .filter((h) => h.degree > 0)
+      .sort((a, b) => b.degree - a.degree)
+      .slice(0, 5)
+
+    const totalNodes = allFiles.length
+    const totalLinks = linksCount.length
+    const orphans = allFiles.filter((p) => !degree[p]).length
+    const density = totalNodes > 1 ? (totalLinks / (totalNodes * (totalNodes - 1) / 2)) * 100 : 0
+
+    return {
+      totalNodes,
+      totalLinks,
+      orphans,
+      density: density.toFixed(1) + '%',
+      hubs
+    }
+  }, [files, outlinks, indexVersion])
+
+  const toggleCategory = (category: string) => {
+    setDisabledCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
+  }
+
+  const focusNode = useCallback((nodeId: string) => {
+    const state = d3Ref.current
+    if (!state || !zoomBehaviorRef.current) return
+
+    const node = state.nodes.find((n) => n.id === nodeId)
+    if (!node) return
+
+    const svg = d3.select(state.svgEl)
+    const scale = 1.5
+    const tx = state.width / 2 - node.x! * scale
+    const ty = state.height / 2 - node.y! * scale
+
+    svg
+      .transition()
+      .duration(800)
+      .call(
+        zoomBehaviorRef.current.transform,
+        d3.zoomIdentity.translate(tx, ty).scale(scale)
+      )
+
+    const nodeEl = state.nodeG.filter((d) => d.id === nodeId)
+    if (nodeEl.empty()) return
+
+    nodeEl.selectAll('circle.vis')
+      .transition()
+      .duration(200)
+      .attr('r', nodeR(node) * 2.2)
+      .transition()
+      .duration(500)
+      .attr('r', nodeR(node))
+  }, [])
+
+  const handleZoomIn = useCallback(() => {
+    const state = d3Ref.current
+    if (!state || !zoomBehaviorRef.current) return
+    const svg = d3.select(state.svgEl)
+    svg.transition().duration(250).call(zoomBehaviorRef.current.scaleBy, 1.3)
+  }, [])
+
+  const handleZoomOut = useCallback(() => {
+    const state = d3Ref.current
+    if (!state || !zoomBehaviorRef.current) return
+    const svg = d3.select(state.svgEl)
+    svg.transition().duration(250).call(zoomBehaviorRef.current.scaleBy, 1 / 1.3)
+  }, [])
+
+  const handleRecenter = useCallback(() => {
+    const state = d3Ref.current
+    if (!state || !zoomBehaviorRef.current || state.nodes.length === 0) return
+    const svg = d3.select(state.svgEl)
+
+    // Calculate bounding box of all nodes
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    state.nodes.forEach((n) => {
+      if (n.x !== undefined && n.y !== undefined) {
+        if (n.x < minX) minX = n.x
+        if (n.x > maxX) maxX = n.x
+        if (n.y < minY) minY = n.y
+        if (n.y > maxY) maxY = n.y
+      }
+    })
+
+    if (minX === Infinity) return
+
+    const dx = maxX - minX
+    const dy = maxY - minY
+    const x = (minX + maxX) / 2
+    const y = (minY + maxY) / 2
+
+    const padding = 60
+    const scale = Math.max(0.2, Math.min(2, 0.95 / Math.max(dx / (state.width - padding), dy / (state.height - padding))))
+    const tx = state.width / 2 - x * scale
+    const ty = state.height / 2 - y * scale
+
+    svg.transition().duration(600).call(
+      zoomBehaviorRef.current.transform,
+      d3.zoomIdentity.translate(tx, ty).scale(scale)
+    )
+  }, [])
+
+  const handleTogglePhysics = useCallback(() => {
+    const state = d3Ref.current
+    if (!state) return
+    if (isPhysicsRunning) {
+      state.sim.stop()
+      setIsPhysicsRunning(false)
+    } else {
+      state.sim.alpha(0.3).restart()
+      setIsPhysicsRunning(true)
+    }
+  }, [isPhysicsRunning])
 
   // Hover Preview state
   const [hoveredNode, setHoveredNode] = useState<{
@@ -148,9 +313,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         visible = birth !== undefined && birth <= ts
       }
 
-      if (d.id.endsWith('.canvas') && !showCanvases) visible = false
-      if (d.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
-      if (d.degree === 0 && !showOrphans) visible = false
+      if (d.id.endsWith('.canvas') && disabledCategories.has('canvas')) visible = false
+      if (d.name.match(/^\d{4}-\d{2}-\d{2}$/) && disabledCategories.has('daily')) visible = false
+      if (d.degree === 0 && disabledCategories.has('orphan')) visible = false
 
       if (visible) {
         visibleNodes.add(d.id)
@@ -269,9 +434,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     progress,
     viewMode,
     searchQuery,
-    showOrphans,
-    showCanvases,
-    showDaily,
+    disabledCategories,
     linkThickness
   ])
 
@@ -333,9 +496,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           const birth = birthtimes.get(n.id)
           visible = birth !== undefined && birth <= ts
         }
-        if (n.id.endsWith('.canvas') && !showCanvases) visible = false
-        if (n.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
-        if (n.degree === 0 && !showOrphans) visible = false
+        if (n.id.endsWith('.canvas') && disabledCategories.has('canvas')) visible = false
+        if (n.name.match(/^\d{4}-\d{2}-\d{2}$/) && disabledCategories.has('daily')) visible = false
+        if (n.degree === 0 && disabledCategories.has('orphan')) visible = false
 
         let baseOpacity = visible ? 1 : 0
         if (visible && q) {
@@ -373,12 +536,12 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             const tb = birthtimes.get(tNode.id)
             visible = sb !== undefined && tb !== undefined && sb <= ts && tb <= ts
           }
-          if (sNode.id.endsWith('.canvas') && !showCanvases) visible = false
-          if (tNode.id.endsWith('.canvas') && !showCanvases) visible = false
-          if (sNode.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
-          if (tNode.name.match(/^\d{4}-\d{2}-\d{2}$/) && !showDaily) visible = false
-          if (sNode.degree === 0 && !showOrphans) visible = false
-          if (tNode.degree === 0 && !showOrphans) visible = false
+          if (sNode.id.endsWith('.canvas') && disabledCategories.has('canvas')) visible = false
+          if (tNode.id.endsWith('.canvas') && disabledCategories.has('canvas')) visible = false
+          if (sNode.name.match(/^\d{4}-\d{2}-\d{2}$/) && disabledCategories.has('daily')) visible = false
+          if (tNode.name.match(/^\d{4}-\d{2}-\d{2}$/) && disabledCategories.has('daily')) visible = false
+          if (sNode.degree === 0 && disabledCategories.has('orphan')) visible = false
+          if (tNode.degree === 0 && disabledCategories.has('orphan')) visible = false
 
           if (!visible) return 0
           return isConnected ? 1 : 0.15
@@ -408,9 +571,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     },
     [
       searchQuery,
-      showCanvases,
-      showDaily,
-      showOrphans,
+      disabledCategories,
       textSize,
       linkThickness,
       progress,
@@ -512,16 +673,42 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       const height = el.clientHeight
       if (!width || !height) return
 
-      const allFiles = flattenFiles(files)
+      // Phase 1: Filter base paths (daily, canvas, project, strict search)
+      let filteredPaths = flattenFiles(files)
         .filter((f) => !f.isDirectory && (f.name.endsWith('.md') || f.name.endsWith('.canvas')))
         .map((f) => f.path)
-        .slice(0, 400)
-      const liveSet = new Set(allFiles)
+
+      filteredPaths = filteredPaths.filter((path) => {
+        const name = path.split('/').pop()?.replace(/\.(md|canvas)$/, '') ?? ''
+
+        // Daily Notes filter
+        const isDaily = !!name.match(/^\d{4}-\d{2}-\d{2}$/)
+        if (isDaily && disabledCategories.has('daily')) return false
+
+        // Canvases filter
+        const isCanvas = path.endsWith('.canvas')
+        if (isCanvas && disabledCategories.has('canvas')) return false
+
+        // Projects folder filter
+        const isProject = path.includes('/Projects/') || path.includes('\\Projects\\')
+        if (isProject && disabledCategories.has('project')) return false
+
+        // Strict search filter
+        if (strictFilter && debouncedSearchQuery) {
+          const q = debouncedSearchQuery.toLowerCase().trim()
+          if (!name.toLowerCase().includes(q)) return false
+        }
+
+        return true
+      })
+
+      // Phase 2: Compute degrees & links on this subset
+      const liveSet = new Set(filteredPaths)
       const degree: Record<string, number> = {}
       const edgeSet = new Set<string>()
       const links: GLink[] = []
 
-      for (const file of allFiles) {
+      for (const file of filteredPaths) {
         for (const target of outlinks(file)) {
           if (!liveSet.has(target)) continue
           const key = [file, target].sort().join('|')
@@ -533,14 +720,37 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         }
       }
 
-      const nodes: GNode[] = allFiles.map((f) => ({
+      // Phase 3: Filter based on orphan and connected states
+      filteredPaths = filteredPaths.filter((path) => {
+        const deg = degree[path] ?? 0
+        const isOrphan = deg === 0
+
+        if (isOrphan && disabledCategories.has('orphan')) return false
+        if (!isOrphan && disabledCategories.has('connected')) return false
+
+        return true
+      })
+
+      // Final dataset setup (limit to 400 for performance)
+      const finalPathsSet = new Set(filteredPaths.slice(0, 400))
+      const finalPaths = filteredPaths.filter((p) => finalPathsSet.has(p))
+
+      const finalLinks = links.filter(
+        (l) => finalPathsSet.has(l.source as string) && finalPathsSet.has(l.target as string)
+      )
+
+      const finalDegree: Record<string, number> = {}
+      finalLinks.forEach((l) => {
+        const s = l.source as string
+        const t = l.target as string
+        finalDegree[s] = (finalDegree[s] ?? 0) + 1
+        finalDegree[t] = (finalDegree[t] ?? 0) + 1
+      })
+
+      const nodes: GNode[] = finalPaths.map((f) => ({
         id: f,
-        name:
-          f
-            .split('/')
-            .pop()
-            ?.replace(/\.(md|canvas)$/, '') ?? '',
-        degree: degree[f] ?? 0,
+        name: f.split('/').pop()?.replace(/\.(md|canvas)$/, '') ?? '',
+        degree: finalDegree[f] ?? 0,
         x: width / 2 + (Math.random() - 0.5) * 100,
         y: height / 2 + (Math.random() - 0.5) * 100
       }))
@@ -550,12 +760,12 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .force(
           'link',
           d3
-            .forceLink<GNode, GLink>(links)
+            .forceLink<GNode, GLink>(finalLinks)
             .id((d) => d.id)
-            .distance(70)
+            .distance(linkDistance)
             .strength(0.4)
         )
-        .force('charge', d3.forceManyBody().strength(-80).distanceMax(300))
+        .force('charge', d3.forceManyBody().strength(repulsionStrength).distanceMax(300))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force(
           'collide',
@@ -584,7 +794,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .attr('orient', 'auto')
         .append('path')
         .attr('d', 'M0,-5L10,0L0,5')
-        .attr('fill', 'rgba(255, 255, 255, 0.15)')
+        .attr('fill', 'rgba(255, 255, 255, 0.4)')
 
       // Soft glow radial gradients (highly optimized, GPU accelerated)
       Object.entries(GROUP_COLORS).forEach(([name, color]) => {
@@ -599,13 +809,12 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
         grad
           .append('stop')
-          .attr('offset', '45%')
+          .attr('offset', '100%')
           .attr('stop-color', color)
-          .attr('stop-opacity', 0.2)
-
-        grad.append('stop').attr('offset', '100%').attr('stop-color', color).attr('stop-opacity', 0)
+          .attr('stop-opacity', 0)
       })
 
+      // Grid background
       const pattern = defs
         .append('pattern')
         .attr('id', 'dotgrid')
@@ -619,19 +828,20 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
       const root = svg.append('g')
 
-      svg.call(
-        d3
-          .zoom<SVGSVGElement, unknown>()
-          .scaleExtent([0.1, 5])
-          .on('zoom', ({ transform }) => root.attr('transform', transform.toString()))
-          .on('start', () => svg.style('cursor', 'grabbing'))
-          .on('end', () => svg.style('cursor', 'grab'))
-      )
+      const zoom = d3
+        .zoom<SVGSVGElement, unknown>()
+        .scaleExtent([0.1, 5])
+        .on('zoom', ({ transform }) => root.attr('transform', transform.toString()))
+        .on('start', () => svg.style('cursor', 'grabbing'))
+        .on('end', () => svg.style('cursor', 'grab'))
+
+      svg.call(zoom)
+      zoomBehaviorRef.current = zoom
 
       const linkSel = root
         .append('g')
         .selectAll<SVGLineElement, GLink>('line')
-        .data(links)
+        .data(finalLinks)
         .join('line')
         .attr('stroke', 'rgba(255, 255, 255, 0.22)')
         .attr('stroke-width', 0)
@@ -646,20 +856,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .style('cursor', 'pointer')
         .on('click', (event, d) => {
           if (event.defaultPrevented) return
-          openFile(d.id, d.name + '.md')
+          openFile(d.id, d.name)
           onFileOpen?.()
-        })
-        .on('mouseover', function (event, d) {
-          handleMouseOverRef.current?.(this, d, event)
-        })
-        .on('mouseout', function (_e, d) {
-          handleMouseOutRef.current?.(this, d)
         })
         .call(
           d3
             .drag<SVGGElement, GNode>()
             .on('start', (event, d) => {
-              if (!event.active) sim!.alphaTarget(0.3).restart()
+              if (!event.active) sim?.alphaTarget(0.3).restart()
               d.fx = d.x
               d.fy = d.y
             })
@@ -668,16 +872,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               d.fy = event.y
             })
             .on('end', (event, d) => {
-              if (!event.active) sim!.alphaTarget(0)
+              if (!event.active) sim?.alphaTarget(0)
               d.fx = null
               d.fy = null
             })
         )
 
-      nodeG
-        .append('circle')
-        .attr('r', (d) => Math.max(nodeR(d) + 10, 16))
-        .attr('fill', 'transparent')
+      // Background pulsing glow (highly performant alternative to standard shadow blur)
       nodeG
         .append('circle')
         .attr('class', 'glow-halo')
@@ -685,6 +886,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .attr('fill', (d) => `url(#glow-grad-${getNodeGroup(d.id, d.name, d.degree)})`)
         .attr('opacity', 0)
         .style('pointer-events', 'none')
+        .style('transform-origin', 'center')
+
+      // Node circles
       nodeG
         .append('circle')
         .attr('class', 'vis')
@@ -692,6 +896,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .attr('fill', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
         .attr('stroke', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
         .attr('stroke-width', 1.5)
+
       nodeG
         .append('text')
         .text((d) => d.name)
@@ -713,6 +918,16 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .attr('font-family', '-apple-system, sans-serif')
         .attr('fill', 'rgba(255,255,255,0.35)')
 
+      nodeG.on('mouseenter', function (event, d) {
+        const handleMouseOver = handleMouseOverRef.current
+        if (handleMouseOver) handleMouseOver(this, d, event)
+      })
+
+      nodeG.on('mouseleave', function (_event, d) {
+        const handleMouseOut = handleMouseOutRef.current
+        if (handleMouseOut) handleMouseOut(this, d)
+      })
+
       sim.on('tick', () => {
         linkSel
           .attr('x1', (d) => (d.source as GNode).x!)
@@ -729,11 +944,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         dateLabel,
         svgEl: svg.node()!,
         nodes,
-        links,
+        links: finalLinks,
         width,
         height
       }
       applyFiltersAndVisibility()
+      if (!isPhysicsRunningRef.current) {
+        sim.stop()
+      }
     }
 
     const ro = new ResizeObserver(build)
@@ -746,7 +964,15 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       el.innerHTML = ''
       d3Ref.current = null
     }
-  }, [files, outlinks, openFile, indexVersion])
+  }, [
+    files,
+    outlinks,
+    openFile,
+    indexVersion,
+    disabledCategories,
+    strictFilter,
+    strictFilter ? debouncedSearchQuery : ''
+  ])
 
   useEffect(() => {
     if (!isPlaying) return
@@ -839,7 +1065,21 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       setProgress(0)
       setIsPlaying(false)
     }
+    // Notify header about mode change
+    window.dispatchEvent(new CustomEvent('graph:mode-changed', { detail: mode }))
   }
+
+  // Listen for mode changes from the Sidebar header
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const mode = (e as CustomEvent).detail as 'live' | 'history'
+      handleToggleMode(mode)
+    }
+    window.addEventListener('graph:set-mode', handler)
+    // Notify header about initial mode
+    window.dispatchEvent(new CustomEvent('graph:mode-changed', { detail: viewMode }))
+    return () => window.removeEventListener('graph:set-mode', handler)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
@@ -852,478 +1092,510 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         position: 'relative'
       }}
     >
-      {/* Search and Settings Toggle */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          left: 12,
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8
-        }}
-      >
-        <div
-          style={{
-            background: 'rgba(22, 22, 22, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid #2a2a2a',
-            borderRadius: 8,
-            padding: '4px 8px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            width: 220,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
-          }}
-        >
-          <SearchIcon size={13} color="#aaa" style={{ opacity: 0.6 }} />
-          <input
-            type="text"
-            placeholder="Search files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: '#fff',
-              fontSize: 12,
-              width: '100%'
-            }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#888',
-                cursor: 'pointer',
-                fontSize: 10,
-                padding: 2
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
+      {/* Sidebar Toggle Button (if sidebar is closed) */}
+      {!isSettingsOpen && (
         <button
-          onClick={() => setIsSettingsOpen((o) => !o)}
+          onClick={() => setIsSettingsOpen(true)}
           style={{
-            background: isSettingsOpen ? '#7c6af7' : 'rgba(22, 22, 22, 0.85)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid #2a2a2a',
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            zIndex: 100,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
             borderRadius: 8,
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            fontSize: 14,
-            color: '#fff',
-            transition: 'all 0.2s',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+            color: 'var(--text-primary)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            transition: 'all 0.2s ease',
+            backdropFilter: 'blur(8px)'
           }}
-          title="Graph settings"
+          title="Open Graph Settings & Analytics"
         >
-          <SettingsIcon size={15} />
+          <SettingsIcon size={16} />
         </button>
-      </div>
-
-      {/* Settings Panel */}
-      {isSettingsOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 52,
-            left: 12,
-            zIndex: 10,
-            width: 280,
-            background: 'rgba(22, 22, 22, 0.9)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid #2a2a2a',
-            borderRadius: 12,
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-            color: '#fff',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-            maxHeight: 'calc(100% - 80px)',
-            overflowY: 'auto'
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '1px solid #2a2a2a',
-              paddingBottom: 8
-            }}
-          >
-            <span
-              style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: '#a6adc8' }}
-            >
-              GRAPH SETTINGS
-            </span>
-            <button
-              onClick={() => setIsSettingsOpen(false)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#888',
-                cursor: 'pointer',
-                fontSize: 12
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Filters */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#585b70' }}>FILTERS</span>
-
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12,
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={showOrphans}
-                onChange={(e) => setShowOrphans(e.target.checked)}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
-              />
-              <span
-                style={{
-                  display: 'inline-flex',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: GROUP_COLORS.orphan
-                }}
-              />
-              Orphan files
-            </label>
-
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12,
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={showCanvases}
-                onChange={(e) => setShowCanvases(e.target.checked)}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
-              />
-              <span
-                style={{
-                  display: 'inline-flex',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: GROUP_COLORS.canvas
-                }}
-              />
-              Canvases (.canvas)
-            </label>
-
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12,
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={showDaily}
-                onChange={(e) => setShowDaily(e.target.checked)}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
-              />
-              <span
-                style={{
-                  display: 'inline-flex',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: GROUP_COLORS.daily
-                }}
-              />
-              Daily notes
-            </label>
-          </div>
-
-          {/* Physics Forces */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-              borderTop: '1px solid #222',
-              paddingTop: 12
-            }}
-          >
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#585b70' }}>FORCES</span>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                <span style={{ color: '#a6adc8' }}>Link distance</span>
-                <span style={{ color: '#7c6af7', fontWeight: 500 }}>{linkDistance}px</span>
-              </div>
-              <input
-                type="range"
-                min={30}
-                max={200}
-                value={linkDistance}
-                onChange={(e) => setLinkDistance(Number(e.target.value))}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                <span style={{ color: '#a6adc8' }}>Repulsion force</span>
-                <span style={{ color: '#7c6af7', fontWeight: 500 }}>
-                  {Math.abs(repulsionStrength)}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={-300}
-                max={-20}
-                value={repulsionStrength}
-                onChange={(e) => setRepulsionStrength(Number(e.target.value))}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
-              />
-            </div>
-          </div>
-
-          {/* Rendering */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-              borderTop: '1px solid #222',
-              paddingTop: 12
-            }}
-          >
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#585b70' }}>DISPLAY</span>
-
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12,
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={showArrows}
-                onChange={(e) => setShowArrows(e.target.checked)}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer' }}
-              />
-              Link direction arrows
-            </label>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                <span style={{ color: '#a6adc8' }}>Text size</span>
-                <span style={{ color: '#7c6af7', fontWeight: 500 }}>{textSize}px</span>
-              </div>
-              <input
-                type="range"
-                min={8}
-                max={20}
-                value={textSize}
-                onChange={(e) => setTextSize(Number(e.target.value))}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                <span style={{ color: '#a6adc8' }}>Link thickness</span>
-                <span style={{ color: '#7c6af7', fontWeight: 500 }}>{linkThickness}px</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={linkThickness}
-                onChange={(e) => setLinkThickness(Number(e.target.value))}
-                style={{ accentColor: '#7c6af7', cursor: 'pointer', height: 3 }}
-              />
-            </div>
-          </div>
-
-          {/* Color Legend */}
-          <div style={{ borderTop: '1px solid #222', paddingTop: 12 }}>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: '#585b70',
-                display: 'block',
-                marginBottom: 8
-              }}
-            >
-              COLOR LEGEND
-            </span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 11,
-                  color: '#a6adc8'
-                }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: GROUP_COLORS.canvas
-                  }}
-                />
-                <span>Canvases</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 11,
-                  color: '#a6adc8'
-                }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: GROUP_COLORS.project
-                  }}
-                />
-                <span>Projects</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 11,
-                  color: '#a6adc8'
-                }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: GROUP_COLORS.daily
-                  }}
-                />
-                <span>Daily Notes</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 11,
-                  color: '#a6adc8'
-                }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: GROUP_COLORS.connected
-                  }}
-                />
-                <span>Connected</span>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
-      {/* Mode Selector */}
+      {/* Slide-out Glassmorphic Sidebar */}
       <div
         style={{
           position: 'absolute',
           top: 12,
-          right: 12,
-          background: 'rgba(22, 22, 22, 0.85)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid #2a2a2a',
-          borderRadius: 8,
-          padding: 3,
+          bottom: 12,
+          left: 12,
+          width: 320,
+          zIndex: 100,
+          background: 'rgba(20, 20, 26, 0.78)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 12,
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
           display: 'flex',
-          gap: 4,
-          zIndex: 10
+          flexDirection: 'column',
+          overflow: 'hidden',
+          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          transform: isSettingsOpen ? 'translateX(0)' : 'translateX(-340px)',
+          opacity: isSettingsOpen ? 1 : 0,
+          pointerEvents: isSettingsOpen ? 'auto' : 'none'
         }}
       >
-        <button
-          onClick={() => handleToggleMode('live')}
+        {/* Sidebar Header */}
+        <div
           style={{
-            background: viewMode === 'live' ? '#7c6af7' : 'transparent',
-            border: 'none',
-            borderRadius: 6,
-            color: viewMode === 'live' ? '#fff' : '#aaa',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 500,
-            transition: 'all 0.2s'
+            padding: '14px 16px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: 'rgba(0, 0, 0, 0.15)'
           }}
         >
-          Network
-        </button>
-        <button
-          onClick={() => handleToggleMode('history')}
-          style={{
-            background: viewMode === 'history' ? '#7c6af7' : 'transparent',
-            border: 'none',
-            borderRadius: 6,
-            color: viewMode === 'history' ? '#fff' : '#aaa',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 500,
-            transition: 'all 0.2s'
-          }}
-        >
-          History
-        </button>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-primary)', opacity: 0.85 }}>
+            GRAPH ANALYSIS
+          </span>
+          <button
+            onClick={() => setIsSettingsOpen(false)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: 14,
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.15s ease'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Sidebar Tab Navigation */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', flexShrink: 0 }}>
+          <button
+            onClick={() => setActiveSidebarTab('filters')}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              border: 'none',
+              background: activeSidebarTab === 'filters' ? 'rgba(255,255,255,0.03)' : 'transparent',
+              color: activeSidebarTab === 'filters' ? 'var(--accent-color)' : 'var(--text-secondary)',
+              borderBottom: activeSidebarTab === 'filters' ? '2px solid var(--accent-color)' : '2px solid transparent',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Filters & Forces
+          </button>
+          <button
+            onClick={() => setActiveSidebarTab('analytics')}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              border: 'none',
+              background: activeSidebarTab === 'analytics' ? 'rgba(255,255,255,0.03)' : 'transparent',
+              color: activeSidebarTab === 'analytics' ? 'var(--accent-color)' : 'var(--text-secondary)',
+              borderBottom: activeSidebarTab === 'analytics' ? '2px solid var(--accent-color)' : '2px solid transparent',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Insights & Hubs
+          </button>
+        </div>
+
+        {/* Sidebar Scrollable Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {activeSidebarTab === 'filters' ? (
+            <>
+              {/* Search Box */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>SEARCH VAULT</span>
+                <div
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  <SearchIcon size={13} color="var(--text-secondary)" style={{ opacity: 0.6 }} />
+                  <input
+                    type="text"
+                    placeholder="Search note nodes..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: 'var(--text-primary)',
+                      fontSize: 12,
+                      width: '100%'
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        fontSize: 10
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    color: 'var(--text-secondary)',
+                    marginTop: 2
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={strictFilter}
+                    onChange={(e) => setStrictFilter(e.target.checked)}
+                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                  />
+                  Strict Physics Subgraphing
+                </label>
+              </div>
+
+              {/* Force Presets */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>PHYSICS PRESETS</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => {
+                      setLinkDistance(70)
+                      setRepulsionStrength(-80)
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 0',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: linkDistance === 70 && repulsionStrength === -80 ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Default
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLinkDistance(45)
+                      setRepulsionStrength(-220)
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 0',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: linkDistance === 45 && repulsionStrength === -220 ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Dense
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLinkDistance(125)
+                      setRepulsionStrength(-40)
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 0',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: linkDistance === 125 && repulsionStrength === -40 ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Galaxy
+                  </button>
+                </div>
+              </div>
+
+              {/* Interactive Legend Filters */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>INTERACTIVE LEGEND</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[
+                    { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
+                    { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
+                    { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
+                    { key: 'connected', label: 'Connected Notes', color: GROUP_COLORS.connected },
+                    { key: 'orphan', label: 'Orphan Notes', color: GROUP_COLORS.orphan }
+                  ].map((cat) => {
+                    const isDisabled = disabledCategories.has(cat.key)
+                    return (
+                      <button
+                        key={cat.key}
+                        onClick={() => toggleCategory(cat.key)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          background: isDisabled ? 'rgba(255,255,255,0.01)' : 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          cursor: 'pointer',
+                          color: isDisabled ? 'var(--text-secondary)' : 'var(--text-primary)',
+                          opacity: isDisabled ? 0.45 : 1,
+                          textAlign: 'left',
+                          fontSize: 12,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color }} />
+                          <span>{cat.label}</span>
+                        </div>
+                        <span style={{ fontSize: 10, color: isDisabled ? 'var(--text-secondary)' : 'var(--accent-color)', fontWeight: 600 }}>
+                          {isDisabled ? 'HIDDEN' : 'VISIBLE'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Force Sliders */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>PHYSICS FORCES</span>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Link distance</span>
+                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{linkDistance}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={30}
+                    max={200}
+                    value={linkDistance}
+                    onChange={(e) => setLinkDistance(Number(e.target.value))}
+                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Repulsion force</span>
+                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{Math.abs(repulsionStrength)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-300}
+                    max={-20}
+                    value={repulsionStrength}
+                    onChange={(e) => setRepulsionStrength(Number(e.target.value))}
+                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
+                  />
+                </div>
+              </div>
+
+              {/* Display Options */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>DISPLAY SETTINGS</span>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showArrows}
+                    onChange={(e) => setShowArrows(e.target.checked)}
+                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                  />
+                  Link direction arrows
+                </label>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Text size</span>
+                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{textSize}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={8}
+                    max={20}
+                    value={textSize}
+                    onChange={(e) => setTextSize(Number(e.target.value))}
+                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Link thickness</span>
+                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{linkThickness}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    value={linkThickness}
+                    onChange={(e) => setLinkThickness(Number(e.target.value))}
+                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Network Stats Card */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>VAULT NETWORK METRICS</span>
+                <div
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 10,
+                    padding: 14,
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 12
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>TOTAL NOTES</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.totalNodes}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>TOTAL LINKS</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.totalLinks}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>ORPHAN NOTES</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.orphans}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>DENSITY</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.density}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Hubs List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>TOP HUBS (MOST CONNECTED)</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {graphStats.hubs.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', opacity: 0.6, padding: 8 }}>
+                      No connections in network yet.
+                    </div>
+                  ) : (
+                    graphStats.hubs.map((hub, index) => (
+                      <button
+                        key={hub.id}
+                        onClick={() => focusNode(hub.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderRadius: 8,
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255, 255, 255, 0.05)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
+                          e.currentTarget.style.borderColor = 'var(--accent-color)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '80%' }}>
+                          <span style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.06)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 10,
+                            color: 'var(--text-secondary)'
+                          }}>
+                            {index + 1}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: 'var(--text-primary)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {hub.name}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <LinkIcon size={11} color="var(--accent-color)" />
+                          <span style={{ fontSize: 11, color: 'var(--accent-color)', fontWeight: 600 }}>
+                            {hub.degree}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div
@@ -1337,8 +1609,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         <div
           style={{
             height: 60,
-            background: '#111',
-            borderTop: '1px solid #2a2a2a',
+            background: 'rgba(20, 20, 25, 0.8)',
+            backdropFilter: 'blur(12px)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -1346,7 +1619,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             flexShrink: 0
           }}
         >
-          <span style={{ fontSize: 12, color: '#666', minWidth: 136, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
             {formattedDate}
           </span>
           <input
@@ -1358,7 +1631,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               setProgress(Number(e.target.value) / 1000)
               setIsPlaying(false)
             }}
-            style={{ flex: 1, accentColor: '#7c6af7', cursor: 'pointer', height: 4 }}
+            style={{ flex: 1, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
           />
           <button
             onClick={() => {
@@ -1366,7 +1639,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               setIsPlaying((p) => !p)
             }}
             style={{
-              background: '#7c6af7',
+              background: 'var(--accent-color)',
               border: 'none',
               borderRadius: 6,
               color: '#fff',
@@ -1382,9 +1655,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             value={playDuration}
             onChange={(e) => setPlayDuration(Number(e.target.value))}
             style={{
-              background: '#1e1e1e',
-              border: '1px solid #3a3a3a',
-              color: '#aaa',
+              background: 'rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              color: 'var(--text-secondary)',
               borderRadius: 4,
               padding: '4px 6px',
               fontSize: 12,
@@ -1429,10 +1702,10 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               onClick={startRecording}
               title="Record graph animation as WebM video"
               style={{
-                background: '#1e1e1e',
-                border: '1px solid #3a3a3a',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: 6,
-                color: '#ccc',
+                color: 'var(--text-primary)',
                 padding: '5px 14px',
                 cursor: 'pointer',
                 fontSize: 13,
@@ -1444,6 +1717,200 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           )}
         </div>
       )}
+
+
+
+      {/* Floating Legend / Quick Category Filter (Bottom-Center) */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: viewMode === 'history' ? 80 : 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(20, 20, 26, 0.85)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 8,
+          padding: '6px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          zIndex: 20,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', marginRight: 4 }}>
+          QUICK FILTERS:
+        </span>
+        {([
+          { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
+          { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
+          { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
+          { key: 'connected', label: 'Connected', color: GROUP_COLORS.connected },
+          { key: 'orphan', label: 'Orphans', color: GROUP_COLORS.orphan }
+        ] as const).map((cat) => {
+          const isDisabled = disabledCategories.has(cat.key)
+          return (
+            <button
+              key={cat.key}
+              onClick={() => toggleCategory(cat.key)}
+              style={{
+                background: isDisabled ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.08)',
+                border: 'none',
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                opacity: isDisabled ? 0.4 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!isDisabled) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'
+              }}
+              onMouseLeave={(e) => {
+                if (!isDisabled) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color }} />
+              <span style={{ fontSize: 11, color: 'var(--text-primary)', textDecoration: isDisabled ? 'line-through' : 'none' }}>
+                {cat.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Floating Navigation & Physics Controls HUD (Bottom-Right) */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: viewMode === 'history' ? 80 : 24,
+          right: 24,
+          background: 'rgba(20, 20, 26, 0.85)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 8,
+          padding: '6px 8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          zIndex: 20,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)'
+        }}
+      >
+        <button
+          onClick={handleZoomIn}
+          title="Zoom In"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+            e.currentTarget.style.color = 'var(--accent-color)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <span style={{ fontSize: 14, fontWeight: 'bold' }}>＋</span>
+        </button>
+        <button
+          onClick={handleZoomOut}
+          title="Zoom Out"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+            e.currentTarget.style.color = 'var(--accent-color)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <span style={{ fontSize: 14, fontWeight: 'bold' }}>－</span>
+        </button>
+        <button
+          onClick={handleRecenter}
+          title="Recenter & Fit View"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+            e.currentTarget.style.color = 'var(--accent-color)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <span style={{ fontSize: 14 }}>⊙</span>
+        </button>
+        
+        <div style={{ width: 1, height: 14, background: 'rgba(255, 255, 255, 0.12)' }} />
+
+        <button
+          onClick={handleTogglePhysics}
+          title={isPhysicsRunning ? "Pause Physics Simulation" : "Resume Physics Simulation"}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: isPhysicsRunning ? 'var(--accent-color)' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+          }}
+        >
+          <span style={{ fontSize: 12 }}>{isPhysicsRunning ? '⏸' : '▶'}</span>
+        </button>
+      </div>
 
       {hoveredNode && (
         <div
@@ -1462,7 +1929,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             pointerEvents: 'none',
             zIndex: 1000,
             width: 250,
-            background: 'rgba(25, 25, 35, 0.85)',
+            background: 'rgba(20, 20, 26, 0.85)',
             backdropFilter: 'blur(12px)',
             borderRadius: 8,
             border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -1486,7 +1953,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           <div
             style={{
               fontSize: 11,
-              color: '#aaa',
+              color: 'var(--text-secondary)',
               lineHeight: '1.4em',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word'

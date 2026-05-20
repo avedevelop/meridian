@@ -1,7 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { SearchIcon, FileIcon } from './Icons'
+import { SearchIcon, FileIcon, FolderIcon } from './Icons'
 import { useLinkStore } from '../store/useLinkStore'
 import { useVaultBridge } from '../hooks/useVaultBridge'
+import { useVaultStore } from '../store/useVaultStore'
+
+const PlusIcon = ({ size = 14, color = 'currentColor', ...props }: { size?: number; color?: string; [key: string]: any }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+)
+
+const CalendarIcon = ({ size = 14, color = 'currentColor', ...props }: { size?: number; color?: string; [key: string]: any }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+)
+
+const CanvasIcon = ({ size = 14, color = 'currentColor', ...props }: { size?: number; color?: string; [key: string]: any }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </svg>
+)
+
+const GraphIcon = ({ size = 14, color = 'currentColor', ...props }: { size?: number; color?: string; [key: string]: any }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+  </svg>
+)
 
 const SidebarLeftIcon = ({ active }: { active: boolean }) => (
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -28,6 +63,8 @@ interface LayoutProps {
   setSidebarCollapsed: (c: boolean) => void
   rightPanelCollapsed: boolean
   setRightPanelCollapsed: (c: boolean) => void
+  activeSidebarTab?: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
+  onSidebarTabChange?: (tab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git') => void
 }
 
 function HeaderSearch() {
@@ -237,8 +274,58 @@ export function Layout({
   sidebarCollapsed,
   setSidebarCollapsed,
   rightPanelCollapsed,
-  setRightPanelCollapsed
+  setRightPanelCollapsed,
+  onSidebarTabChange,
+  activeSidebarTab
 }: LayoutProps) {
+  const { createFile, createCanvas, openDailyNote } = useVaultBridge()
+  const vault = useVaultStore((s) => s.vault)
+  const activeTabPath = useVaultStore((s) => s.activeTabPath)
+  const vaultName = vault?.name ?? 'No Vault'
+
+  // Get filename and relative folder path
+  const filename = activeTabPath ? activeTabPath.split(/[/\\]/).pop()?.replace(/\.md$/, '') : null
+  const folderPath = activeTabPath && activeTabPath.split(/[/\\]/).length > 1
+    ? activeTabPath.split(/[/\\]/).slice(0, -1).filter(Boolean).pop()
+    : null
+
+  // When graph tab is active, expand sidebar to full width and hide editor
+  const isGraphFullscreen = activeSidebarTab === 'graph' && !sidebarCollapsed
+
+  const renderQuickAction = (icon: React.ReactNode, title: string, onClick: () => void) => {
+    return (
+      <button
+        onClick={onClick}
+        title={title}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--text-secondary)',
+          cursor: 'pointer',
+          width: 24,
+          height: 24,
+          borderRadius: 4,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.15s',
+          // @ts-ignore
+          WebkitAppRegion: 'no-drag'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--bg-surface)'
+          e.currentTarget.style.color = 'var(--accent-color)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.color = 'var(--text-secondary)'
+        }}
+      >
+        {icon}
+      </button>
+    )
+  }
+
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('layout-sidebar-width')
     return saved ? Math.max(180, parseInt(saved, 10)) : 220
@@ -345,10 +432,10 @@ export function Layout({
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
+          paddingLeft: 76,
           paddingRight: 12,
           boxSizing: 'border-box',
-          gap: 12,
           position: 'relative',
           // @ts-ignore
           WebkitAppRegion: 'drag'
@@ -356,97 +443,159 @@ export function Layout({
       >
         <HeaderSearch />
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', WebkitAppRegion: 'no-drag' } as any}>
-          {/* Left Sidebar Toggle Button */}
-          <button
-            onClick={() => {
-              const next = !sidebarCollapsed
-              setSidebarCollapsed(next)
-              localStorage.setItem('layout-sidebar-collapsed', String(next))
-            }}
-            title="Toggle Primary Side Bar (⌘B)"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: sidebarCollapsed ? 'var(--text-secondary)' : 'var(--accent-color)',
-              cursor: 'pointer',
-              padding: 4,
-              borderRadius: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-surface)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-            }}
-          >
-            <SidebarLeftIcon active={!sidebarCollapsed} />
-          </button>
-
-          {/* Right Sidebar Toggle Button */}
-          <button
-            onClick={() => {
-              const next = !rightPanelCollapsed
-              setRightPanelCollapsed(next)
-              localStorage.setItem('layout-right-collapsed', String(next))
-            }}
-            title="Toggle Secondary Side Bar (⌘⌥B)"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: rightPanelCollapsed ? 'var(--text-secondary)' : 'var(--accent-color)',
-              cursor: 'pointer',
-              padding: 4,
-              borderRadius: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-surface)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-            }}
-          >
-            <SidebarRightIcon active={!rightPanelCollapsed} />
-          </button>
+        {/* Left Section: Vault Name / Breadcrumbs */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            color: 'var(--text-secondary)',
+            WebkitAppRegion: 'no-drag',
+            userSelect: 'none',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: '30%'
+          } as any}
+        >
+          <FolderIcon size={13} color="var(--accent-color)" />
+          <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{vaultName}</span>
+          {filename && (
+            <>
+              <span style={{ opacity: 0.4 }}>/</span>
+              {folderPath && (
+                <>
+                  <span style={{ opacity: 0.7 }}>{folderPath}</span>
+                  <span style={{ opacity: 0.4 }}>/</span>
+                </>
+              )}
+              <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{filename}</span>
+            </>
+          )}
         </div>
 
-        <div style={{ width: 1, height: 14, background: 'var(--border-color)', WebkitAppRegion: 'no-drag' } as any} />
-
-        <button
-          onClick={handleResetLayout}
+        {/* Right Section: Actions & Window Controls */}
+        <div
           style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: 11,
-            fontFamily:
-              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-            cursor: 'pointer',
-            padding: '2px 8px',
-            borderRadius: 4,
-            transition: 'all 0.15s',
-            // @ts-ignore
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
             WebkitAppRegion: 'no-drag'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--bg-surface)'
-            e.currentTarget.style.color = 'var(--text-primary)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'var(--text-secondary)'
-          }}
+          } as any}
         >
-          Reset Layout
-        </button>
+          {/* Quick Actions Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {renderQuickAction(<PlusIcon size={14} />, "Create New Note", () => {
+              if (vault) createFile(vault.path, `Untitled ${Date.now()}.md`)
+            })}
+            {renderQuickAction(<CanvasIcon size={13} />, "Create New Canvas", () => {
+              if (vault) createCanvas(vault.path, `Untitled ${Date.now()}.canvas`)
+            })}
+            {renderQuickAction(<CalendarIcon size={13} />, "Open Today's Daily Note", () => {
+              openDailyNote()
+            })}
+            {renderQuickAction(<GraphIcon size={13} />, "Quick Graph View", () => {
+              if (onSidebarTabChange) {
+                onSidebarTabChange('graph')
+                setSidebarCollapsed(false)
+                localStorage.setItem('layout-sidebar-collapsed', 'false')
+              }
+            })}
+          </div>
+
+          <div style={{ width: 1, height: 14, background: 'var(--border-color)' }} />
+
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {/* Left Sidebar Toggle Button */}
+            <button
+              onClick={() => {
+                const next = !sidebarCollapsed
+                setSidebarCollapsed(next)
+                localStorage.setItem('layout-sidebar-collapsed', String(next))
+              }}
+              title="Toggle Primary Side Bar (⌘B)"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: sidebarCollapsed ? 'var(--text-secondary)' : 'var(--accent-color)',
+                cursor: 'pointer',
+                padding: 4,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--bg-surface)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              <SidebarLeftIcon active={!sidebarCollapsed} />
+            </button>
+
+            {/* Right Sidebar Toggle Button */}
+            <button
+              onClick={() => {
+                const next = !rightPanelCollapsed
+                setRightPanelCollapsed(next)
+                localStorage.setItem('layout-right-collapsed', String(next))
+              }}
+              title="Toggle Secondary Side Bar (⌘⌥B)"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: rightPanelCollapsed ? 'var(--text-secondary)' : 'var(--accent-color)',
+                cursor: 'pointer',
+                padding: 4,
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--bg-surface)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              <SidebarRightIcon active={!rightPanelCollapsed} />
+            </button>
+          </div>
+
+          <div style={{ width: 1, height: 14, background: 'var(--border-color)' }} />
+
+          <button
+            onClick={handleResetLayout}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              fontSize: 11,
+              fontFamily:
+                "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+              cursor: 'pointer',
+              padding: '2px 8px',
+              borderRadius: 4,
+              transition: 'all 0.15s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-surface)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'var(--text-secondary)'
+            }}
+          >
+            Reset Layout
+          </button>
+        </div>
       </div>
 
       {/* Content row: activity bar + sidebar + resizer + editor + resizer + right panel */}
@@ -462,10 +611,11 @@ export function Layout({
         {activityBar}
         <div
           style={{
-            width: sidebarCollapsed ? 0 : sidebarWidth,
-            flexShrink: 0,
+            width: isGraphFullscreen ? '100%' : (sidebarCollapsed ? 0 : sidebarWidth),
+            flex: isGraphFullscreen ? 1 : undefined,
+            flexShrink: isGraphFullscreen ? undefined : 0,
             background: 'var(--bg-secondary)',
-            display: sidebarCollapsed ? 'none' : 'flex',
+            display: sidebarCollapsed && !isGraphFullscreen ? 'none' : 'flex',
             flexDirection: 'column'
           }}
         >
@@ -473,7 +623,7 @@ export function Layout({
         </div>
 
         {/* Sidebar Resizer */}
-        {!sidebarCollapsed && (
+        {!sidebarCollapsed && !isGraphFullscreen && (
           <div
             onMouseDown={handleSidebarMouseDown}
             onDoubleClick={() => {
@@ -517,9 +667,11 @@ export function Layout({
           </div>
         )}
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {editor}
-        </div>
+        {!isGraphFullscreen && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {editor}
+          </div>
+        )}
 
         {/* Right Panel Resizer */}
         {!rightPanelCollapsed && (

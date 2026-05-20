@@ -4,6 +4,21 @@ import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 
+const GROUP_COLORS = {
+  canvas: '#10b981',
+  project: '#f59e0b',
+  daily: '#ec4899',
+  connected: '#7c6af7',
+  orphan: '#64748b'
+}
+
+function getNodeGroup(path: string, name: string): keyof typeof GROUP_COLORS {
+  if (path.endsWith('.canvas')) return 'canvas'
+  if (path.includes('/Projects/') || path.includes('\\Projects\\')) return 'project'
+  if (name.match(/^\d{4}-\d{2}-\d{2}$/)) return 'daily'
+  return 'connected'
+}
+
 interface LocalNode extends d3.SimulationNodeDatum {
   id: string
   name: string
@@ -181,10 +196,10 @@ export function LocalGraphView() {
     // Circle representation
     node
       .append('circle')
-      .attr('r', (d) => (d.isCenter ? 9 : 6))
-      .attr('fill', (d) => (d.isCenter ? '#fff' : '#38bdf8'))
-      .attr('stroke', (d) => (d.isCenter ? 'var(--accent-color)' : 'var(--bg-secondary)'))
-      .attr('stroke-width', (d) => (d.isCenter ? 3.5 : 1.5))
+      .attr('r', (d) => (d.isCenter ? 10 : 6.5))
+      .attr('fill', (d) => (d.isCenter ? 'var(--accent-color)' : GROUP_COLORS[getNodeGroup(d.id, d.name)]))
+      .attr('stroke', (d) => (d.isCenter ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)'))
+      .attr('stroke-width', (d) => (d.isCenter ? 2.5 : 1.2))
 
     // Labels
     node

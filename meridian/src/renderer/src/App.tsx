@@ -368,6 +368,8 @@ export default function App() {
         setSidebarCollapsed={setSidebarCollapsed}
         rightPanelCollapsed={rightPanelCollapsed}
         setRightPanelCollapsed={setRightPanelCollapsed}
+        activeSidebarTab={activeSidebarTab}
+        onSidebarTabChange={handleTabChange}
         activityBar={
           <ActivityBar
             activeTab={activeSidebarTab}
