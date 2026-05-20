@@ -38,6 +38,9 @@ export function TabBar({ paneId }: TabBarProps) {
   const [hoveredDragIndex, setHoveredDragIndex] = useState<number | null>(null)
   const [isDraggingActive, setIsDraggingActive] = useState<boolean>(false)
 
+  // Scrollable tabs container ref (for wheel-based horizontal scroll)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
   // FLIP animation refs
   const tabRefs = useRef<{ [path: string]: HTMLDivElement | null }>({})
   const oldLeftsRef = useRef<{ [path: string]: number }>({})
@@ -215,8 +218,16 @@ export function TabBar({ paneId }: TabBarProps) {
       <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
       {/* Scrollable tabs — paddingBottom pushes scrollbar outside the clip boundary */}
       <div
+        ref={scrollRef}
         onDragOver={handleContainerDragOver}
         onDrop={handleDrop}
+        onWheel={e => {
+          // Convert vertical wheel to horizontal scroll so mouse users can scroll tabs
+          if (scrollRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.preventDefault()
+            scrollRef.current.scrollLeft += e.deltaY
+          }
+        }}
         style={{
           display: 'flex',
           flexWrap: 'nowrap',
