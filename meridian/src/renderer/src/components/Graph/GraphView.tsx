@@ -1616,6 +1616,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             alignItems: 'center',
             gap: 12,
             padding: '0 16px',
+            paddingLeft: isSettingsOpen ? 348 : 16,
+            transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
         >
