@@ -198,28 +198,35 @@ export function TabBar({ paneId }: TabBarProps) {
   return (
     <div
       className={`custom-tab-bar ${isActivePane ? 'active' : ''}`}
-      onDragOver={handleContainerDragOver}
-      onDrop={handleDrop}
-      onClick={() => {
-        if (!isActivePane) setActivePane(paneId)
-      }}
+      onClick={() => { if (!isActivePane) setActivePane(paneId) }}
       style={{
         display: 'flex',
         flexDirection: 'row',
-        flexWrap: 'nowrap',
         alignItems: 'center',
         background: 'var(--bg-secondary)',
         borderBottom: `1px solid ${isActivePane ? 'var(--accent-color)' : 'var(--border-color)'}`,
         height: 36,
-        overflowX: 'auto',
-        overflowY: 'hidden',
         flexShrink: 0,
-        padding: '0 8px',
-        gap: '4px',
         cursor: 'default',
-        transition: 'border-bottom-color 0.2s ease'
+        transition: 'border-bottom-color 0.2s ease',
       }}
     >
+      {/* Scrollable tabs area only */}
+      <div
+        onDragOver={handleContainerDragOver}
+        onDrop={handleDrop}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexWrap: 'nowrap',
+          alignItems: 'center',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          padding: '0 4px 0 8px',
+          gap: '4px',
+          minWidth: 0,
+        }}
+      >
       {openTabs.map((tab, i) => {
         const isActive = tab.path === activeTabPath
         const isDragged = activeDragIndex === i
@@ -343,9 +350,10 @@ export function TabBar({ paneId }: TabBarProps) {
           </div>
         )
       })}
+      </div>{/* end scrollable tabs */}
 
-      {/* Pane management actions */}
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, paddingRight: 4, flexShrink: 0 }}>
+      {/* Pane management actions — fixed, never scrolls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 6px', flexShrink: 0, borderLeft: '1px solid var(--border-color)' }}>
         <button
           onClick={() => splitPane(paneId, 'vertical')}
           title="Split Vertically"

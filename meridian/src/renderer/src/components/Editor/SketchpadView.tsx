@@ -166,57 +166,78 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
   }
 
   const ERASER_RADIUS = 18
+  const STEP = 3 // px between discretization points
 
-  // Check if eraser touches a non-pencil shape (erase the whole shape)
-  const hitTestShape = (el: DrawingElement, x: number, y: number): boolean => {
+  // Convert any shape to a series of outline points for partial erase
+  const discretize = (el: DrawingElement): [number, number][] | null => {
+    if (el.type === 'pencil') return (el.points as [number, number][]) ?? null
+    if (el.type === 'line' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
+      const n = Math.max(2, Math.ceil(Math.hypot(el.w - el.x, el.h - el.y) / STEP))
+      return Array.from({ length: n + 1 }, (_, i) => [
+        el.x! + (el.w! - el.x!) * i / n, el.y! + (el.h! - el.y!) * i / n,
+      ] as [number, number])
+    }
     if (el.type === 'rectangle' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
-      return x >= Math.min(el.x, el.x + el.w) - ERASER_RADIUS
-          && x <= Math.max(el.x, el.x + el.w) + ERASER_RADIUS
-          && y >= Math.min(el.y, el.y + el.h) - ERASER_RADIUS
-          && y <= Math.max(el.y, el.y + el.h) + ERASER_RADIUS
+      const x1 = el.x, y1 = el.y, x2 = el.x + el.w, y2 = el.y + el.h
+      const wn = Math.max(2, Math.ceil(Math.abs(el.w) / STEP))
+      const hn = Math.max(2, Math.ceil(Math.abs(el.h) / STEP))
+      const pts: [number, number][] = []
+      for (let i = 0; i <= wn; i++) pts.push([x1 + (x2 - x1) * i / wn, y1])
+      for (let i = 1; i <= hn; i++) pts.push([x2, y1 + (y2 - y1) * i / hn])
+      for (let i = wn - 1; i >= 0; i--) pts.push([x1 + (x2 - x1) * i / wn, y2])
+      for (let i = hn - 1; i > 0; i--) pts.push([x1, y1 + (y2 - y1) * i / hn])
+      return pts
     }
     if (el.type === 'circle' && el.x !== undefined && el.y !== undefined && el.w !== undefined) {
-      return Math.hypot(x - el.x, y - el.y) <= el.w + ERASER_RADIUS
+      const n = Math.max(16, Math.ceil(2 * Math.PI * el.w / STEP))
+      return Array.from({ length: n }, (_, i) => {
+        const a = (2 * Math.PI * i) / n
+        return [el.x! + el.w! * Math.cos(a), el.y! + el.w! * Math.sin(a)] as [number, number]
+      })
     }
-    if (el.type === 'line' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
-      const dx = el.w - el.x; const dy = el.h - el.y
-      const len2 = dx * dx + dy * dy
-      if (len2 === 0) return Math.hypot(x - el.x, y - el.y) < ERASER_RADIUS
-      const t = Math.max(0, Math.min(1, ((x - el.x) * dx + (y - el.y) * dy) / len2))
-      return Math.hypot(x - el.x - t * dx, y - el.y - t * dy) < ERASER_RADIUS
-    }
-    if (el.type === 'text' && el.x !== undefined && el.y !== undefined) {
-      return Math.abs(x - el.x) < 60 && Math.abs(y - el.y) < 20
-    }
-    return false
+    return null
   }
 
-  // Apply eraser at (x, y): pencil strokes split into segments, shapes erased whole
+  // Split point array at eraser position → contiguous segments outside the eraser
+  const splitSegments = (pts: [number, number][], x: number, y: number): [number, number][][] => {
+    const segs: [number, number][][] = []
+    let seg: [number, number][] = []
+    for (const pt of pts) {
+      if (Math.hypot(x - pt[0], y - pt[1]) < ERASER_RADIUS) {
+        if (seg.length >= 2) segs.push(seg)
+        seg = []
+      } else {
+        seg.push(pt)
+      }
+    }
+    if (seg.length >= 2) segs.push(seg)
+    return segs
+  }
+
+  // Apply eraser: ALL types get partially erased via discretize → split
   const applyEraserAt = (elements: DrawingElement[], x: number, y: number): DrawingElement[] => {
     const result: DrawingElement[] = []
     for (const el of elements) {
-      if (el.type === 'pencil' && el.points) {
-        // Split stroke into contiguous segments not touching the eraser
-        const segments: [number, number][][] = []
-        let seg: [number, number][] = []
-        for (const pt of el.points as [number, number][]) {
-          if (Math.hypot(x - pt[0], y - pt[1]) < ERASER_RADIUS) {
-            if (seg.length >= 2) segments.push(seg)
-            seg = []
-          } else {
-            seg.push(pt)
-          }
-        }
-        if (seg.length >= 2) segments.push(seg)
-        segments.forEach((s, i) => result.push({
-          ...el,
-          id: i === 0 ? el.id : `${el.id}-${i}-${Date.now()}`,
-          points: s,
-        }))
-        // stroke with 0-1 points is dropped
-      } else {
-        if (!hitTestShape(el, x, y)) result.push(el)
+      if (el.type === 'text') {
+        // Text erased whole on contact
+        if (!(el.x !== undefined && el.y !== undefined && Math.abs(x - el.x) < 60 && Math.abs(y - el.y) < 20))
+          result.push(el)
+        continue
       }
+      const pts = discretize(el)
+      if (!pts) { result.push(el); continue }
+      if (!pts.some(([px, py]) => Math.hypot(x - px, y - py) < ERASER_RADIUS)) {
+        result.push(el); continue
+      }
+      // Convert remaining segments to pencil strokes
+      splitSegments(pts, x, y).forEach((s, i) => result.push({
+        id: i === 0 ? el.id : `${el.id}-${i}-${Date.now()}`,
+        type: 'pencil',
+        points: s,
+        stroke: el.stroke,
+        fill: 'none',
+        strokeWidth: el.strokeWidth,
+      }))
     }
     return result
   }
