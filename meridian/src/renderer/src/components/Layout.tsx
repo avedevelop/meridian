@@ -100,9 +100,9 @@ function HeaderSearch() {
       style={{
         position: 'absolute',
         left: '50%',
-        top: 3,
+        top: 5,
         transform: 'translateX(-50%)',
-        width: 320,
+        width: 420,
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
@@ -116,16 +116,16 @@ function HeaderSearch() {
           alignItems: 'center',
           background: 'var(--bg-surface)',
           border: focused ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
-          borderRadius: 4,
-          height: 20,
-          padding: '0 8px',
+          borderRadius: 6,
+          height: 28,
+          padding: '0 10px',
           transition: 'border-color 0.15s, box-shadow 0.15s',
           boxShadow: focused ? '0 0 0 2px var(--accent-glow)' : 'none',
           cursor: 'text'
         }}
         onClick={() => inputRef.current?.focus()}
       >
-        <SearchIcon size={11} color="var(--text-secondary)" style={{ marginRight: 6, flexShrink: 0 }} />
+        <SearchIcon size={14} color="var(--text-secondary)" style={{ marginRight: 8, flexShrink: 0 }} />
         <input
           ref={inputRef}
           value={query}
@@ -139,7 +139,7 @@ function HeaderSearch() {
             border: 'none',
             outline: 'none',
             color: 'var(--text-primary)',
-            fontSize: 11,
+            fontSize: 13,
             height: '100%',
             padding: 0
           }}
@@ -158,7 +158,7 @@ function HeaderSearch() {
               border: 'none',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              fontSize: 9,
+              fontSize: 11,
               padding: '0 4px',
               display: 'flex',
               alignItems: 'center'
@@ -172,7 +172,7 @@ function HeaderSearch() {
       {focused && query && (
         <div
           style={{
-            marginTop: 6,
+            marginTop: 8,
             background: 'var(--bg-secondary)',
             backdropFilter: 'blur(10px)',
             border: '1px solid var(--border-color)',
@@ -339,7 +339,7 @@ export function Layout({
       {/* Single full-width title bar — no seam */}
       <div
         style={{
-          height: 28,
+          height: 38,
           background: 'var(--bg-secondary)',
           borderBottom: '1px solid var(--border-color)',
           flexShrink: 0,
