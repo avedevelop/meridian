@@ -414,7 +414,7 @@ export function GitPanel() {
                     key={change.path}
                     onClick={() => {
                       if (!isDeleted) {
-                        openTab(change.path, name)
+                        openTab('git-diff://' + change.path, 'Diff: ' + name)
                       }
                     }}
                     style={{

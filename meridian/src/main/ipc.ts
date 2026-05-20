@@ -501,6 +501,26 @@ export function registerIpcHandlers(settings: AppSettings): void {
       return { success: false, error: errorMsg }
     }
   })
+
+  ipcMain.handle(IPC.GIT_SHOW_HEAD, async (_event, relativePath: string) => {
+    if (!vaultManager) throw new Error('No vault open')
+    const cwd = vaultManager.vaultPath
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    try {
+      const normalizedPath = relativePath.replace(/\\/g, '/')
+      const { stdout } = await execFileAsync(
+        'git',
+        ['show', `HEAD:${normalizedPath}`],
+        { cwd }
+      )
+      return { success: true, content: stdout }
+    } catch (e: any) {
+      return { success: true, content: '' }
+    }
+  })
 }
 
 export function getVaultManager(): VaultManager | null {

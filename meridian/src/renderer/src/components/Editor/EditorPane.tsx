@@ -12,6 +12,7 @@ import { Breadcrumb } from './Breadcrumb'
 import { useEditorStore } from '../../store/useEditorStore'
 import { CanvasView } from '../Canvas/CanvasView'
 import { SketchpadView } from './SketchpadView'
+import { DiffPane } from './DiffPane'
 
 function flattenVaultFiles(
   files: import('@shared/types').VaultFile[]
@@ -321,6 +322,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
 
   const isCanvasFile = activeTabPath?.endsWith('.canvas') ?? false
   const isDrawingFile = activeTabPath?.endsWith('.excalidraw') ?? false
+  const isDiffFile = activeTabPath?.startsWith('git-diff://') ?? false
+  const actualPath = isDiffFile ? activeTabPath!.slice('git-diff://'.length) : activeTabPath
 
   const handleChange = useCallback(
     (content: string) => {
@@ -426,8 +429,13 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     () =>
       flattenVaultFiles(vaultFiles)
         .filter((f) => !f.isDirectory && f.name.endsWith('.md'))
-        .map((f) => f.name),
-    [vaultFiles]
+        .map((f) => {
+          if (vault && f.path.startsWith(vault.path)) {
+            return f.path.slice(vault.path.length).replace(/^\/+/, '')
+          }
+          return f.name
+        }),
+    [vaultFiles, vault]
   )
   const stableGetFileNames = useCallback(() => fileNamesRef.current, [])
 
@@ -445,7 +453,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
 
   // CodeMirror Initialization
   useEffect(() => {
-    if (!editorRef.current || isCanvasFile || isDrawingFile) return
+    if (!editorRef.current || isCanvasFile || isDrawingFile || isDiffFile) return
 
     const view = new EditorView({
       state: EditorState.create({
@@ -516,12 +524,13 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     pluginsEnabled,
     isCanvasFile,
     isDrawingFile,
+    isDiffFile,
     isActive
   ])
 
   // Sync content programmatically
   useEffect(() => {
-    if (isCanvasFile || isDrawingFile) return
+    if (isCanvasFile || isDrawingFile || isDiffFile) return
     const view = viewRef.current
     if (!view || !activeTab) return
     const current = view.state.doc.toString()
@@ -532,7 +541,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
       })
       isProgrammaticUpdate.current = false
     }
-  }, [activeTab?.content, isCanvasFile, isDrawingFile])
+  }, [activeTab?.content, isCanvasFile, isDrawingFile, isDiffFile])
 
   // Show empty pane placeholder
   if (openTabs.length === 0) {
@@ -579,7 +588,9 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     >
       <TabBar paneId={paneId} />
       <Breadcrumb paneId={paneId} />
-      {isCanvasFile && activeTab ? (
+      {isDiffFile && activeTab ? (
+        <DiffPane filePath={actualPath!} fileName={activeTab.name} />
+      ) : isCanvasFile && activeTab ? (
         <CanvasView
           filePath={activeTab.path}
           content={activeTab.content}

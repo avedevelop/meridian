@@ -55,6 +55,7 @@ export const IPC = {
   GIT_SYNC: 'git:sync',
   GIT_INIT: 'git:init',
   GIT_LOG: 'git:log',
+  GIT_SHOW_HEAD: 'git:show-head',
   PREFERENCES_GET: 'preferences:get',
   PREFERENCES_SET: 'preferences:set'
 } as const

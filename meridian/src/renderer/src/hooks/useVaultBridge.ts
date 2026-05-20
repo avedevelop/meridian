@@ -46,6 +46,7 @@ declare global {
           subject: string
         }[]
       }>
+      gitShowHead: (relativePath: string) => Promise<{ success: boolean; content: string }>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>

@@ -68,6 +68,9 @@ const vaultAPI = {
   gitLog: (): Promise<{ success: boolean; error?: string; commits?: any[] }> =>
     ipcRenderer.invoke(IPC.GIT_LOG),
 
+  gitShowHead: (relativePath: string): Promise<{ success: boolean; content: string }> =>
+    ipcRenderer.invoke(IPC.GIT_SHOW_HEAD, relativePath),
+
   onFileChanged: (callback: (event: VaultFileChangeEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, change: VaultFileChangeEvent) =>
       callback(change)
