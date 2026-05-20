@@ -10,8 +10,8 @@ import rehypeStringify from 'rehype-stringify'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
 import { flattenVaultFiles } from './markdownUtils'
-import { applyPreprocessors, applyPostprocessors } from '../../../lib/markdownCore'
-import '../../../lib/markdownCore'
+import { applyPreprocessors, applyPostprocessors } from '../../lib/markdownCore'
+import '../../lib/markdownCore'
 
 // Allow custom elements (div, mark, span) and style/class attrs for callouts + highlights
 const sanitizeSchema = {
