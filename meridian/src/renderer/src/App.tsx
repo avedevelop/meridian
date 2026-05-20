@@ -303,9 +303,12 @@ export default function App() {
     [allFiles, indexVersion]
   )
 
-  const handleFileSelect = useCallback(
+  const [recentPaths, setRecentPaths] = useState<string[]>([])
+
+  const handlePaletteFileSelect = useCallback(
     (path: string, name: string) => {
       openFile(path, name)
+      setRecentPaths((prev) => [path, ...prev.filter((p) => p !== path)].slice(0, 8))
     },
     [openFile]
   )
@@ -337,7 +340,8 @@ export default function App() {
         isOpen={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         files={paletteFiles}
-        onFileSelect={handleFileSelect}
+        recentPaths={recentPaths}
+        onFileSelect={handlePaletteFileSelect}
         commands={[
           {
             id: 'insert-template',

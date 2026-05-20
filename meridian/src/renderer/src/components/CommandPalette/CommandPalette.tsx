@@ -19,9 +19,10 @@ interface CommandPaletteProps {
   files: FileItem[]
   onFileSelect: (path: string, name: string) => void
   commands?: CommandItem[]
+  recentPaths?: string[]
 }
 
-export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands = [] }: CommandPaletteProps) {
+export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands = [], recentPaths = [] }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -43,13 +44,26 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
     return commands.filter((c) => c.label.toLowerCase().includes(cleanQuery))
   }, [isCommandMode, cleanQuery, commands])
 
+  const recentFiles = useMemo(() => {
+    if (isCommandMode || query.trim()) return []
+    return recentPaths
+      .map((path) => files.find((f) => f.path === path))
+      .filter((f): f is FileItem => f !== undefined)
+      .slice(0, 5)
+  }, [isCommandMode, query, recentPaths, files])
+
   const filteredFiles = useMemo(() => {
     if (isCommandMode) return []
-    if (!query.trim()) return files.slice(0, 10)
-    return files.filter((f) => f.name.toLowerCase().replace(/\.md$/, '').includes(cleanQuery)).slice(0, 10)
-  }, [isCommandMode, query, cleanQuery, files])
+    if (!query.trim()) {
+      const recentSet = new Set(recentPaths)
+      return files.filter((f) => !recentSet.has(f.path)).slice(0, 8)
+    }
+    return files
+      .filter((f) => f.name.toLowerCase().replace(/\.md$/, '').includes(cleanQuery))
+      .slice(0, 10)
+  }, [isCommandMode, query, cleanQuery, files, recentPaths])
 
-  const items = isCommandMode ? filteredCommands : filteredFiles
+  const items = isCommandMode ? filteredCommands : [...recentFiles, ...filteredFiles]
 
   if (!isOpen) return null
 
@@ -62,7 +76,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
         const cmd = filteredCommands[activeIndex]
         if (cmd) { cmd.onSelect(); onClose() }
       } else {
-        const f = filteredFiles[activeIndex] as FileItem | undefined
+        const f = items[activeIndex] as FileItem | undefined
         if (f) { onFileSelect(f.path, f.name); onClose() }
       }
     }
@@ -97,40 +111,109 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
           }}
         />
         <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-          {items.length === 0 ? (
-            <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>No results</div>
-          ) : isCommandMode ? (
-            filteredCommands.map((cmd, i) => (
-              <div
-                key={cmd.id}
-                onClick={() => { cmd.onSelect(); onClose() }}
-                style={{
-                  padding: '10px 16px', cursor: 'pointer', fontSize: 14,
-                  color: i === activeIndex ? '#fff' : '#aaa',
-                  background: i === activeIndex ? '#2a2a3a' : 'transparent',
-                  display: 'flex', alignItems: 'center', gap: 10
-                }}
-              >
-                <span style={{ fontSize: 16 }}>{cmd.icon ?? '⚡'}</span>
-                <span>{cmd.label}</span>
-              </div>
-            ))
+          {isCommandMode ? (
+            filteredCommands.length === 0 ? (
+              <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>No results</div>
+            ) : (
+              filteredCommands.map((cmd, i) => (
+                <div
+                  key={cmd.id}
+                  onClick={() => { cmd.onSelect(); onClose() }}
+                  style={{
+                    padding: '10px 16px', cursor: 'pointer', fontSize: 14,
+                    color: i === activeIndex ? '#fff' : '#aaa',
+                    background: i === activeIndex ? '#2a2a3a' : 'transparent',
+                    display: 'flex', alignItems: 'center', gap: 10
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{cmd.icon ?? '⚡'}</span>
+                  <span>{cmd.label}</span>
+                </div>
+              ))
+            )
           ) : (
-            filteredFiles.map((f, i) => (
-              <div
-                key={f.path}
-                onClick={() => { onFileSelect(f.path, f.name); onClose() }}
-                style={{
-                  padding: '10px 16px', cursor: 'pointer', fontSize: 14,
-                  color: i === activeIndex ? '#fff' : '#aaa',
-                  background: i === activeIndex ? '#2a2a3a' : 'transparent',
-                  display: 'flex', alignItems: 'center', gap: 10
-                }}
-              >
-                <FileIcon size={14} color="#7c6af7" />
-                <span>{f.name.replace(/\.md$/, '')}</span>
-              </div>
-            ))
+            <>
+              {recentFiles.length > 0 && !query.trim() && (
+                <>
+                  <div
+                    style={{
+                      padding: '6px 16px 2px',
+                      fontSize: 10,
+                      color: '#444',
+                      fontWeight: 600,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Recent
+                  </div>
+                  {recentFiles.map((f, i) => (
+                    <div
+                      key={f.path}
+                      onClick={() => {
+                        onFileSelect(f.path, f.name)
+                        onClose()
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        color: i === activeIndex ? '#fff' : '#ccc',
+                        background: i === activeIndex ? '#2a2a3a' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10
+                      }}
+                    >
+                      <span style={{ fontSize: 12 }}>🕐</span>
+                      <span>{f.name.replace(/\.md$/, '')}</span>
+                    </div>
+                  ))}
+                  {filteredFiles.length > 0 && (
+                    <div
+                      style={{
+                        padding: '6px 16px 2px',
+                        fontSize: 10,
+                        color: '#444',
+                        fontWeight: 600,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      All Notes
+                    </div>
+                  )}
+                </>
+              )}
+              {filteredFiles.map((f, i) => {
+                const idx = recentFiles.length + i
+                return (
+                  <div
+                    key={f.path}
+                    onClick={() => {
+                      onFileSelect(f.path, f.name)
+                      onClose()
+                    }}
+                    style={{
+                      padding: '10px 16px',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      color: idx === activeIndex ? '#fff' : '#aaa',
+                      background: idx === activeIndex ? '#2a2a3a' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10
+                    }}
+                  >
+                    <FileIcon size={14} color="#7c6af7" />
+                    <span>{f.name.replace(/\.md$/, '')}</span>
+                  </div>
+                )
+              })}
+              {recentFiles.length === 0 && filteredFiles.length === 0 && (
+                <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>No results</div>
+              )}
+            </>
           )}
         </div>
       </div>
