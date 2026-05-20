@@ -58,10 +58,26 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
       return `<img src="${src}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0" />`
     }
 
+    // Note embed: find matching .md file
+    const linkNoExt = linkText.replace(/\.md$/i, '')
+    const mdMatch = flatFiles.find((f) => {
+      if (f.isDirectory || !f.name.endsWith('.md')) return false
+      const nameNoExt = f.name.replace(/\.md$/i, '')
+      return (
+        nameNoExt.toLowerCase() === linkNoExt.toLowerCase() ||
+        f.relativePath.toLowerCase() === linkText.toLowerCase()
+      )
+    })
+    if (mdMatch) {
+      const escapedPath = mdMatch.path.replace(/"/g, '&quot;')
+      const displayName = linkNoExt.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      return `<div class="note-embed" data-path="${escapedPath}" style="border:1px solid var(--border-color);border-radius:6px;padding:12px 16px;margin:12px 0;background:var(--bg-secondary)"><div class="note-embed-title" style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;letter-spacing:0.04em">📄 ${displayName}</div><div class="note-embed-content" style="color:var(--text-primary);font-size:0.95em">Loading…</div></div>`
+    }
+
     return fullMatch
   })
 
-  return processed.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_fullMatch, link, alias) => {
+  return processed.replace(/(?<!!)(\[\[([^\]|]+)(?:\|([^\]]+))?\]\])/g, (_fullMatch, _bracket, link, alias) => {
     const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
     const linkAttr = link.trim().replace(/"/g, '&quot;')
     return `<span class="wiki-link" data-link="${linkAttr}" style="color:var(--accent-color);text-decoration:underline;cursor:pointer">${label}</span>`

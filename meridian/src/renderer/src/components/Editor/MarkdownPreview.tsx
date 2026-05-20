@@ -189,6 +189,31 @@ export function MarkdownPreview({
     })
   }, [html, files])
 
+  // Load and render note embeddings
+  useEffect(() => {
+    if (!containerRef.current) return
+    const embeds = containerRef.current.querySelectorAll('.note-embed')
+    if (embeds.length === 0) return
+
+    embeds.forEach(async (el) => {
+      const htmlEl = el as HTMLElement
+      const dataPath = htmlEl.dataset.path
+      if (!dataPath) return
+      const contentEl = htmlEl.querySelector('.note-embed-content') as HTMLElement | null
+      if (!contentEl) return
+
+      try {
+        const raw = await window.vault.readFile(dataPath)
+        // Strip frontmatter before rendering
+        const withoutFm = raw.replace(/^---[\s\S]*?---\n*/, '')
+        const renderedHtml = String(processor.processSync(withoutFm))
+        contentEl.innerHTML = renderedHtml
+      } catch {
+        contentEl.innerHTML = `<span style="color:var(--text-secondary);font-size:12px;font-style:italic">Could not load note</span>`
+      }
+    })
+  }, [html])
+
   return (
     <div
       ref={containerRef}
