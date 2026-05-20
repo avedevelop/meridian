@@ -340,16 +340,16 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <div
               style={{
                 position: 'relative',
-                padding: '6px 8px 6px 12px',
+                padding: '10px 10px 10px 14px',
                 borderBottom: '1px solid var(--border-color)',
                 color: 'var(--text-secondary)',
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
-                letterSpacing: '0.05em',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 8,
                 cursor: 'pointer',
                 userSelect: 'none',
                 transition: 'background 0.12s ease'
@@ -362,7 +362,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 e.currentTarget.style.background = 'transparent'
               }}
             >
-              <FolderOpenBtnIcon size={12} color="var(--accent-color)" />
+              <FolderOpenBtnIcon size={14} color="var(--accent-color)" />
               <span
                 style={{
                   overflow: 'hidden',
@@ -371,11 +371,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   flex: 1,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
+                  gap: 6
                 }}
               >
                 {vault.name}
-                <span style={{ fontSize: 8, color: 'var(--text-secondary)', opacity: 0.7 }}>▼</span>
+                <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>▼</span>
               </span>
               <button
                 onClick={(e) => {
@@ -388,8 +388,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   border: 'none',
                   color: 'var(--text-secondary)',
                   cursor: 'pointer',
-                  fontSize: 14,
-                  padding: '2px 4px',
+                  fontSize: 16,
+                  padding: '4px 6px',
                   borderRadius: 4,
                   flexShrink: 0,
                   lineHeight: 1
@@ -412,10 +412,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             </div>
             <div
               style={{
-                padding: '4px 8px',
+                padding: '8px 10px',
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
-                gap: 4
+                alignItems: 'center',
+                gap: 6
               }}
             >
               <input
@@ -424,13 +425,13 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 placeholder="Filter files..."
                 style={{
                   flex: 1,
-                  padding: '4px 8px',
-                  borderRadius: 4,
+                  padding: '6px 10px',
+                  borderRadius: 6,
                   background: 'var(--bg-surface)',
                   border: 'none',
                   outline: 'none',
                   color: 'var(--text-primary)',
-                  fontSize: 12
+                  fontSize: 13
                 }}
               />
               {filterQuery && (
@@ -441,7 +442,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                     border: 'none',
                     color: 'var(--text-secondary)',
                     cursor: 'pointer',
-                    padding: '0 4px'
+                    padding: '0 4px',
+                    fontSize: 14
                   }}
                 >
                   ×
@@ -455,14 +457,23 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   border: 'none',
                   color: 'var(--text-secondary)',
                   cursor: 'pointer',
-                  padding: '0 4px',
+                  padding: '4px',
+                  borderRadius: 4,
                   display: 'flex',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.15s, color 0.15s'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-surface)'
+                  e.currentTarget.style.color = 'var(--text-primary)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                }}
               >
-                <CollapseAllIcon size={12} />
+                <CollapseAllIcon size={14} />
               </button>
               <button
                 onClick={() =>
@@ -477,19 +488,25 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   border: 'none',
                   color: sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)',
                   cursor: 'pointer',
-                  padding: '0 4px',
-                  fontSize: 11,
+                  padding: '4px 6px',
+                  borderRadius: 4,
+                  fontSize: 12,
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
-                  minWidth: 24,
-                  justifyContent: 'center'
+                  minWidth: 28,
+                  justifyContent: 'center',
+                  transition: 'background 0.15s, color 0.15s'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color =
-                    sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)')
-                }
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-surface)'
+                  e.currentTarget.style.color = 'var(--text-primary)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color =
+                    sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)'
+                }}
               >
                 {SORT_LABELS[sortOrder]}
               </button>

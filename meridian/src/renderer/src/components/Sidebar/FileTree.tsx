@@ -199,17 +199,17 @@ export function FileTree({
               style={{
                 paddingLeft: 12 + depth * 16,
                 paddingRight: 12,
-                paddingTop: 3,
-                paddingBottom: 3,
+                paddingTop: 5,
+                paddingBottom: 5,
                 cursor: 'pointer',
                 color: activePath === file.path ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontWeight: activePath === file.path ? '500' : 'normal',
                 background:
                   activePath === file.path ? 'var(--accent-glow)' : editing === file.path ? 'transparent' : '',
-                fontSize: 13,
+                fontSize: 14,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 8,
                 borderRadius: 4,
                 userSelect: 'none',
                 borderLeft: activePath === file.path ? '3px solid var(--accent-color)' : 'none'
@@ -225,7 +225,7 @@ export function FileTree({
                 }
               }}
             >
-              <span style={{ fontSize: 11, color: 'var(--text-secondary)', width: 10, flexShrink: 0 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', width: 12, flexShrink: 0 }}>
                 {file.isDirectory ? (expanded.has(file.path) ? '▾' : '▸') : ''}
               </span>
               <FileIcon
@@ -253,8 +253,8 @@ export function FileTree({
                     border: '1px solid var(--accent-color)',
                     borderRadius: 3,
                     color: 'var(--text-primary)',
-                    fontSize: 13,
-                    padding: '1px 4px',
+                    fontSize: 14,
+                    padding: '3px 6px',
                     outline: 'none'
                   }}
                 />

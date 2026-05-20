@@ -28,11 +28,11 @@ interface FileIconProps {
 
 export function FileIcon({ name, isDirectory, isOpen = false }: FileIconProps) {
   if (isDirectory) {
-    return <FolderIcon open={isOpen} size={14} color="#dcb67a" />
+    return <FolderIcon open={isOpen} size={16} color="#dcb67a" />
   }
 
   const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')).toLowerCase() : ''
   const color = FILE_COLORS[ext] ?? '#666'
 
-  return <CustomFileIcon size={14} color={color} />
+  return <CustomFileIcon size={16} color={color} />
 }
