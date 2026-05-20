@@ -525,6 +525,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     fontWeight,
     lineHeight,
     pluginsEnabled,
+    editorMode,
     isCanvasFile,
     isDrawingFile,
     isDiffFile,

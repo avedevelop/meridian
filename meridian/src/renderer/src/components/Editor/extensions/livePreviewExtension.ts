@@ -145,22 +145,22 @@ function buildDecos(view: EditorView): DecorationSet {
     }
   })
 
-  // Sort: by from ascending, then by to ascending (zero-length first for same from)
+  // Sort: from asc, then to asc (zero-length line decos come first for same from)
   entries.sort((a, b) => a.from !== b.from ? a.from - b.from : a.to - b.to)
 
+  // Decoration.replace ranges must not overlap each other.
+  // Decoration.mark and Decoration.line can overlap freely.
   const builder = new RangeSetBuilder<Decoration>()
-  let lastFrom = -1
-  let lastTo = -1
+  let lastReplaceEnd = -1
 
   for (const { from, to, deco } of entries) {
-    // Skip entries that would violate strictly increasing order
-    if (from < lastFrom || (from === lastFrom && to < lastTo)) continue
-    // Skip overlapping replace decorations (marks can overlap)
-    if (deco.spec && (deco as any).startSide === -1 && from < lastTo && from > lastFrom) continue
+    const isLine = from === to
+    const isMark = !isLine && (deco as any).spec?.class !== undefined
+    const isReplace = !isLine && !isMark
+    if (isReplace && from < lastReplaceEnd) continue
     try {
       builder.add(from, to, deco)
-      lastFrom = from
-      lastTo = Math.max(lastTo, to)
+      if (isReplace) lastReplaceEnd = Math.max(lastReplaceEnd, to)
     } catch {
       // skip conflicting range
     }
