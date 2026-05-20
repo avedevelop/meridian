@@ -151,26 +151,32 @@ export function FileTree({
               }}
               onDoubleClick={(e) => !file.isDirectory && startEdit(file, e)}
               onContextMenu={(e) => handleContextMenu(e, file)}
-              draggable={!file.isDirectory}
+              draggable={true}
               onDragStart={(e) => {
                 ;(window as any).__meridianDragPath = file.path
+                ;(window as any).__meridianDragIsDir = file.isDirectory
                 e.dataTransfer.effectAllowed = 'copyMove'
                 e.dataTransfer.setData('text/plain', file.path)
-                e.dataTransfer.setData(
-                  'application/meridian-file',
-                  JSON.stringify({
-                    path: file.path,
-                    name: file.name,
-                    relativePath: file.relativePath
-                  })
-                )
+                if (!file.isDirectory) {
+                  e.dataTransfer.setData(
+                    'application/meridian-file',
+                    JSON.stringify({
+                      path: file.path,
+                      name: file.name,
+                      relativePath: file.relativePath
+                    })
+                  )
+                }
               }}
               onDragEnd={() => {
                 ;(window as any).__meridianDragPath = null
+                ;(window as any).__meridianDragIsDir = null
               }}
               onDragOver={(e) => {
                 const dragPath = (window as any).__meridianDragPath
-                if (!file.isDirectory || !dragPath || dragPath === file.path) return
+                if (!file.isDirectory || !dragPath) return
+                // Prevent dropping onto self or into own subtree
+                if (dragPath === file.path || file.path.startsWith(dragPath + '/')) return
                 e.preventDefault()
                 e.currentTarget.style.background = 'var(--accent-glow)'
               }}
@@ -182,10 +188,13 @@ export function FileTree({
                 e.currentTarget.style.background = ''
                 const dragPath = (window as any).__meridianDragPath
                 if (!dragPath || dragPath === file.path) return
+                // Prevent dropping folder into its own subtree
+                if (file.isDirectory && file.path.startsWith(dragPath + '/')) return
                 if (file.isDirectory) {
                   onMove?.(dragPath, file.path)
                 }
                 ;(window as any).__meridianDragPath = null
+                ;(window as any).__meridianDragIsDir = null
               }}
               style={{
                 paddingLeft: 12 + depth * 16,
