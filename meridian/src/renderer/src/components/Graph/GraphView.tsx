@@ -1689,15 +1689,15 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             </span>
           </div>
 
-          {/* Grouped: minimap + ticks + scrubber */}
+          {/* Grouped: minimap + scrubber + ticks */}
           <div style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            gap: 4,
+            gap: 2,
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 8,
-            padding: '6px 10px',
+            padding: '6px 10px 10px',
             background: 'rgba(255,255,255,0.03)'
           }}>
             {/* Minimap */}
@@ -1710,8 +1710,20 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
               ))}
             </svg>
-            {/* Year ticks */}
-            <div style={{ position: 'relative', height: 16, zIndex: 2 }}>
+            {/* Scrubber — above ticks so its hit area doesn't block them */}
+            <input
+              type="range"
+              min={0}
+              max={1000}
+              value={Math.round(progress * 1000)}
+              onChange={(e) => {
+                setProgress(Number(e.target.value) / 1000)
+                setIsPlaying(false)
+              }}
+              style={{ width: '100%', margin: 0, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
+            />
+            {/* Ticks — below scrubber so input hit area doesn't intercept */}
+            <div style={{ position: 'relative', height: 14 }}>
               {historyTicks.map(({ frac, label }) => (
                 <span
                   key={frac}
@@ -1734,26 +1746,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                     transition: 'color 0.15s ease, background 0.15s ease',
                     padding: '0 5px',
                     background: hoveredTick === frac ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    borderRadius: 3,
-                    pointerEvents: 'all' as const
+                    borderRadius: 3
                   }}
                 >
                   {label}
                 </span>
               ))}
             </div>
-            {/* Scrubber */}
-            <input
-              type="range"
-              min={0}
-              max={1000}
-              value={Math.round(progress * 1000)}
-              onChange={(e) => {
-                setProgress(Number(e.target.value) / 1000)
-                setIsPlaying(false)
-              }}
-              style={{ width: '100%', margin: 0, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
-            />
           </div>
 
           {/* Controls */}
