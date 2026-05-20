@@ -80,7 +80,7 @@ export default function App() {
   const openTabs = useVaultStore((s) => s.openTabs)
   const allFiles = useLinkStore((s) => s.allFiles)
   const indexVersion = useLinkStore((s) => s.indexVersion)
-  const { openFile, openVault, openDailyNote, exportNote, createFile, saveFile } = useVaultBridge()
+  const { openFile, openVault, openDailyNote, exportNote, createFile, saveFile, listTemplates, applyTemplate } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph'>('files')
@@ -334,6 +334,26 @@ export default function App() {
         onClose={() => setPaletteOpen(false)}
         files={paletteFiles}
         onFileSelect={handleFileSelect}
+        commands={[
+          {
+            id: 'insert-template',
+            label: 'Insert Template…',
+            icon: '📋',
+            onSelect: async () => {
+              const templates = await listTemplates()
+              if (templates.length === 0) {
+                window.alert('No templates found.\n\nCreate .md files in a _templates/ folder in your vault root.')
+                return
+              }
+              const names = templates.map((t, i) => `${i + 1}. ${t.name}`).join('\n')
+              const answer = window.prompt(`Choose a template:\n\n${names}\n\nEnter number:`)
+              const idx = parseInt(answer ?? '', 10) - 1
+              if (idx >= 0 && idx < templates.length) {
+                await applyTemplate(templates[idx].path)
+              }
+            }
+          }
+        ]}
       />
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

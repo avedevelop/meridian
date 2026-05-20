@@ -407,6 +407,56 @@ ${bodyHtml}
     }
   }, [])
 
+  const listTemplates = useCallback(async (): Promise<Array<{ name: string; path: string }>> => {
+    const allFiles = useVaultStore.getState().files
+
+    function findTemplates(
+      items: import('@shared/types').VaultFile[]
+    ): Array<{ name: string; path: string }> {
+      for (const f of items) {
+        if (f.isDirectory && f.name === '_templates') {
+          return (f.children ?? [])
+            .filter((c) => !c.isDirectory && c.name.endsWith('.md'))
+            .map((c) => ({ name: c.name.replace(/\.md$/i, ''), path: c.path }))
+        }
+        if (f.isDirectory && f.children) {
+          const found = findTemplates(f.children)
+          if (found.length > 0) return found
+        }
+      }
+      return []
+    }
+
+    return findTemplates(allFiles)
+  }, [])
+
+  const applyTemplate = useCallback(async (templatePath: string) => {
+    try {
+      const templateContent = await window.vault.readFile(templatePath)
+      const { panes, activePaneId } = useVaultStore.getState()
+      const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0]
+      const activeTab = activePane?.openTabs.find((t) => t.path === activePane?.activeTabPath)
+      if (!activeTab) return
+
+      const d = new Date()
+      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const title = activeTab.name.replace(/\.md$/i, '')
+
+      const processed = templateContent
+        .replace(/\{\{date\}\}/gi, date)
+        .replace(/\{\{title\}\}/gi, title)
+
+      const newContent = activeTab.content.trim()
+        ? processed + '\n\n' + activeTab.content
+        : processed
+
+      useVaultStore.getState().setTabContent(activeTab.path, newContent)
+      useVaultStore.getState().markTabDirty(activeTab.path, true)
+    } catch (e) {
+      console.error('[Bridge] applyTemplate error', e)
+    }
+  }, [])
+
   const createNewVault = useCallback(async () => {
     const config = await window.vault.openDialog()
     if (!config) return
@@ -468,6 +518,8 @@ ${bodyHtml}
     openDailyNote,
     saveImage,
     exportNote,
-    createNewVault
+    createNewVault,
+    listTemplates,
+    applyTemplate
   }
 }
