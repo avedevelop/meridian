@@ -214,10 +214,11 @@ export function TabBar({ paneId }: TabBarProps) {
         transition: 'border-bottom-color 0.2s ease',
       }}
     >
-      {/* Scrollable tabs */}
+      {/* Clip container: 36px tall, overflow hidden — cuts off scrollbar below */}
+      <div style={{ flex: 1, minWidth: 0, height: 36, overflow: 'hidden', position: 'relative' }}>
+      {/* Inner: 56px tall so scrollbar sits below the 36px clip boundary */}
       <div
         ref={scrollRef}
-        className="tab-bar-scroll"
         onDragOver={handleContainerDragOver}
         onDrop={handleDrop}
         onWheel={e => {
@@ -227,15 +228,17 @@ export function TabBar({ paneId }: TabBarProps) {
           }
         }}
         style={{
-          flex: 1,
+          position: 'absolute',
+          top: 0, left: 0, right: 0,
+          height: 56,
           display: 'flex',
           flexWrap: 'nowrap',
           alignItems: 'center',
-          overflowX: 'auto',
+          overflowX: 'scroll',
           overflowY: 'hidden',
           padding: '0 4px 0 8px',
           gap: '4px',
-          minWidth: 0,
+          boxSizing: 'border-box',
         }}
       >
       {openTabs.map((tab, i) => {
@@ -361,7 +364,8 @@ export function TabBar({ paneId }: TabBarProps) {
           </div>
         )
       })}
-      </div>{/* end scrollable tabs */}
+      </div>{/* end inner scroll */}
+      </div>{/* end clip container */}
 
       {/* Pane management actions — fixed, never scrolls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 6px', flexShrink: 0, borderLeft: '1px solid var(--border-color)' }}>
