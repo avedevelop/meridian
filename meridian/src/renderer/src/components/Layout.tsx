@@ -246,15 +246,15 @@ export function Layout({
 
   const [rightPanelWidth, setRightPanelWidth] = useState(() => {
     const saved = localStorage.getItem('layout-right-width')
-    return saved ? parseInt(saved, 10) : 200
+    return saved ? Math.max(220, parseInt(saved, 10)) : 220
   })
 
   useEffect(() => {
     const handleReset = () => {
       setSidebarWidth(220)
-      setRightPanelWidth(200)
+      setRightPanelWidth(220)
       localStorage.setItem('layout-sidebar-width', '220')
-      localStorage.setItem('layout-right-width', '200')
+      localStorage.setItem('layout-right-width', '220')
       setSidebarCollapsed(false)
       setRightPanelCollapsed(false)
       localStorage.setItem('layout-sidebar-collapsed', 'false')
@@ -301,13 +301,13 @@ export function Layout({
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = startX - moveEvent.clientX
       const newWidth = startWidth + deltaX
-      if (newWidth < 80) {
+      if (newWidth < 120) {
         setRightPanelCollapsed(true)
         localStorage.setItem('layout-right-collapsed', 'true')
       } else {
         setRightPanelCollapsed(false)
         localStorage.setItem('layout-right-collapsed', 'false')
-        const clamped = Math.max(150, Math.min(600, newWidth))
+        const clamped = Math.max(220, Math.min(600, newWidth))
         setRightPanelWidth(clamped)
         localStorage.setItem('layout-right-width', clamped.toString())
       }

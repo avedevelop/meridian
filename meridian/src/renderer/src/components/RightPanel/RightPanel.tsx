@@ -31,19 +31,32 @@ export function RightPanel() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              onMouseEnter={(e) => {
+                if (effectiveTab !== tab.id) {
+                  e.currentTarget.style.color = 'var(--text-primary)'
+                  e.currentTarget.style.background = 'var(--bg-surface)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (effectiveTab !== tab.id) {
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                  e.currentTarget.style.background = 'transparent'
+                }
+              }}
               style={{
                 flex: 1,
-                padding: '6px 0',
+                padding: '10px 0',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 background: effectiveTab === tab.id ? 'var(--bg-primary)' : 'transparent',
                 color: effectiveTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
                 borderBottom:
-                  effectiveTab === tab.id ? '2px solid var(--accent-color)' : '2px solid transparent'
+                  effectiveTab === tab.id ? '3px solid var(--accent-color)' : '3px solid transparent',
+                transition: 'all 0.15s ease'
               }}
             >
               {tab.label}

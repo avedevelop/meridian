@@ -82,31 +82,31 @@ export function PropertiesPanel() {
   }
 
   return (
-    <div key={activeTab.path} style={{ padding: '12px 12px 16px' }}>
+    <div key={activeTab.path} style={{ padding: '16px 16px 20px' }}>
       <div
         style={{
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 600,
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           color: 'var(--text-secondary)',
-          marginBottom: 10
+          marginBottom: 12
         }}
       >
         Properties
       </div>
 
       {frontmatter === null && (
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
           No frontmatter found.
         </div>
       )}
 
       {frontmatter !== null && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {Object.entries(frontmatter).map(([key, val]) => (
             <div key={key}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
                 {key}
               </div>
               <input
@@ -121,14 +121,15 @@ export function PropertiesPanel() {
                 onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent-color)')}
                 style={{
                   width: '100%',
-                  padding: '4px 8px',
+                  padding: '6px 10px',
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: 4,
+                  borderRadius: 6,
                   color: 'var(--text-primary)',
-                  fontSize: 12,
+                  fontSize: 13,
                   outline: 'none',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.15s ease'
                 }}
               />
             </div>
@@ -139,18 +140,26 @@ export function PropertiesPanel() {
       <button
         onClick={handleAddProperty}
         style={{
-          marginTop: 12,
+          marginTop: 16,
           width: '100%',
-          padding: '5px 0',
+          padding: '8px 0',
           background: 'var(--accent-glow)',
           border: '1px solid var(--border-color)',
-          borderRadius: 4,
+          borderRadius: 6,
           color: 'var(--text-secondary)',
-          fontSize: 11,
-          cursor: 'pointer'
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: 'pointer',
+          transition: 'all 0.15s ease'
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--text-primary)'
+          e.currentTarget.style.background = 'var(--bg-surface)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'var(--text-secondary)'
+          e.currentTarget.style.background = 'var(--accent-glow)'
+        }}
       >
         + Add property
       </button>

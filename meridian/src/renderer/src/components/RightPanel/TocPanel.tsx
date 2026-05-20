@@ -56,15 +56,23 @@ export function TocPanel() {
   }, [activeTab?.content, isCanvas])
 
   if (!activeTab) {
-    return <div style={{ padding: 12, color: '#444', fontSize: 12 }}>No note open.</div>
+    return (
+      <div style={{ padding: 16, color: 'var(--text-secondary)', opacity: 0.5, fontSize: 13 }}>
+        No note open.
+      </div>
+    )
   }
 
   if (isCanvas) {
     if (canvasNodes.length === 0) {
-      return <div style={{ padding: 12, color: '#444', fontSize: 12 }}>Canvas is empty.</div>
+      return (
+        <div style={{ padding: 16, color: 'var(--text-secondary)', opacity: 0.5, fontSize: 13 }}>
+          Canvas is empty.
+        </div>
+      )
     }
     return (
-      <div style={{ padding: '8px 0', fontSize: 12 }}>
+      <div style={{ padding: '12px 0', fontSize: 13 }}>
         {canvasNodes.map((node) => {
           const displayText =
             node.type === 'file' && node.file ? node.file.split('/').pop() : node.text || 'Untitled'
@@ -78,38 +86,40 @@ export function TocPanel() {
               }}
               title={displayText}
               style={{
-                padding: '6px 12px',
+                padding: '6px 16px',
                 cursor: 'pointer',
-                color: '#ccc',
-                fontSize: 11,
+                color: 'var(--text-secondary)',
+                fontSize: 12,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                borderLeft: '2px solid transparent'
+                borderLeft: '3px solid transparent',
+                transition: 'all 0.15s ease'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#fff'
-                e.currentTarget.style.borderLeft = '2px solid #7c6af7'
-                e.currentTarget.style.background = '#1a1a2a'
+                e.currentTarget.style.color = 'var(--text-primary)'
+                e.currentTarget.style.borderLeft = '3px solid var(--accent-color)'
+                e.currentTarget.style.background = 'var(--bg-surface)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#ccc'
-                e.currentTarget.style.borderLeft = '2px solid transparent'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+                e.currentTarget.style.borderLeft = '3px solid transparent'
                 e.currentTarget.style.background = 'transparent'
               }}
             >
               <span
                 style={{
-                  color: '#777',
-                  marginRight: 6,
+                  color: 'var(--text-secondary)',
+                  opacity: 0.6,
+                  marginRight: 8,
                   display: 'inline-flex',
                   alignItems: 'center'
                 }}
               >
                 {node.type === 'file' ? (
-                  <FileIcon size={11} color="#7c6af7" />
+                  <FileIcon size={12} color="var(--accent-color)" />
                 ) : (
-                  <EditNoteIcon size={11} color="#a78bfa" />
+                  <EditNoteIcon size={12} color="var(--accent-color)" />
                 )}
               </span>
               {displayText}
@@ -122,37 +132,42 @@ export function TocPanel() {
 
   if (headings.length === 0) {
     return (
-      <div style={{ padding: 12, color: '#444', fontSize: 12 }}>
+      <div style={{ padding: 16, color: 'var(--text-secondary)', opacity: 0.5, fontSize: 13 }}>
         No headings found. Use # Heading in your note.
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '8px 0', fontSize: 12 }}>
+    <div style={{ padding: '12px 0', fontSize: 13 }}>
       {headings.map((h) => (
         <div
           key={h.index}
           onClick={() => scrollToHeading(h.index)}
           title={h.text}
           style={{
-            paddingLeft: 8 + (h.level - 1) * 12,
-            paddingRight: 12,
-            paddingTop: 4,
-            paddingBottom: 4,
+            paddingLeft: 16 + (h.level - 1) * 12,
+            paddingRight: 16,
+            paddingTop: 6,
+            paddingBottom: 6,
             cursor: 'pointer',
-            color: h.level === 1 ? '#ccc' : h.level === 2 ? '#aaa' : '#777',
-            fontSize: h.level === 1 ? 12 : 11,
+            color: h.level === 1 ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontSize: h.level === 1 ? 13 : 12,
             fontWeight: h.level === 1 ? 600 : 400,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            borderLeft: `2px solid ${h.level === 1 ? '#7c6af7' : 'transparent'}`
+            borderLeft: `3px solid ${h.level === 1 ? 'var(--accent-color)' : 'transparent'}`,
+            transition: 'all 0.15s ease'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = h.level === 1 ? '#ccc' : h.level === 2 ? '#aaa' : '#777')
-          }
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--text-primary)'
+            e.currentTarget.style.background = 'var(--bg-surface)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = h.level === 1 ? 'var(--text-primary)' : 'var(--text-secondary)'
+            e.currentTarget.style.background = 'transparent'
+          }}
         >
           {h.text}
         </div>

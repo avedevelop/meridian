@@ -14,43 +14,56 @@ export function TagsPanel() {
 
   if (tags.length === 0) {
     return (
-      <div style={{ padding: '12px', color: '#444', fontSize: 12 }}>
+      <div style={{ padding: '16px', color: 'var(--text-secondary)', opacity: 0.5, fontSize: 13 }}>
         No tags found. Use #tag in your notes.
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '8px 0', fontSize: 12 }}>
+    <div style={{ padding: '12px 0', fontSize: 13 }}>
       {tags.map(([tag, files]) => (
-        <details key={tag} style={{ borderBottom: '1px solid #222' }}>
+        <details key={tag} style={{ borderBottom: '1px solid var(--border-color)' }}>
           <summary
             style={{
-              padding: '6px 12px',
+              padding: '8px 16px',
               cursor: 'pointer',
-              color: '#aaa',
+              color: 'var(--text-secondary)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               userSelect: 'none',
-              listStyle: 'none'
+              listStyle: 'none',
+              transition: 'background 0.15s ease'
             }}
-            onFocus={(e) => (e.currentTarget.style.background = '#1a1a2a')}
-            onBlur={(e) => (e.currentTarget.style.background = 'transparent')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-surface)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <span style={{ color: '#7c6af7' }}>#{tag}</span>
-            <span style={{ color: '#444', fontSize: 11 }}>{files.length}</span>
+            <span style={{ color: 'var(--accent-color)', fontWeight: 500 }}>#{tag}</span>
+            <span style={{ color: 'var(--text-secondary)', opacity: 0.7, fontSize: 12 }}>{files.length}</span>
           </summary>
-          <div style={{ paddingBottom: 4 }}>
+          <div style={{ paddingBottom: 6 }}>
             {files.map((filePath) => {
               const name = filePath.split('/').pop() ?? ''
               return (
                 <div
                   key={filePath}
                   onClick={() => openFile(filePath, name)}
-                  style={{ padding: '3px 20px', cursor: 'pointer', color: '#777', fontSize: 11 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#ccc')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#777')}
+                  style={{
+                    padding: '6px 24px',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    fontSize: 12,
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--text-primary)'
+                    e.currentTarget.style.background = 'var(--bg-surface)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-secondary)'
+                    e.currentTarget.style.background = 'transparent'
+                  }}
                 >
                   {name.replace(/\.md$/, '')}
                 </div>
