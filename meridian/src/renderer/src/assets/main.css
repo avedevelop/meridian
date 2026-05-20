@@ -1,27 +1,23 @@
 @import './base.css';
 
-/* Hide/thin horizontal scrollbars globally — macOS overlay scrollbars already thin,
-   this ensures they don't appear in tab bars and other horizontal scroll containers */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+/* Horizontal scrollbars completely hidden — scroll still works via trackpad/wheel */
+::-webkit-scrollbar:horizontal {
+  height: 0;
+  display: none;
 }
-*:hover {
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
-}
+/* Vertical scrollbars: thin and subtle */
 ::-webkit-scrollbar {
   width: 4px;
-  height: 3px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: transparent;
+  background: rgba(255,255,255,0.1);
   border-radius: 4px;
 }
-*:hover::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
 }
 
 body {
