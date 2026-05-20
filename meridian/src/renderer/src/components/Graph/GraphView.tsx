@@ -67,6 +67,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const chunksRef = useRef<Blob[]>([])
   const progressRef = useRef(1)
   const visibleNodesRef = useRef<Set<string>>(new Set())
+  const scrubberRef = useRef<HTMLDivElement>(null)
 
   const files = useVaultStore((s) => s.files)
   const outlinks = useLinkStore((s) => s.outlinks)
@@ -1141,6 +1142,24 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     return () => window.removeEventListener('graph:set-mode', handler)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleScrubberMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const updateFromEvent = (clientX: number) => {
+      if (!scrubberRef.current) return
+      const rect = scrubberRef.current.getBoundingClientRect()
+      const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+      setProgress(frac)
+      setIsPlaying(false)
+    }
+    updateFromEvent(e.clientX)
+    const onMove = (ev: MouseEvent) => updateFromEvent(ev.clientX)
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
   return (
     <div
       style={{
@@ -1713,18 +1732,31 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
               ))}
             </svg>
-            {/* Scrubber — above ticks so its hit area doesn't block them */}
-            <input
-              type="range"
-              min={0}
-              max={1000}
-              value={Math.round(progress * 1000)}
-              onChange={(e) => {
-                setProgress(Number(e.target.value) / 1000)
-                setIsPlaying(false)
-              }}
-              style={{ width: '100%', margin: 0, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
-            />
+            {/* Custom scrubber — no invisible hit area bleeding into ticks */}
+            <div
+              ref={scrubberRef}
+              onMouseDown={handleScrubberMouseDown}
+              style={{ position: 'relative', height: 16, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            >
+              {/* Track */}
+              <div style={{ width: '100%', height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                <div style={{ width: `${progress * 100}%`, height: '100%', background: 'var(--accent-color)', borderRadius: 2 }} />
+              </div>
+              {/* Thumb */}
+              <div style={{
+                position: 'absolute',
+                left: `${progress * 100}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 13,
+                height: 13,
+                borderRadius: '50%',
+                background: 'var(--accent-color)',
+                boxShadow: '0 0 0 2px rgba(124,106,240,0.35)',
+                pointerEvents: 'none',
+                transition: 'box-shadow 0.15s ease'
+              }} />
+            </div>
             {/* Ticks — below scrubber so input hit area doesn't intercept */}
             <div style={{ position: 'relative', height: 14 }}>
               {historyTicks.map(({ frac, label }) => (
