@@ -786,7 +786,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               { value: 'midnight', label: 'Pitch Midnight Black' },
               { value: 'indigo', label: 'Indigo Space Dark' },
               { value: 'cyberpunk', label: 'Cyberpunk Neon Dark' },
-              { value: 'forest', label: 'Forest Moss Green' }
+              { value: 'forest', label: 'Forest Moss Green' },
+              { value: 'nord', label: 'Nordic Frost Blue' },
+              { value: 'dracula', label: 'Dracula Purple Dark' },
+              { value: 'obsidian', label: 'Obsidian Pitch Contrast' }
             ]}
             onChange={(v) => s.updateSetting('theme', v as any)}
           />

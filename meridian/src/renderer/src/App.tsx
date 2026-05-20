@@ -94,13 +94,13 @@ export default function App() {
     const root = document.documentElement
     const themes = {
       dark: {
-        '--bg-primary': '#111115',
-        '--bg-secondary': '#181822',
-        '--bg-tertiary': '#070709',
-        '--bg-surface': '#222230',
-        '--border-color': '#282835',
-        '--text-primary': '#f3f4f6',
-        '--text-secondary': '#9ca3af'
+        '--bg-primary': '#1a1a1a',
+        '--bg-secondary': '#161616',
+        '--bg-tertiary': '#131313',
+        '--bg-surface': '#222222',
+        '--border-color': '#2a2a2a',
+        '--text-primary': '#dddddd',
+        '--text-secondary': '#888888'
       },
       midnight: {
         '--bg-primary': '#0b0b0b',
@@ -137,6 +137,33 @@ export default function App() {
         '--border-color': '#22332a',
         '--text-primary': '#e2f0e9',
         '--text-secondary': '#6d8c7d'
+      },
+      nord: {
+        '--bg-primary': '#2e3440',
+        '--bg-secondary': '#242933',
+        '--bg-tertiary': '#1b1e23',
+        '--bg-surface': '#3b4252',
+        '--border-color': '#434c5e',
+        '--text-primary': '#eceff4',
+        '--text-secondary': '#d8dee9'
+      },
+      dracula: {
+        '--bg-primary': '#282a36',
+        '--bg-secondary': '#1f2026',
+        '--bg-tertiary': '#191a21',
+        '--bg-surface': '#44475a',
+        '--border-color': '#3c3e4f',
+        '--text-primary': '#f8f8f2',
+        '--text-secondary': '#6272a4'
+      },
+      obsidian: {
+        '--bg-primary': '#111115',
+        '--bg-secondary': '#181822',
+        '--bg-tertiary': '#070709',
+        '--bg-surface': '#222230',
+        '--border-color': '#282835',
+        '--text-primary': '#f3f4f6',
+        '--text-secondary': '#9ca3af'
       }
     }
 

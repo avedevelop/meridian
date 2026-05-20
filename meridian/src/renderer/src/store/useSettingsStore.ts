@@ -33,7 +33,7 @@ export interface SettingsState {
 
   // Appearance
   accentColor: 'purple' | 'blue' | 'green' | 'orange' | 'red'
-  theme: 'dark' | 'midnight' | 'indigo' | 'cyberpunk' | 'forest'
+  theme: 'dark' | 'midnight' | 'indigo' | 'cyberpunk' | 'forest' | 'nord' | 'dracula' | 'obsidian'
   sidebarSide: 'left' | 'right'
 
   // Plugins
