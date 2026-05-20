@@ -56,8 +56,8 @@ function getNodeGroup(
   return degree > 0 ? 'connected' : 'orphan'
 }
 
-const nodeR = (d: GNode) => (d.degree > 0 ? 7 + Math.min(d.degree * 2, 10) : 5)
-const labelColor = (d: GNode) => (d.degree > 0 ? '#cdd6f4' : '#6c7086')
+const nodeR = (d: GNode) => (d.degree > 0 ? 8 + Math.min(d.degree * 2, 12) : 6)
+const labelColor = (d: GNode) => (d.degree > 0 ? 'var(--text-primary)' : 'var(--text-secondary)')
 
 export function GraphView({ onFileOpen }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -234,17 +234,17 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       const tNode = d.target as GNode
       const visible = visibleNodes.has(sNode.id) && visibleNodes.has(tNode.id)
 
-      let opacity = visible ? 0.4 : 0
+      let opacity = visible ? 1 : 0
       if (visible && q) {
         const sMatch = sNode.name.toLowerCase().includes(q)
         const tMatch = tNode.name.toLowerCase().includes(q)
-        opacity = sMatch && tMatch ? 0.4 : 0.05
+        opacity = sMatch && tMatch ? 1 : 0.15
       }
 
       d3.select(this)
         .transition()
         .duration(250)
-        .attr('stroke', 'rgba(255, 255, 255, 0.08)')
+        .attr('stroke', 'rgba(255, 255, 255, 0.22)')
         .attr('opacity', opacity)
         .attr('stroke-width', visible ? linkThickness : 0)
     })
@@ -354,13 +354,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           const sNode = l.source as GNode
           const tNode = l.target as GNode
           const isConnected = sNode.id === d.id || tNode.id === d.id
-          return isConnected ? hoverColor : 'rgba(255, 255, 255, 0.04)'
+          return isConnected ? hoverColor : 'rgba(255, 255, 255, 0.22)'
         })
         .attr('stroke-width', (l) => {
           const sNode = l.source as GNode
           const tNode = l.target as GNode
           const isConnected = sNode.id === d.id || tNode.id === d.id
-          return isConnected ? linkThickness + 1 : linkThickness
+          return isConnected ? linkThickness + 1.2 : linkThickness
         })
         .attr('opacity', (l) => {
           const sNode = l.source as GNode
@@ -381,7 +381,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           if (tNode.degree === 0 && !showOrphans) visible = false
 
           if (!visible) return 0
-          return isConnected ? 0.85 : 0.05
+          return isConnected ? 1 : 0.15
         })
 
       // Graph hover tooltip preview
@@ -612,9 +612,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .attr('width', 28)
         .attr('height', 28)
         .attr('patternUnits', 'userSpaceOnUse')
-      pattern.append('circle').attr('cx', 14).attr('cy', 14).attr('r', 0.6).attr('fill', '#2a2b3d')
+      pattern.append('circle').attr('cx', 14).attr('cy', 14).attr('r', 0.75).attr('fill', 'var(--border-color)')
 
-      svg.append('rect').attr('width', width).attr('height', height).attr('fill', '#161616')
+      svg.append('rect').attr('width', width).attr('height', height).attr('fill', 'var(--bg-secondary)')
       svg.append('rect').attr('width', width).attr('height', height).attr('fill', 'url(#dotgrid)')
 
       const root = svg.append('g')
@@ -633,7 +633,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .selectAll<SVGLineElement, GLink>('line')
         .data(links)
         .join('line')
-        .attr('stroke', 'rgba(255, 255, 255, 0.08)')
+        .attr('stroke', 'rgba(255, 255, 255, 0.22)')
         .attr('stroke-width', 0)
         .attr('opacity', 0)
 

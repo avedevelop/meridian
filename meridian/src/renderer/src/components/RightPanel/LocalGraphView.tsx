@@ -119,7 +119,7 @@ export function LocalGraphView() {
       .attr('orient', 'auto')
       .append('path')
       .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#444')
+      .attr('fill', 'rgba(255, 255, 255, 0.4)')
 
     // Center g
     const g = svg.append('g')
@@ -155,8 +155,8 @@ export function LocalGraphView() {
       .data(links)
       .enter()
       .append('line')
-      .attr('stroke', '#333')
-      .attr('stroke-width', 1.5)
+      .attr('stroke', 'rgba(255, 255, 255, 0.25)')
+      .attr('stroke-width', 1.2)
       .attr('marker-end', 'url(#local-arrow)')
 
     // Draw Nodes
@@ -181,9 +181,9 @@ export function LocalGraphView() {
     // Circle representation
     node
       .append('circle')
-      .attr('r', (d) => (d.isCenter ? 8 : 5.5))
-      .attr('fill', (d) => (d.isCenter ? '#7c6af7' : '#38bdf8'))
-      .attr('stroke', (d) => (d.isCenter ? '#a395ff' : '#161616'))
+      .attr('r', (d) => (d.isCenter ? 9 : 6))
+      .attr('fill', (d) => (d.isCenter ? '#fff' : '#38bdf8'))
+      .attr('stroke', (d) => (d.isCenter ? 'var(--accent-color)' : 'var(--bg-secondary)'))
       .attr('stroke-width', (d) => (d.isCenter ? 3.5 : 1.5))
 
     // Labels
@@ -191,10 +191,10 @@ export function LocalGraphView() {
       .append('text')
       .text((d) => d.name)
       .attr('x', 0)
-      .attr('y', (d) => (d.isCenter ? 18 : 15))
+      .attr('y', (d) => (d.isCenter ? 20 : 17))
       .attr('text-anchor', 'middle')
-      .attr('fill', (d) => (d.isCenter ? '#fff' : '#aaa'))
-      .attr('font-size', 9)
+      .attr('fill', (d) => (d.isCenter ? 'var(--text-primary)' : 'var(--text-secondary)'))
+      .attr('font-size', 11)
       .attr('font-family', 'Inter, -apple-system, sans-serif')
       .style('pointer-events', 'none')
       .style('user-select', 'none')
@@ -234,7 +234,7 @@ export function LocalGraphView() {
 
   if (!activeTabPath) {
     return (
-      <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: '#444' }}>
+      <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', opacity: 0.5 }}>
         Select a note to view its connections
       </div>
     )
@@ -244,12 +244,12 @@ export function LocalGraphView() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 280 }}>
       <div
         style={{
-          padding: '12px 12px 6px',
-          color: '#666',
+          padding: '16px 16px 8px',
+          color: 'var(--text-secondary)',
           fontWeight: 600,
-          fontSize: 11,
+          fontSize: 12,
           textTransform: 'uppercase',
-          letterSpacing: '0.05em'
+          letterSpacing: '0.06em'
         }}
       >
         Local Connections
@@ -259,10 +259,10 @@ export function LocalGraphView() {
         style={{
           flex: 1,
           minHeight: 240,
-          background: '#111',
-          border: '1px solid #1e1e1e',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
           borderRadius: 8,
-          margin: '0 12px 12px',
+          margin: '0 16px 16px',
           position: 'relative',
           overflow: 'hidden'
         }}
