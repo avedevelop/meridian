@@ -3,15 +3,17 @@ import { BacklinksPanel } from './BacklinksPanel'
 import { TagsPanel } from './TagsPanel'
 import { TocPanel } from './TocPanel'
 import { LocalGraphView } from './LocalGraphView'
+import { PropertiesPanel } from './PropertiesPanel'
 import { useSettingsStore } from '../../store/useSettingsStore'
 
-type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph'
+type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties'
 
 export function RightPanel() {
-  const [activeTab, setActiveTab] = useState<RightTab>('backlinks')
+  const [activeTab, setActiveTab] = useState<RightTab>('properties')
   const plugins = useSettingsStore((s) => s.pluginsEnabled)
 
   const tabs: { id: RightTab; label: string }[] = [
+    { id: 'properties', label: 'Props' },
     plugins.backlinksPanel ? { id: 'backlinks', label: 'Links' } : null,
     plugins.tagsPanel ? { id: 'tags', label: 'Tags' } : null,
     plugins.tocPanel ? { id: 'toc', label: 'ToC' } : null,
@@ -50,6 +52,7 @@ export function RightPanel() {
         </div>
       )}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {effectiveTab === 'properties' && <PropertiesPanel />}
         {effectiveTab === 'backlinks' && <BacklinksPanel />}
         {effectiveTab === 'tags' && <TagsPanel />}
         {effectiveTab === 'toc' && <TocPanel />}
