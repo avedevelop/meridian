@@ -62,6 +62,7 @@ import { ActivityBar } from './components/ActivityBar/ActivityBar'
 import { useSettingsStore } from './store/useSettingsStore'
 
 import { useAutoSave } from './hooks/useAutoSave'
+import { useGitSync } from './hooks/useGitSync'
 
 declare global {
   interface Window {
@@ -89,6 +90,7 @@ export default function App() {
 
   useVaultFileWatcher()
   useAutoSave()
+  useGitSync()
 
   useEffect(() => {
     const root = document.documentElement

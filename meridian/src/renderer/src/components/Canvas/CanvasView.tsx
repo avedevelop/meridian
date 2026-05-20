@@ -663,6 +663,86 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     })
   }, [canvasData, size])
 
+  /* --- Mind Map auto-arrange -------------------------------------- */
+  const autoArrangeMindMap = useCallback(() => {
+    const { nodes, edges } = canvasData
+    if (nodes.length === 0) return
+
+    // Build adjacency list (directed: fromNode → toNode)
+    const children = new Map<string, string[]>()
+    const hasParent = new Set<string>()
+    nodes.forEach(n => children.set(n.id, []))
+    edges.forEach(e => {
+      children.get(e.fromNode)?.push(e.toNode)
+      hasParent.add(e.toNode)
+    })
+
+    // Find roots (nodes with no incoming edges)
+    const roots = nodes.filter(n => !hasParent.has(n.id)).map(n => n.id)
+    if (roots.length === 0) roots.push(nodes[0].id) // fallback: first node
+
+    const H_GAP = 80   // horizontal gap between nodes
+    const V_GAP = 60   // vertical gap between rows
+    const positions = new Map<string, { x: number; y: number }>()
+    const visited = new Set<string>()
+
+    // Compute subtree height (in rows) for a node
+    function subtreeHeight(id: string): number {
+      const kids = children.get(id) ?? []
+      if (kids.length === 0) return 1
+      return kids.reduce((sum, c) => sum + subtreeHeight(c), 0)
+    }
+
+    // Place a subtree rooted at `id`, top-left corner at (x, startY)
+    // Returns the total height consumed
+    function place(id: string, x: number, startY: number): number {
+      if (visited.has(id)) return 0
+      visited.add(id)
+      const node = nodes.find(n => n.id === id)
+      if (!node) return 0
+
+      const kids = children.get(id) ?? []
+      const totalRows = Math.max(1, subtreeHeight(id))
+      const totalH = totalRows * (node.height + V_GAP) - V_GAP
+      const cy = startY + totalH / 2 - node.height / 2
+
+      positions.set(id, { x, y: cy })
+
+      let cursor = startY
+      kids.forEach(kid => {
+        const kidNode = nodes.find(n => n.id === kid)
+        if (!kidNode) return
+        const h = subtreeHeight(kid)
+        place(kid, x + node.width + H_GAP, cursor)
+        cursor += h * (kidNode.height + V_GAP)
+      })
+
+      return totalH
+    }
+
+    // Place each root tree, stacking vertically
+    const ROOT_X = 80
+    let cursor = 80
+    roots.forEach(root => {
+      const h = place(root, ROOT_X, cursor)
+      const node = nodes.find(n => n.id === root)
+      cursor += h + (node?.height ?? 120) + V_GAP
+    })
+
+    // Animate: update positions with smooth transition via Konva Tween
+    // Since we don't have Tween here, we apply directly and let React re-render
+    mutate(prev => ({
+      ...prev,
+      nodes: prev.nodes.map(n => {
+        const pos = positions.get(n.id)
+        return pos ? { ...n, x: pos.x, y: pos.y } : n
+      })
+    }))
+
+    // Fit to content after layout
+    setTimeout(fitToContent, 50)
+  }, [canvasData, mutate, fitToContent])
+
   /* --- Build edge lines ------------------------------------------- */
   const edgeLines = useMemo(() => {
     const nodeMap = new Map(canvasData.nodes.map((n) => [n.id, n]))
@@ -1170,6 +1250,32 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         >
           <FrameIcon size={14} color="#7c6af7" />
           <span>Frame</span>
+        </button>
+
+        {/* Separator */}
+        <div style={{ width: 1, height: 20, background: '#333342', margin: '0 4px', flexShrink: 0 }} />
+
+        {/* Mind Map auto-arrange */}
+        <button
+          onClick={autoArrangeMindMap}
+          title="Auto-arrange as Mind Map"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '5px 12px', borderRadius: 6, border: '1px solid #333342',
+            background: 'transparent', color: '#ccc', cursor: 'pointer',
+            fontSize: 12, fontFamily: 'inherit', flexShrink: 0,
+          }}
+          onMouseEnter={e => {
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = NODE_SELECTED_STROKE
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#fff'
+          }}
+          onMouseLeave={e => {
+            ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#333342'
+            ;(e.currentTarget as HTMLButtonElement).style.color = '#ccc'
+          }}
+        >
+          <span style={{ fontSize: 14 }}>🌿</span>
+          <span>Mind Map</span>
         </button>
       </div>
 
