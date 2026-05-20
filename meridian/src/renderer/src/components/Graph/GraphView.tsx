@@ -1003,6 +1003,28 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     return () => cancelAnimationFrame(raf)
   }, [isPlaying, playDuration])
 
+  useEffect(() => {
+    if (viewMode !== 'history') return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (progress >= 1) setProgress(0)
+        setIsPlaying((p) => !p)
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault()
+        setIsPlaying(false)
+        setProgress((p) => Math.min(p + 0.01, 1))
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault()
+        setIsPlaying(false)
+        setProgress((p) => Math.max(p - 0.01, 0))
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [viewMode, progress])
+
   const renderFrameToCanvas = useCallback(() => {
     const state = d3Ref.current
     const canvas = canvasRef.current
@@ -1749,6 +1771,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               ⏺ Record
             </button>
           )}
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 4 }}>
+            Space · ←→
+          </span>
         </div>
       )}
 
