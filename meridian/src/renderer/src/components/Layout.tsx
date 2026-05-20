@@ -674,7 +674,7 @@ export function Layout({
         )}
 
         {/* Right Panel Resizer */}
-        {!rightPanelCollapsed && (
+        {!rightPanelCollapsed && !isGraphFullscreen && (
           <div
             onMouseDown={handleRightMouseDown}
             onDoubleClick={() => {
@@ -720,10 +720,10 @@ export function Layout({
 
         <div
           style={{
-            width: rightPanelCollapsed ? 0 : rightPanelWidth,
+            width: (rightPanelCollapsed || isGraphFullscreen) ? 0 : rightPanelWidth,
             flexShrink: 0,
             background: 'var(--bg-secondary)',
-            display: rightPanelCollapsed ? 'none' : 'block',
+            display: (rightPanelCollapsed || isGraphFullscreen) ? 'none' : 'block',
             overflow: 'auto'
           }}
         >

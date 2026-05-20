@@ -1740,8 +1740,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           whiteSpace: 'nowrap'
         }}
       >
-        <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', marginRight: 4 }}>
-          QUICK FILTERS:
+        <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.5, marginRight: 2 }}>
+          ⬡
         </span>
         {([
           { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
