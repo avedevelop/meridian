@@ -1659,22 +1659,30 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             backdropFilter: 'blur(12px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
             paddingLeft: isSettingsOpen ? 348 : 16,
             paddingRight: 16,
-            paddingTop: 5,
-            paddingBottom: 5,
-            gap: 3,
             transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
         >
-          {/* Row 1: minimap + ticks, spacer matches date label width */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flex: 1 }}>
-            <div style={{ minWidth: 136, flexShrink: 0 }} />
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
+            {formattedDate}
+          </span>
+
+            {/* Grouped scrubber area */}
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3,
+              background: 'rgba(255,255,255,0.04)',
+              borderRadius: 6,
+              padding: '5px 8px'
+            }}>
               <svg
-                style={{ display: 'block', width: '100%', height: 14, pointerEvents: 'none', opacity: 0.5 }}
+                style={{ display: 'block', width: '100%', height: 12, pointerEvents: 'none', opacity: 0.5 }}
                 preserveAspectRatio="none"
                 viewBox={`0 0 ${activityBuckets.length} 1`}
               >
@@ -1703,25 +1711,18 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                   </span>
                 ))}
               </div>
+              <input
+                type="range"
+                min={0}
+                max={1000}
+                value={Math.round(progress * 1000)}
+                onChange={(e) => {
+                  setProgress(Number(e.target.value) / 1000)
+                  setIsPlaying(false)
+                }}
+                style={{ width: '100%', margin: 0, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
+              />
             </div>
-          </div>
-
-          {/* Row 2: date + scrubber + buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
-              {formattedDate}
-            </span>
-            <input
-              type="range"
-              min={0}
-              max={1000}
-              value={Math.round(progress * 1000)}
-              onChange={(e) => {
-                setProgress(Number(e.target.value) / 1000)
-                setIsPlaying(false)
-              }}
-              style={{ flex: 1, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
-            />
             <button
               onClick={() => {
                 if (progress >= 1) setProgress(0)
@@ -1799,7 +1800,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 4 }}>
               Space · ←→
             </span>
-          </div>
         </div>
       )}
 
