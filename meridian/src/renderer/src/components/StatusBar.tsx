@@ -18,12 +18,12 @@ export function StatusBar() {
     <div
       style={{
         height: 22,
-        background: '#161616',
-        borderTop: '1px solid #2a2a2a',
+        background: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border-color)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 12px',
-        color: '#555',
+        color: 'var(--text-secondary)',
         fontSize: 11,
         gap: 16,
         flexShrink: 0

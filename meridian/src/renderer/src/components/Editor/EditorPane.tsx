@@ -34,6 +34,7 @@ export function EditorArea() {
   const {
     fontSize,
     lineWidth,
+    readableLineLength,
     lineWrapping,
     lineNumbers,
     bracketMatching,
@@ -127,33 +128,22 @@ export function EditorArea() {
 
       const view = viewRef.current
       if (view) {
-        // Find coordinates where the drop happened relative to the viewport
-        const pos = view.posAtCoords({ x: e.clientX, y: e.clientY })
-        if (pos !== null) {
-          // Insert link at the drop coordinates
+        const state = view.state
+        if (view.hasFocus) {
+          const selection = state.selection.main
           view.dispatch({
-            changes: { from: pos, to: pos, insert: wikiLink },
-            selection: { anchor: pos + wikiLink.length }
+            changes: { from: selection.from, to: selection.to, insert: wikiLink },
+            selection: { anchor: selection.from + wikiLink.length }
           })
         } else {
-          // If the editor is focused, insert at current selection/cursor position
-          const state = view.state
-          if (view.hasFocus) {
-            const selection = state.selection.main
-            view.dispatch({
-              changes: { from: selection.from, to: selection.to, insert: wikiLink },
-              selection: { anchor: selection.from + wikiLink.length }
-            })
-          } else {
-            // Otherwise, append it to the end of the file
-            const docLength = state.doc.length
-            const insertText =
-              docLength === 0 || state.doc.toString().endsWith('\n') ? wikiLink : `\n${wikiLink}`
-            view.dispatch({
-              changes: { from: docLength, to: docLength, insert: insertText },
-              selection: { anchor: docLength + insertText.length }
-            })
-          }
+          // Otherwise, append it to the end of the file
+          const docLength = state.doc.length
+          const insertText =
+            docLength === 0 || state.doc.toString().endsWith('\n') ? wikiLink : `\n${wikiLink}`
+          view.dispatch({
+            changes: { from: docLength, to: docLength, insert: insertText },
+            selection: { anchor: docLength + insertText.length }
+          })
         }
         view.focus()
       }
@@ -197,6 +187,7 @@ export function EditorArea() {
             stableGetFileNames,
             fontSize,
             lineWidth,
+            readableLineLength,
             handleImagePaste,
             lineWrapping,
             lineNumbers,
@@ -239,6 +230,7 @@ export function EditorArea() {
     activeTabPath,
     fontSize,
     lineWidth,
+    readableLineLength,
     lineWrapping,
     lineNumbers,
     bracketMatching,
@@ -271,15 +263,15 @@ export function EditorArea() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#444'
+          color: 'var(--text-secondary)'
         }}
       >
         <div style={{ textAlign: 'center' }}>
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
-            <FileIcon size={48} color="#2b2a3a" />
+            <FileIcon size={48} color="var(--border-color)" />
           </div>
           <p>Open a note from the sidebar</p>
-          <p style={{ fontSize: 12, color: '#333' }}>⌘K to search</p>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>⌘K to search</p>
         </div>
       </div>
     )
@@ -299,21 +291,24 @@ export function EditorArea() {
           }}
         />
       ) : (
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div
+          onDragOver={handleEditorDragOver}
+          onDrop={handleEditorDrop}
+          style={{ flex: 1, display: 'flex', overflow: 'hidden' }}
+        >
           <div
             ref={editorRef}
-            onDragOver={handleEditorDragOver}
-            onDrop={handleEditorDrop}
-            style={{ flex: 1, overflow: 'auto', height: '100%', background: '#131313' }}
+            style={{ flex: 1, overflow: 'auto', height: '100%', background: 'var(--bg-tertiary)' }}
           />
           {activeTab && (
             <>
-              <div style={{ width: 1, background: '#2a2a2a' }} />
+              <div style={{ width: 1, background: 'var(--border-color)' }} />
               <MarkdownPreview
                 content={activeTab.content}
                 onLinkClick={handleLinkClick}
                 fontSize={fontSize}
                 lineWidth={lineWidth}
+                readableLineLength={readableLineLength}
                 vaultPath={vault?.path}
               />
             </>

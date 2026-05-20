@@ -89,8 +89,8 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
       <div
         style={{
           height: 28,
-          background: '#161616',
-          borderBottom: '1px solid #2a2a2a',
+          background: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border-color)',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
@@ -106,7 +106,7 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#777',
+            color: 'var(--text-secondary)',
             fontSize: 11,
             fontFamily:
               "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
@@ -118,12 +118,12 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
             WebkitAppRegion: 'no-drag'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#222'
-            e.currentTarget.style.color = '#ccc'
+            e.currentTarget.style.background = 'var(--bg-surface)'
+            e.currentTarget.style.color = 'var(--text-primary)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = '#777'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
           Reset Layout
@@ -137,7 +137,7 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
           flex: 1,
           minHeight: 0,
           overflow: 'hidden',
-          background: '#1a1a1a'
+          background: 'var(--bg-primary)'
         }}
       >
         {activityBar}
@@ -145,7 +145,7 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
           style={{
             width: sidebarWidth,
             flexShrink: 0,
-            background: '#161616',
+            background: 'var(--bg-secondary)',
             display: 'flex',
             flexDirection: 'column'
           }}
@@ -169,14 +169,14 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
           onMouseEnter={(e) => {
             const inner = e.currentTarget.firstElementChild as HTMLDivElement
             if (inner) {
-              inner.style.background = '#7c6af7'
+              inner.style.background = 'var(--accent-color)'
               inner.style.width = '2px'
             }
           }}
           onMouseLeave={(e) => {
             const inner = e.currentTarget.firstElementChild as HTMLDivElement
             if (inner) {
-              inner.style.background = '#2a2a2a'
+              inner.style.background = 'var(--border-color)'
               inner.style.width = '1px'
             }
           }}
@@ -185,7 +185,7 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
             style={{
               width: 1,
               height: '100%',
-              background: '#2a2a2a',
+              background: 'var(--border-color)',
               transition: 'background 0.15s, width 0.15s'
             }}
           />
@@ -211,14 +211,14 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
           onMouseEnter={(e) => {
             const inner = e.currentTarget.firstElementChild as HTMLDivElement
             if (inner) {
-              inner.style.background = '#7c6af7'
+              inner.style.background = 'var(--accent-color)'
               inner.style.width = '2px'
             }
           }}
           onMouseLeave={(e) => {
             const inner = e.currentTarget.firstElementChild as HTMLDivElement
             if (inner) {
-              inner.style.background = '#2a2a2a'
+              inner.style.background = 'var(--border-color)'
               inner.style.width = '1px'
             }
           }}
@@ -227,7 +227,7 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
             style={{
               width: 1,
               height: '100%',
-              background: '#2a2a2a',
+              background: 'var(--border-color)',
               transition: 'background 0.15s, width 0.15s'
             }}
           />
@@ -237,7 +237,7 @@ export function Layout({ activityBar, sidebar, editor, rightPanel }: LayoutProps
           style={{
             width: rightPanelWidth,
             flexShrink: 0,
-            background: '#161616',
+            background: 'var(--bg-secondary)',
             overflow: 'auto'
           }}
         >

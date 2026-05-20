@@ -71,8 +71,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <div
               style={{
                 padding: '6px 8px 6px 12px',
-                borderBottom: '1px solid #2a2a2a',
-                color: '#777',
+                borderBottom: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)',
                 fontSize: 11,
                 fontWeight: 600,
                 letterSpacing: '0.05em',
@@ -82,7 +82,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 gap: 6
               }}
             >
-              <FolderOpenBtnIcon size={12} color="#7c6af7" />
+              <FolderOpenBtnIcon size={12} color="var(--accent-color)" />
               <span
                 style={{
                   overflow: 'hidden',
@@ -99,7 +99,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#555',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontSize: 14,
                   padding: '2px 4px',
@@ -107,8 +107,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   flexShrink: 0,
                   lineHeight: 1
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#aaa')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 ⎆
               </button>
@@ -116,7 +116,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <div
               style={{
                 padding: '4px 8px',
-                borderBottom: '1px solid #2a2a2a',
+                borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 gap: 4
               }}
@@ -129,10 +129,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   flex: 1,
                   padding: '4px 8px',
                   borderRadius: 4,
-                  background: '#2a2a2a',
+                  background: 'var(--bg-surface)',
                   border: 'none',
                   outline: 'none',
-                  color: '#ccc',
+                  color: 'var(--text-primary)',
                   fontSize: 12
                 }}
               />
@@ -142,7 +142,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#555',
+                    color: 'var(--text-secondary)',
                     cursor: 'pointer',
                     padding: '0 4px'
                   }}
@@ -156,14 +156,14 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#555',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: '0 4px',
                   display: 'flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#aaa')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <CollapseAllIcon size={12} />
               </button>
@@ -171,7 +171,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
               {filteredFiles ? (
                 filteredFiles.length === 0 ? (
-                  <div style={{ padding: '8px 12px', color: '#444', fontSize: 12 }}>
+                  <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 12 }}>
                     No files match.
                   </div>
                 ) : (
@@ -182,10 +182,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                       style={{
                         padding: '3px 12px',
                         cursor: 'pointer',
-                        color: activeTabPath === f.path ? '#fff' : '#ccc',
-                        background: activeTabPath === f.path ? '#2d235c' : 'transparent',
+                        color: activeTabPath === f.path ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        background: activeTabPath === f.path ? 'var(--accent-glow)' : 'transparent',
                         fontWeight: activeTabPath === f.path ? '500' : 'normal',
-                        borderLeft: activeTabPath === f.path ? '3px solid #7c6af7' : 'none',
+                        borderLeft: activeTabPath === f.path ? '3px solid var(--accent-color)' : 'none',
                         fontSize: 13,
                         display: 'flex',
                         alignItems: 'center',
@@ -193,7 +193,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                       }}
                       onMouseEnter={(e) => {
                         if (activeTabPath !== f.path) {
-                          e.currentTarget.style.background = '#2a2a2a'
+                          e.currentTarget.style.background = 'var(--bg-surface)'
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -213,7 +213,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                       >
                         {f.name}
                       </span>
-                      <span style={{ color: '#444', fontSize: 11, flexShrink: 0 }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 11, flexShrink: 0 }}>
                         {f.relativePath.split('/').slice(0, -1).join('/')}
                       </span>
                     </div>
@@ -238,7 +238,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <div
               style={{
                 padding: 8,
-                borderTop: '1px solid #2a2a2a',
+                borderTop: '1px solid var(--border-color)',
                 flexShrink: 0,
                 display: 'flex',
                 gap: 6
@@ -250,9 +250,9 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   flex: 1,
                   padding: '6px 0',
                   borderRadius: 6,
-                  background: '#2a2050',
-                  color: '#aaa',
-                  border: 'none',
+                  background: 'var(--accent-glow)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
                   fontSize: 12,
                   cursor: 'pointer'
                 }}
@@ -265,9 +265,9 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 style={{
                   padding: '6px 10px',
                   borderRadius: 6,
-                  background: '#1e2040',
-                  color: '#7c6af7',
-                  border: '1px solid #3a3a5a',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--accent-color)',
+                  border: '1px solid var(--border-color)',
                   fontSize: 12,
                   cursor: 'pointer'
                 }}
@@ -286,7 +286,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 position: 'fixed',
                 inset: 0,
                 zIndex: 900,
-                background: '#161616',
+                background: 'var(--bg-secondary)',
                 display: 'flex',
                 flexDirection: 'column'
               }}
@@ -298,7 +298,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   gap: 12,
                   padding: '10px 16px',
                   paddingTop: 38,
-                  borderBottom: '1px solid #2a2a2a',
+                  borderBottom: '1px solid var(--border-color)',
                   flexShrink: 0,
                   // @ts-ignore -- Electron drag region style is not part of React CSSProperties.
                   WebkitAppRegion: 'no-drag'
@@ -309,7 +309,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#888',
+                    color: 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontSize: 13,
                     padding: '4px 8px',
@@ -321,7 +321,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 >
                   ← Back
                 </button>
-                <span style={{ color: '#555', fontSize: 13 }}>Graph View</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Graph View</span>
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}>
                 <GraphView onFileOpen={() => onTabChange('files')} />

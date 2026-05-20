@@ -17,7 +17,6 @@ export function TabBar() {
   // Drag state
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null)
   const [hoveredDragIndex, setHoveredDragIndex] = useState<number | null>(null)
-  const [draggedWidth, setDraggedWidth] = useState<number>(0)
   const [isDraggingActive, setIsDraggingActive] = useState<boolean>(false)
 
   // FLIP animation refs
@@ -77,10 +76,6 @@ export function TabBar() {
     setActiveDragIndex(index)
     setHoveredDragIndex(index)
 
-    // Calculate item width + gap (4px)
-    const rect = e.currentTarget.getBoundingClientRect()
-    setDraggedWidth(rect.width + 4)
-
     // Set dragging state in a timeout to allow browser to capture drag ghost image first
     setTimeout(() => {
       setIsDraggingActive(true)
@@ -105,36 +100,34 @@ export function TabBar() {
   const handleDragEnd = () => {
     setActiveDragIndex(null)
     setHoveredDragIndex(null)
-    setDraggedWidth(0)
     setIsDraggingActive(false)
     ;(window as any).__meridianDragPath = null
   }
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-    if (activeDragIndex === null) return
-    if (hoveredDragIndex !== index) {
-      setHoveredDragIndex(index)
-    }
   }
 
   const handleContainerDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     if (activeDragIndex === null) return
 
-    // Find the closest tab based on clientX to update the gap position dynamically
-    let closestIndex = hoveredDragIndex ?? activeDragIndex
+    let closestIndex = activeDragIndex
     let minDistance = Infinity
 
     openTabs.forEach((tab, i) => {
       const el = tabRefs.current[tab.path]
       if (el) {
         const rect = el.getBoundingClientRect()
-        const midX = rect.left + rect.width / 2
-        const dist = Math.abs(e.clientX - midX)
-        if (dist < minDistance) {
-          minDistance = dist
+        const distLeft = Math.abs(e.clientX - rect.left)
+        if (distLeft < minDistance) {
+          minDistance = distLeft
           closestIndex = i
+        }
+        const distRight = Math.abs(e.clientX - rect.right)
+        if (distRight < minDistance) {
+          minDistance = distRight
+          closestIndex = i + 1
         }
       }
     })
@@ -148,14 +141,19 @@ export function TabBar() {
     e.preventDefault()
     if (
       activeDragIndex !== null &&
-      hoveredDragIndex !== null &&
-      activeDragIndex !== hoveredDragIndex
+      hoveredDragIndex !== null
     ) {
-      recordPositions()
-      const nextTabs = [...openTabs]
-      const [movedTab] = nextTabs.splice(activeDragIndex, 1)
-      nextTabs.splice(hoveredDragIndex, 0, movedTab)
-      reorderTabs(nextTabs)
+      let targetIndex = hoveredDragIndex
+      if (activeDragIndex < hoveredDragIndex) {
+        targetIndex = hoveredDragIndex - 1
+      }
+      if (activeDragIndex !== targetIndex) {
+        recordPositions()
+        const nextTabs = [...openTabs]
+        const [movedTab] = nextTabs.splice(activeDragIndex, 1)
+        nextTabs.splice(targetIndex, 0, movedTab)
+        reorderTabs(nextTabs)
+      }
     }
     handleDragEnd()
   }
@@ -180,8 +178,8 @@ export function TabBar() {
         flexDirection: 'row',
         flexWrap: 'nowrap',
         alignItems: 'center',
-        background: '#161616',
-        borderBottom: '1px solid #2a2a2a',
+        background: 'var(--bg-secondary)',
+        borderBottom: '1px solid var(--border-color)',
         height: 36,
         overflowX: 'auto',
         overflowY: 'hidden',
@@ -193,22 +191,11 @@ export function TabBar() {
       {openTabs.map((tab, i) => {
         const isActive = tab.path === activeTabPath
         const isDragged = activeDragIndex === i
-
-        // Calculate visual slide transition offset for reordering animation
-        let offset = 0
-        if (activeDragIndex !== null && hoveredDragIndex !== null) {
-          if (activeDragIndex < hoveredDragIndex) {
-            // Dragging right: intermediate tabs slide to the left
-            if (i > activeDragIndex && i <= hoveredDragIndex) {
-              offset = -draggedWidth
-            }
-          } else if (activeDragIndex > hoveredDragIndex) {
-            // Dragging left: intermediate tabs slide to the right
-            if (i >= hoveredDragIndex && i < activeDragIndex) {
-              offset = draggedWidth
-            }
-          }
-        }
+        const isDropTargetLeft = activeDragIndex !== null && hoveredDragIndex === i
+        const isDropTargetRight =
+          activeDragIndex !== null &&
+          hoveredDragIndex === openTabs.length &&
+          i === openTabs.length - 1
 
         return (
           <div
@@ -221,7 +208,7 @@ export function TabBar() {
             draggable={true}
             onDragStart={(e) => handleDragStart(e, i, tab.path, tab.name)}
             onDragEnd={handleDragEnd}
-            onDragOver={(e) => handleDragOver(e, i)}
+            onDragOver={handleDragOver}
             onDrop={handleDrop}
             style={{
               display: 'flex',
@@ -230,38 +217,63 @@ export function TabBar() {
               padding: '0 10px',
               height: 26,
               cursor: 'grab',
-              border: '1px solid #2a2a2a',
+              border: '1px solid var(--border-color)',
               borderRadius: 4,
-              background: isActive ? '#22222a' : '#141414',
-              color: isActive ? '#fff' : '#888',
+              background: isActive ? 'var(--bg-primary)' : 'var(--bg-tertiary)',
+              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontSize: 12,
               fontFamily:
                 "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
               userSelect: 'none',
               flexShrink: 0,
               opacity: isDragged ? (isDraggingActive ? 0.3 : 1) : 1,
-              transform: `translate3d(${offset}px, 0, 0)`,
-              transition:
-                activeDragIndex !== null ? 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
               zIndex: isDragged ? 10 : 1,
               position: 'relative'
             }}
             onMouseEnter={(e) => {
               if (!isActive && activeDragIndex === null) {
-                e.currentTarget.style.background = '#1a1a22'
-                e.currentTarget.style.borderColor = '#3a3a4a'
-                e.currentTarget.style.color = '#ccc'
+                e.currentTarget.style.background = 'var(--bg-surface)'
+                e.currentTarget.style.borderColor = 'var(--border-color)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }
             }}
             onMouseLeave={(e) => {
               if (!isActive && activeDragIndex === null) {
-                e.currentTarget.style.background = '#141414'
-                e.currentTarget.style.borderColor = '#2a2a2a'
-                e.currentTarget.style.color = '#888'
+                e.currentTarget.style.background = 'var(--bg-tertiary)'
+                e.currentTarget.style.borderColor = 'var(--border-color)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }
             }}
           >
-            {tab.isDirty && <span style={{ color: '#7c6af7', fontSize: 10 }}>●</span>}
+            {isDropTargetLeft && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: -3,
+                  top: 0,
+                  bottom: 0,
+                  width: 3,
+                  background: 'var(--accent-color)',
+                  borderRadius: 1.5,
+                  zIndex: 100
+                }}
+              />
+            )}
+            {isDropTargetRight && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: -3,
+                  top: 0,
+                  bottom: 0,
+                  width: 3,
+                  background: 'var(--accent-color)',
+                  borderRadius: 1.5,
+                  zIndex: 100
+                }}
+              />
+            )}
+            {tab.isDirty && <span style={{ color: 'var(--accent-color)', fontSize: 10 }}>●</span>}
             <span style={{ pointerEvents: 'none' }}>{tab.name}</span>
             <span
               onClick={(e) => {
@@ -269,7 +281,7 @@ export function TabBar() {
                 closeTab(tab.path)
               }}
               style={{
-                color: '#555',
+                color: 'var(--text-secondary)',
                 fontSize: 14,
                 lineHeight: 1,
                 marginLeft: 4,
@@ -282,12 +294,12 @@ export function TabBar() {
                 borderRadius: '50%'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#333'
-                e.currentTarget.style.color = '#fff'
+                e.currentTarget.style.background = 'var(--bg-surface)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = '#555'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
               ×

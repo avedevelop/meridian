@@ -4,6 +4,7 @@ export interface SettingsState {
   // Existing Editor settings
   fontSize: number // editor + preview font size in px, range 13–22
   lineWidth: number // max content width in px, range 600–960
+  readableLineLength: boolean
   lineWrapping: boolean
   lineNumbers: boolean
   tabSize: number // 2 | 4 | 8
@@ -69,6 +70,7 @@ const DEFAULTS: Omit<
 > = {
   fontSize: 15,
   lineWidth: 720,
+  readableLineLength: true,
   lineWrapping: true,
   lineNumbers: true,
   tabSize: 4,

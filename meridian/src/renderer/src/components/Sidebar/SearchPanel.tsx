@@ -16,7 +16,7 @@ export function SearchPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '8px 10px', borderBottom: '1px solid #2a2a2a' }}>
+      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-color)' }}>
         <input
           value={query}
           onChange={handleChange}
@@ -25,10 +25,10 @@ export function SearchPanel() {
             width: '100%',
             padding: '6px 10px',
             borderRadius: 6,
-            background: '#2a2a2a',
+            background: 'var(--bg-surface)',
             border: 'none',
             outline: 'none',
-            color: '#ccc',
+            color: 'var(--text-primary)',
             fontSize: 12
           }}
         />
@@ -42,20 +42,20 @@ export function SearchPanel() {
               padding: '6px 12px',
               cursor: 'pointer',
               fontSize: 13,
-              color: '#ccc',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               gap: 6
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#2a2a2a')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-surface)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <FileIcon size={12} color="#7c6af7" />
+            <FileIcon size={12} color="var(--accent-color)" />
             <span>{result.name.replace(/\.md$/, '')}</span>
           </div>
         ))}
         {query && searchResults.length === 0 && (
-          <div style={{ padding: '8px 12px', color: '#555', fontSize: 12 }}>No results</div>
+          <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 12 }}>No results</div>
         )}
       </div>
     </div>

@@ -24,7 +24,7 @@ export function RightPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {tabs.length > 0 && (
-        <div style={{ display: 'flex', borderBottom: '1px solid #2a2a2a', flexShrink: 0 }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -38,10 +38,10 @@ export function RightPanel() {
                 fontWeight: 600,
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
-                background: effectiveTab === tab.id ? '#1a1a1a' : 'transparent',
-                color: effectiveTab === tab.id ? '#fff' : '#555',
+                background: effectiveTab === tab.id ? 'var(--bg-primary)' : 'transparent',
+                color: effectiveTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
                 borderBottom:
-                  effectiveTab === tab.id ? '2px solid #7c6af7' : '2px solid transparent'
+                  effectiveTab === tab.id ? '2px solid var(--accent-color)' : '2px solid transparent'
               }}
             >
               {tab.label}

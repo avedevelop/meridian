@@ -49,6 +49,7 @@ function getFontFamilyValue(font: string) {
 export function createMeridianTheme(
   fontSize: number,
   lineWidth: number,
+  readableLineLength: boolean,
   fontFamily: string,
   fontWeight: string,
   lineHeight: number
@@ -58,7 +59,7 @@ export function createMeridianTheme(
       '&': {
         height: '100%',
         fontSize: `${fontSize}px`,
-        backgroundColor: '#131313 !important'
+        backgroundColor: 'var(--bg-tertiary) !important'
       },
       '.cm-scroller': {
         overflow: 'auto',
@@ -68,21 +69,21 @@ export function createMeridianTheme(
       },
       '.cm-content': {
         padding: '24px 32px',
-        maxWidth: `${lineWidth}px`,
+        maxWidth: readableLineLength ? `${lineWidth}px` : 'none',
         margin: '0 auto',
-        backgroundColor: '#131313 !important'
+        backgroundColor: 'var(--bg-tertiary) !important'
       },
       '.cm-gutters': {
-        backgroundColor: '#131313 !important',
-        borderRight: '1px solid #222222 !important',
-        color: '#444 !important'
+        backgroundColor: 'var(--bg-tertiary) !important',
+        borderRight: '1px solid var(--border-color) !important',
+        color: 'var(--text-secondary) !important'
       },
       '.cm-activeLine': {
-        backgroundColor: '#1a1a1f !important'
+        backgroundColor: 'var(--bg-primary) !important'
       },
       '.cm-activeLineGutter': {
-        backgroundColor: '#1a1a1f !important',
-        color: '#7c6af7 !important'
+        backgroundColor: 'var(--bg-primary) !important',
+        color: 'var(--accent-color) !important'
       },
       '.cm-focused': {
         outline: 'none'
@@ -101,6 +102,7 @@ export function createMarkdownExtensions(
   getFileNames?: () => string[],
   fontSize = 15,
   lineWidth = 720,
+  readableLineLength = true,
   onImagePaste?: (base64: string, ext: string) => Promise<string | null>,
   lineWrapping = true,
   lineNumbersEnabled = true,
@@ -112,7 +114,7 @@ export function createMarkdownExtensions(
 ) {
   return [
     oneDark,
-    createMeridianTheme(fontSize, lineWidth, fontFamily, fontWeight, lineHeight),
+    createMeridianTheme(fontSize, lineWidth, readableLineLength, fontFamily, fontWeight, lineHeight),
     lineWrapping ? EditorView.lineWrapping : [],
     lineNumbersEnabled ? lineNumbers() : [],
     highlightActiveLineGutter(),

@@ -59,6 +59,7 @@ import { useVaultBridge } from './hooks/useVaultBridge'
 import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
+import { useSettingsStore } from './store/useSettingsStore'
 
 import { useAutoSave } from './hooks/useAutoSave'
 
@@ -82,8 +83,101 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph'>('files')
+
+  const theme = useSettingsStore((s) => s.theme)
+  const accentColor = useSettingsStore((s) => s.accentColor)
+
   useVaultFileWatcher()
   useAutoSave()
+
+  useEffect(() => {
+    const root = document.documentElement
+    const themes = {
+      dark: {
+        '--bg-primary': '#111115',
+        '--bg-secondary': '#181822',
+        '--bg-tertiary': '#070709',
+        '--bg-surface': '#222230',
+        '--border-color': '#282835',
+        '--text-primary': '#f3f4f6',
+        '--text-secondary': '#9ca3af'
+      },
+      midnight: {
+        '--bg-primary': '#0b0b0b',
+        '--bg-secondary': '#070707',
+        '--bg-tertiary': '#000000',
+        '--bg-surface': '#141414',
+        '--border-color': '#1c1c1c',
+        '--text-primary': '#f0f0f0',
+        '--text-secondary': '#666666'
+      },
+      indigo: {
+        '--bg-primary': '#141424',
+        '--bg-secondary': '#0f0f1b',
+        '--bg-tertiary': '#0b0b14',
+        '--bg-surface': '#1d1d33',
+        '--border-color': '#24243f',
+        '--text-primary': '#e0e2fc',
+        '--text-secondary': '#7b7ea3'
+      },
+      cyberpunk: {
+        '--bg-primary': '#100720',
+        '--bg-secondary': '#0b0416',
+        '--bg-tertiary': '#05020c',
+        '--bg-surface': '#1f0f3d',
+        '--border-color': '#331444',
+        '--text-primary': '#00ffff',
+        '--text-secondary': '#ff00ff'
+      },
+      forest: {
+        '--bg-primary': '#121b16',
+        '--bg-secondary': '#0d1410',
+        '--bg-tertiary': '#090e0b',
+        '--bg-surface': '#1a2620',
+        '--border-color': '#22332a',
+        '--text-primary': '#e2f0e9',
+        '--text-secondary': '#6d8c7d'
+      }
+    }
+
+    const accents = {
+      purple: {
+        '--accent-color': '#7c6af7',
+        '--accent-hover': '#9081f8',
+        '--accent-glow': 'rgba(124, 106, 247, 0.25)'
+      },
+      blue: {
+        '--accent-color': '#3b82f6',
+        '--accent-hover': '#60a5fa',
+        '--accent-glow': 'rgba(59, 130, 246, 0.25)'
+      },
+      green: {
+        '--accent-color': '#10b981',
+        '--accent-hover': '#34d399',
+        '--accent-glow': 'rgba(16, 185, 129, 0.25)'
+      },
+      orange: {
+        '--accent-color': '#f97316',
+        '--accent-hover': '#fb923c',
+        '--accent-glow': 'rgba(249, 115, 22, 0.25)'
+      },
+      red: {
+        '--accent-color': '#ef4444',
+        '--accent-hover': '#f87171',
+        '--accent-glow': 'rgba(239, 68, 68, 0.25)'
+      }
+    }
+
+    const currentTheme = themes[theme] || themes.dark
+    const currentAccent = accents[accentColor] || accents.purple
+
+    Object.entries(currentTheme).forEach(([prop, val]) => {
+      root.style.setProperty(prop, val)
+    })
+    Object.entries(currentAccent).forEach(([prop, val]) => {
+      root.style.setProperty(prop, val)
+    })
+  }, [theme, accentColor])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

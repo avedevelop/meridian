@@ -25,8 +25,8 @@ export function ActivityBar({ activeTab, onTabChange, onSettings }: ActivityBarP
       style={{
         width: 48,
         flexShrink: 0,
-        background: '#111111',
-        borderRight: '1px solid #2a2a2a',
+        background: 'var(--bg-tertiary)',
+        borderRight: '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center'
@@ -48,15 +48,15 @@ export function ActivityBar({ activeTab, onTabChange, onSettings }: ActivityBarP
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: isActive ? '#fff' : '#555',
-              borderLeft: isActive ? '2px solid #7c6af7' : '2px solid transparent',
+              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderLeft: isActive ? '2px solid var(--accent-color)' : '2px solid transparent',
               padding: 0
             }}
             onMouseEnter={(e) => {
-              if (!isActive) e.currentTarget.style.color = '#aaa'
+              if (!isActive) e.currentTarget.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {
-              if (!isActive) e.currentTarget.style.color = '#555'
+              if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <Icon />
@@ -78,12 +78,12 @@ export function ActivityBar({ activeTab, onTabChange, onSettings }: ActivityBarP
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#555',
+          color: 'var(--text-secondary)',
           borderLeft: '2px solid transparent',
           padding: 0
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#aaa')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
       >
         <SettingsIcon size={20} />
       </button>

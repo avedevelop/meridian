@@ -507,6 +507,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         )
       },
       {
+        id: 'readableLineLength',
+        label: 'Readable line length',
+        description: 'Limit the width of the editor/preview area to a readable size.',
+        category: 'editor',
+        render: (s) => (
+          <Toggle
+            label="Readable line length"
+            description="Limit the width of the editor/preview area to a readable size."
+            checked={s.readableLineLength}
+            onChange={(v) => s.updateSetting('readableLineLength', v)}
+          />
+        )
+      },
+      {
         id: 'fontFamily',
         label: 'Font family',
         description: 'Set the font family family face used inside the editor workspace.',
@@ -977,9 +991,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         style={{
           width: 900,
           height: 600,
-          background: '#1a1a1a',
+          background: 'var(--bg-primary)',
           borderRadius: 14,
-          border: '1px solid #2a2a2a',
+          border: '1px solid var(--border-color)',
           boxShadow: '0 24px 72px rgba(0,0,0,0.9)',
           display: 'flex',
           flexDirection: 'column',
@@ -993,14 +1007,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           style={{
             height: 48,
             padding: '0 24px',
-            borderBottom: '1px solid #282828',
+            borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: '#161616'
+            background: 'var(--bg-secondary)'
           }}
         >
-          <span style={{ color: '#fff', fontSize: 14, fontWeight: 600, letterSpacing: '0.02em' }}>
+          <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, letterSpacing: '0.02em' }}>
             System Settings
           </span>
           <button
@@ -1008,7 +1022,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#666',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: 22,
               lineHeight: 1,
@@ -1017,8 +1031,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               alignItems: 'center',
               justifyContent: 'center'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#666')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             ×
           </button>
@@ -1030,8 +1044,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div
             style={{
               width: 240,
-              background: '#141414',
-              borderRight: '1px solid #252525',
+              background: 'var(--bg-tertiary)',
+              borderRight: '1px solid var(--border-color)',
               display: 'flex',
               flexDirection: 'column',
               padding: '16px 8px'
@@ -1046,10 +1060,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
-                  background: '#202020',
-                  border: '1px solid #303030',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: 6,
-                  color: '#eee',
+                  color: 'var(--text-primary)',
                   fontSize: 12,
                   padding: '6px 10px',
                   outline: 'none'
@@ -1082,9 +1096,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       gap: 10,
                       padding: '8px 12px',
                       borderRadius: 6,
-                      background: isSelected ? 'rgba(124, 106, 247, 0.15)' : 'transparent',
+                      background: isSelected ? 'var(--accent-glow)' : 'transparent',
                       border: 'none',
-                      color: isSelected ? '#7c6af7' : '#999',
+                      color: isSelected ? 'var(--accent-color)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       fontSize: 12,
@@ -1094,20 +1108,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onMouseEnter={(e) => {
                       if (!isSelected) {
                         e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-                        e.currentTarget.style.color = '#fff'
+                        e.currentTarget.style.color = 'var(--text-primary)'
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isSelected) {
                         e.currentTarget.style.background = 'transparent'
-                        e.currentTarget.style.color = '#999'
+                        e.currentTarget.style.color = 'var(--text-secondary)'
                       }
                     }}
                   >
                     <span
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      {getCategoryIcon(cat.id, isSelected ? '#7c6af7' : '#777')}
+                      {getCategoryIcon(cat.id, isSelected ? 'var(--accent-color)' : 'var(--text-secondary)')}
                     </span>
                     <span>{cat.label}</span>
                   </button>
@@ -1116,7 +1130,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
 
             {/* Reset Defaults button */}
-            <div style={{ padding: '8px 8px 0 8px', borderTop: '1px solid #222' }}>
+            <div style={{ padding: '8px 8px 0 8px', borderTop: '1px solid var(--border-color)' }}>
               <button
                 onClick={() => {
                   if (confirm('Are you sure you want to reset all settings to defaults?')) {
@@ -1126,9 +1140,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 style={{
                   width: '100%',
                   background: 'transparent',
-                  border: '1px dashed #444',
+                  border: '1px dashed var(--border-color)',
                   borderRadius: 6,
-                  color: '#666',
+                  color: 'var(--text-secondary)',
                   fontSize: 11,
                   padding: '6px',
                   cursor: 'pointer',
@@ -1139,8 +1153,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   e.currentTarget.style.color = '#c06868'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#444'
-                  e.currentTarget.style.color = '#666'
+                  e.currentTarget.style.borderColor = 'var(--border-color)'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
                 }}
               >
                 Reset Defaults
@@ -1152,7 +1166,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div
             style={{
               flex: 1,
-              background: '#1a1a1a',
+              background: 'var(--bg-primary)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden'
@@ -1163,10 +1177,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {/* SEARCH RESULTS MODE */}
               {searchQuery ? (
                 <div>
-                  <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+                  <div style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
                     Search Results
                   </div>
-                  <div style={{ color: '#666', fontSize: 11, marginBottom: 20 }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 11, marginBottom: 20 }}>
                     Showing results matching "{searchQuery}"
                   </div>
 
@@ -1176,7 +1190,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <div key={item.id}>
                           <div
                             style={{
-                              color: '#888',
+                              color: 'var(--text-secondary)',
                               fontSize: 9,
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
@@ -1192,7 +1206,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div
                         style={{
                           textAlign: 'center',
-                          color: '#666',
+                          color: 'var(--text-secondary)',
                           padding: '48px 0',
                           fontSize: 13
                         }}
@@ -1210,14 +1224,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <h3
                         style={{
                           margin: '0 0 4px 0',
-                          color: '#fff',
+                          color: 'var(--text-primary)',
                           fontSize: 16,
                           fontWeight: 600
                         }}
                       >
                         Editor
                       </h3>
-                      <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
+                      <p style={{ margin: '0 0 20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
                         Customize your markdown writing environment, tab options, and editor
                         indicators.
                       </p>

@@ -38,7 +38,7 @@ function postprocessWikiLinks(html: string): string {
   return html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
     const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
     const linkAttr = link.trim().replace(/"/g, '&quot;')
-    return `<span class="wiki-link" data-link="${linkAttr}" style="color:#7c6af7;text-decoration:underline;cursor:pointer">${label}</span>`
+    return `<span class="wiki-link" data-link="${linkAttr}" style="color:var(--accent-color);text-decoration:underline;cursor:pointer">${label}</span>`
   })
 }
 
@@ -47,6 +47,7 @@ interface MarkdownPreviewProps {
   onLinkClick?: (linkText: string) => void
   fontSize?: number
   lineWidth?: number
+  readableLineLength?: boolean
   vaultPath?: string
 }
 
@@ -55,6 +56,7 @@ export function MarkdownPreview({
   onLinkClick,
   fontSize = 15,
   lineWidth = 720,
+  readableLineLength = true,
   vaultPath
 }: MarkdownPreviewProps) {
   const { fontFamily, fontWeight, lineHeight } = useSettingsStore()
@@ -108,13 +110,14 @@ export function MarkdownPreview({
         flex: 1,
         padding: '24px 32px',
         overflowY: 'auto',
-        color: '#ccc',
+        color: 'var(--text-primary)',
         fontSize,
         lineHeight: String(lineHeight),
         fontWeight: fontWeight,
         fontFamily: fontFamilyValue,
-        background: '#1e1e1e',
-        maxWidth: lineWidth
+        background: 'var(--bg-primary)',
+        maxWidth: readableLineLength ? lineWidth : 'none',
+        margin: '0 auto'
       }}
     />
   )

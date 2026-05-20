@@ -172,7 +172,7 @@ export function FileTree({
                 const dragPath = (window as any).__meridianDragPath
                 if (!file.isDirectory || !dragPath || dragPath === file.path) return
                 e.preventDefault()
-                e.currentTarget.style.background = '#2a2050'
+                e.currentTarget.style.background = 'var(--accent-glow)'
               }}
               onDragLeave={(e) => {
                 e.currentTarget.style.background = editing === file.path ? 'transparent' : ''
@@ -193,21 +193,21 @@ export function FileTree({
                 paddingTop: 3,
                 paddingBottom: 3,
                 cursor: 'pointer',
-                color: activePath === file.path ? '#fff' : '#ccc',
+                color: activePath === file.path ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontWeight: activePath === file.path ? '500' : 'normal',
                 background:
-                  activePath === file.path ? '#2d235c' : editing === file.path ? 'transparent' : '',
+                  activePath === file.path ? 'var(--accent-glow)' : editing === file.path ? 'transparent' : '',
                 fontSize: 13,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
                 borderRadius: 4,
                 userSelect: 'none',
-                borderLeft: activePath === file.path ? '3px solid #7c6af7' : 'none'
+                borderLeft: activePath === file.path ? '3px solid var(--accent-color)' : 'none'
               }}
               onMouseEnter={(e) => {
                 if (editing !== file.path && activePath !== file.path) {
-                  e.currentTarget.style.background = '#2a2a2a'
+                  e.currentTarget.style.background = 'var(--bg-surface)'
                 }
               }}
               onMouseLeave={(e) => {
@@ -216,7 +216,7 @@ export function FileTree({
                 }
               }}
             >
-              <span style={{ fontSize: 11, color: '#555', width: 10, flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)', width: 10, flexShrink: 0 }}>
                 {file.isDirectory ? (expanded.has(file.path) ? '▾' : '▸') : ''}
               </span>
               <FileIcon
@@ -240,10 +240,10 @@ export function FileTree({
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     flex: 1,
-                    background: '#1a1a2a',
-                    border: '1px solid #7c6af7',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--accent-color)',
                     borderRadius: 3,
-                    color: '#fff',
+                    color: 'var(--text-primary)',
                     fontSize: 13,
                     padding: '1px 4px',
                     outline: 'none'
