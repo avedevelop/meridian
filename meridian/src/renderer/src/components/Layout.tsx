@@ -423,13 +423,14 @@ export function Layout({
         overflow: 'hidden'
       }}
     >
-      {/* Single full-width title bar — no seam */}
+      {/* Single full-width title bar — hidden in graph fullscreen */}
       <div
         style={{
-          height: 38,
+          height: isGraphFullscreen ? 0 : 38,
           background: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
+          borderBottom: isGraphFullscreen ? 'none' : '1px solid var(--border-color)',
           flexShrink: 0,
+          overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -608,7 +609,7 @@ export function Layout({
           background: 'var(--bg-primary)'
         }}
       >
-        {activityBar}
+        {!isGraphFullscreen && activityBar}
         <div
           style={{
             width: isGraphFullscreen ? '100%' : (sidebarCollapsed ? 0 : sidebarWidth),
