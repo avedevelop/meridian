@@ -8,6 +8,29 @@ import { GraphView } from '../Graph/GraphView'
 import { FileIcon } from './FileIcon'
 import type { VaultFile } from '@shared/types'
 
+type SortOrder = 'name-asc' | 'name-desc' | 'modified'
+
+const SORT_LABELS: Record<SortOrder, string> = {
+  'name-asc': 'A↑',
+  'name-desc': 'A↓',
+  'modified': '🕐'
+}
+
+const SORT_CYCLE: SortOrder[] = ['name-asc', 'name-desc', 'modified']
+
+function sortFiles(files: import('@shared/types').VaultFile[], order: SortOrder): import('@shared/types').VaultFile[] {
+  const sorted = [...files].sort((a, b) => {
+    if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
+    if (order === 'name-asc') return a.name.localeCompare(b.name)
+    if (order === 'name-desc') return b.name.localeCompare(a.name)
+    if (order === 'modified') return b.mtime - a.mtime
+    return 0
+  })
+  return sorted.map((f) =>
+    f.isDirectory && f.children ? { ...f, children: sortFiles(f.children, order) } : f
+  )
+}
+
 interface SidebarProps {
   activeTab: 'files' | 'search' | 'graph'
   onTabChange: (tab: 'files' | 'search' | 'graph') => void
@@ -46,6 +69,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   } = useVaultBridge()
   const [filterQuery, setFilterQuery] = useState('')
   const [collapseKey, setCollapseKey] = useState(0)
+  const [sortOrder, setSortOrder] = useState<SortOrder>('name-asc')
+  const sortedFiles = useMemo(() => sortFiles(files, sortOrder), [files, sortOrder])
 
   const filteredFiles = useMemo(() => {
     if (!filterQuery.trim()) return null
@@ -168,6 +193,35 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               >
                 <CollapseAllIcon size={12} />
               </button>
+              <button
+                onClick={() =>
+                  setSortOrder((o) => {
+                    const idx = SORT_CYCLE.indexOf(o)
+                    return SORT_CYCLE[(idx + 1) % SORT_CYCLE.length]
+                  })
+                }
+                title={`Sort: ${SORT_LABELS[sortOrder]} — click to change`}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  minWidth: 24,
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.color =
+                    sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)')
+                }
+              >
+                {SORT_LABELS[sortOrder]}
+              </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
               {filteredFiles ? (
@@ -222,7 +276,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 )
               ) : (
                 <FileTree
-                  files={files}
+                  files={sortedFiles}
                   onFileClick={openFile}
                   onRename={renameFile}
                   onDelete={deleteFile}
