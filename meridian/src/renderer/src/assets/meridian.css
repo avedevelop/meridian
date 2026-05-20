@@ -145,3 +145,26 @@ body,
   height: 1px;
   pointer-events: none;
 }
+
+/* markdownCore live preview — highlights, wikilinks, callouts, checkboxes */
+.cm-lp-highlight {
+  background: rgba(255, 220, 0, 0.28);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.cm-lp-wikilink {
+  color: var(--accent-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.cm-lp-callout {
+  border-left: 3px solid var(--callout-color, #6b7280);
+  padding-left: 10px;
+  border-radius: 0 3px 3px 0;
+}
+.cm-lp-callout-body {
+  border-left: 3px solid var(--callout-color, #6b7280);
+  padding-left: 10px;
+  opacity: 0.85;
+}
