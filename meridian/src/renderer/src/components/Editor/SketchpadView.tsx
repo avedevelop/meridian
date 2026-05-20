@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 export interface DrawingElement {
   id: string
@@ -37,7 +37,20 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
   const isDrawing = useRef(false)
   const currentElementId = useRef<string | null>(null)
 
-  // Load drawing on mount or path change
+  // Refs always holding the latest values — used in stable callbacks below
+  const undoStackRef = useRef(undoStack)
+  undoStackRef.current = undoStack
+  const redoStackRef = useRef(redoStack)
+  redoStackRef.current = redoStack
+  const elementsRef = useRef(elements)
+  elementsRef.current = elements
+  const filePathRef = useRef(filePath)
+  filePathRef.current = filePath
+  const onSaveRef = useRef(onSave)
+  onSaveRef.current = onSave
+
+  // Load drawing only when the FILE changes, NOT on every save
+  // (content changes on save would reset undoStack otherwise)
   useEffect(() => {
     try {
       if (content.trim()) {
@@ -49,69 +62,63 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
           return
         }
       }
-    } catch (e) {
-      // Not a valid drawing or empty
+    } catch {
+      // not valid drawing
     }
-    // Initialize empty
     setElements([])
     setUndoStack([])
     setRedoStack([])
-  }, [filePath, content])
+  }, [filePath]) // ← only filePath, not content
 
-  // Save drawing content
-  const saveDrawing = (newElements: DrawingElement[]) => {
-    const data = {
+  // Stable save function via ref — never goes stale in callbacks
+  const saveDrawing = useCallback((newElements: DrawingElement[]) => {
+    onSaveRef.current(filePathRef.current, JSON.stringify({
       type: 'meridian-drawing',
-      elements: newElements
-    }
-    onSave(filePath, JSON.stringify(data, null, 2))
-  }
+      elements: newElements,
+    }, null, 2))
+  }, [])
 
-  const pushState = (oldElements: DrawingElement[]) => {
-    setUndoStack((prev) => [...prev, oldElements])
-    setRedoStack([]) // Clear redo
-  }
+  const pushState = useCallback((oldElements: DrawingElement[]) => {
+    setUndoStack(prev => [...prev, oldElements])
+    setRedoStack([])
+  }, [])
 
-  // Use refs so keydown handler always sees latest stacks without stale closure
-  const undoStackRef = useRef(undoStack)
-  undoStackRef.current = undoStack
-  const redoStackRef = useRef(redoStack)
-  redoStackRef.current = redoStack
-  const elementsRef = useRef(elements)
-  elementsRef.current = elements
-
-  const handleUndo = () => {
+  // Stable undo/redo handlers using refs — safe to use in keydown with [] deps
+  const handleUndo = useCallback(() => {
     if (undoStackRef.current.length === 0) return
     const prev = undoStackRef.current[undoStackRef.current.length - 1]
-    setUndoStack(stack => stack.slice(0, -1))
-    setRedoStack(stack => [...stack, elementsRef.current])
+    setUndoStack(s => s.slice(0, -1))
+    setRedoStack(s => [...s, elementsRef.current])
     setElements(prev)
     saveDrawing(prev)
-  }
+  }, [saveDrawing])
 
-  const handleRedo = () => {
+  const handleRedo = useCallback(() => {
     if (redoStackRef.current.length === 0) return
     const next = redoStackRef.current[redoStackRef.current.length - 1]
-    setRedoStack(stack => stack.slice(0, -1))
-    setUndoStack(stack => [...stack, elementsRef.current])
+    setRedoStack(s => s.slice(0, -1))
+    setUndoStack(s => [...s, elementsRef.current])
     setElements(next)
     saveDrawing(next)
-  }
+  }, [saveDrawing])
 
-  // ⌘Z / ⌘⇧Z keyboard shortcuts
+  // Keep latest undo/redo in refs so keydown always calls current version
+  const handleUndoRef = useRef(handleUndo)
+  handleUndoRef.current = handleUndo
+  const handleRedoRef = useRef(handleRedo)
+  handleRedoRef.current = handleRedo
+
+  // ⌘Z / ⌘⇧Z — stable handler, accesses latest via refs
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.key !== 'z') return
       e.preventDefault()
-      if (e.shiftKey) {
-        handleRedo()
-      } else {
-        handleUndo()
-      }
+      if (e.shiftKey) handleRedoRef.current()
+      else handleUndoRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, []) // empty deps — handleUndo/Redo use refs, always fresh
+  }, [])
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (textPos) {

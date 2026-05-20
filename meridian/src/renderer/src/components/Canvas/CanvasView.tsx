@@ -171,10 +171,17 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   /* --- Canvas data state ------------------------------------------ */
   const [canvasData, setCanvasData] = useState<CanvasData>(() => parseCanvasData(content))
 
-  // Sync if external content prop changes
+  // Only reset when the FILE changes, not on every save (same fix as SketchpadView)
   useEffect(() => {
     setCanvasData(parseCanvasData(content))
-  }, [content])
+    undoHistoryRef.current = []
+  }, [filePath]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* --- Undo history (ref — no extra re-renders) -------------------- */
+  const undoHistoryRef = useRef<CanvasData[]>([])
+  const canvasDataRef = useRef(canvasData)
+  canvasDataRef.current = canvasData
+  const scheduleSaveRef = useRef<((data: CanvasData) => void) | null>(null)
 
   // File and URL content loaders
   const [fileContents, setFileContents] = useState<Record<string, string>>({})
@@ -262,6 +269,33 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     [scheduleSave]
   )
 
+  // Keep scheduleSave ref fresh for undo handler
+  scheduleSaveRef.current = scheduleSave
+
+  // Wrap mutate to push undo snapshot before each structural change
+  const mutateWithUndo = useCallback(
+    (updater: (prev: CanvasData) => CanvasData) => {
+      undoHistoryRef.current = [...undoHistoryRef.current.slice(-49), canvasDataRef.current]
+      mutate(updater)
+    },
+    [mutate]
+  )
+
+  // ⌘Z undo handler — stable via refs
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== 'z' || e.shiftKey) return
+      if (undoHistoryRef.current.length === 0) return
+      e.preventDefault()
+      const prev = undoHistoryRef.current[undoHistoryRef.current.length - 1]
+      undoHistoryRef.current = undoHistoryRef.current.slice(0, -1)
+      setCanvasData(prev)
+      scheduleSaveRef.current?.(prev)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   /* --- Stage / viewport state ------------------------------------- */
   const stageRef = useRef<Konva.Stage>(null)
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
@@ -342,7 +376,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       if (editingNodeId) return
 
       if (selectedEdgeId) {
-        mutate((prev) => ({
+        mutateWithUndo((prev) => ({
           ...prev,
           edges: prev.edges.filter((ed) => ed.id !== selectedEdgeId)
         }))
@@ -351,7 +385,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       }
 
       if (selectedNodeId) {
-        mutate((prev) => ({
+        mutateWithUndo((prev) => ({
           nodes: prev.nodes.filter((n) => n.id !== selectedNodeId),
           edges: prev.edges.filter(
             (ed) => ed.fromNode !== selectedNodeId && ed.toNode !== selectedNodeId
@@ -444,7 +478,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         text: 'New Card'
       }
 
-      mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+      mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
     },
     [stagePos, stageScale, mutate]
   )
@@ -506,7 +540,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       const x = e.target.x()
       const y = e.target.y()
       const isFrame = frameChildrenRef.current.length > 0
-      mutate((prev) => ({
+      mutateWithUndo((prev) => ({
         ...prev,
         nodes: prev.nodes.map((n) => {
           if (n.id === nodeId) return { ...n, x, y }
@@ -597,7 +631,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       )
       if (!targetNode) return
 
-      mutate((prev) => {
+      mutateWithUndo((prev) => {
         const exists = prev.edges.some(
           (ed) =>
             (ed.fromNode === origin && ed.toNode === targetNode.id) ||
@@ -631,7 +665,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       height: DEFAULT_NODE_H,
       text: 'New Card'
     }
-    mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+    mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
   }, [size, stagePos, stageScale, mutate])
 
   const fitToContent = useCallback(() => {
@@ -731,7 +765,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
     // Animate: update positions with smooth transition via Konva Tween
     // Since we don't have Tween here, we apply directly and let React re-render
-    mutate(prev => ({
+    mutateWithUndo(prev => ({
       ...prev,
       nodes: prev.nodes.map(n => {
         const pos = positions.get(n.id)
@@ -792,7 +826,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           text: fileInfo.name.replace(/\.md$/i, ''),
           file: fileInfo.relativePath
         }
-        mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+        mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
       } catch {
         /* ignore */
       }
@@ -863,7 +897,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         }}
         onTransformEnd={(e) => {
           const el = e.target
-          mutate((prev) => ({
+          mutateWithUndo((prev) => ({
             ...prev,
             nodes: prev.nodes.map((n) =>
               n.id === node.id
@@ -1220,7 +1254,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               text: 'New Frame'
             }
 
-            mutate((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
+            mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
           }}
           title="Add Frame"
           style={{
