@@ -1687,7 +1687,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       {viewMode === 'history' && (
         <div
           style={{
-            height: 80,
+            height: 90,
             background: 'rgba(18, 18, 22, 0.92)',
             backdropFilter: 'blur(16px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.07)',
@@ -1696,8 +1696,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             gap: 10,
             paddingLeft: isSettingsOpen ? 348 : 16,
             paddingRight: 16,
-            paddingTop: 10,
-            paddingBottom: 10,
+            paddingTop: 12,
+            paddingBottom: 12,
             transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
@@ -1715,7 +1715,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
+            gap: 6,
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: 8,
             padding: '8px 14px',
@@ -1757,8 +1757,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 transition: 'box-shadow 0.15s ease'
               }} />
             </div>
-            {/* Ticks — below scrubber so input hit area doesn't intercept */}
-            <div style={{ position: 'relative', height: 14 }}>
+            {/* Ticks */}
+            <div style={{ position: 'relative', height: 12, flexShrink: 0 }}>
               {historyTicks.map(({ frac, label }) => (
                 <span
                   key={frac}
@@ -1887,7 +1887,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 96 : 24,
+          bottom: viewMode === 'history' ? 106 : 24,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(20, 20, 26, 0.85)',
@@ -1950,7 +1950,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 96 : 24,
+          bottom: viewMode === 'history' ? 106 : 24,
           right: 24,
           background: 'rgba(20, 20, 26, 0.85)',
           backdropFilter: 'blur(12px)',
