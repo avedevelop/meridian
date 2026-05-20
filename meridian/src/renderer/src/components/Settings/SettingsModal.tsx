@@ -1377,7 +1377,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                       borderRadius: 4
                                     }}
                                   >
-                                    v1.0.0
+                                    v{(window as any).appInfo?.version ?? '1.0.0'}
                                   </span>
                                 </div>
                                 <span style={{ color: '#777', fontSize: 11, lineHeight: '1.4' }}>
@@ -1611,7 +1611,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
                               Version:
                             </span>
-                            <span style={{ color: '#eee' }}>1.0.0 Stable Build</span>
+                            <span style={{ color: '#eee' }}>v{(window as any).appInfo?.version ?? '1.0.0'}</span>
                           </div>
                           <div style={{ display: 'flex' }}>
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
