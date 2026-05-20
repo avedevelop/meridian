@@ -28,6 +28,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
   const [strokeWidth, setStrokeWidth] = useState(3)
   const [textInput, setTextInput] = useState('')
   const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null)
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
 
   // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState<DrawingElement[][]>([])
@@ -133,24 +134,10 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
     const y = e.clientY - rect.top
 
     if (tool === 'eraser') {
-      // Find element under cursor and delete
-      const clickedElement = elements.find((el) => {
-        if (el.type === 'rectangle' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
-          return x >= el.x && x <= el.x + el.w && y >= el.y && y <= el.y + el.h
-        }
-        if (el.type === 'circle' && el.x !== undefined && el.y !== undefined && el.w !== undefined) {
-          const dist = Math.sqrt((x - el.x) ** 2 + (y - el.y) ** 2)
-          return dist <= el.w
-        }
-        return false // Simple check for eraser
-      })
-
-      if (clickedElement) {
-        pushState(elements)
-        const updated = elements.filter((el) => el.id !== clickedElement.id)
-        setElements(updated)
-        saveDrawing(updated)
-      }
+      // Start eraser drag — push undo once at the beginning
+      pushState(elements)
+      isDrawing.current = true
+      currentElementId.current = 'eraser'
       return
     }
 
@@ -171,17 +158,61 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
       stroke: strokeColor,
       fill: fillColor,
       strokeWidth,
-      ...(tool === 'pencil' ? { points: [[x, y]] } : { x, y, w: 0, h: 0 })
+      // line uses w/h as x2/y2 — init at same point to avoid diagonal flash
+      ...(tool === 'pencil' ? { points: [[x, y]] } : { x, y, w: tool === 'line' ? x : 0, h: tool === 'line' ? y : 0 })
     }
 
     setElements((prev) => [...prev, newElement])
   }
 
+  const ERASER_RADIUS = 18 // px — eraser brush size
+
+  const hitTest = (el: DrawingElement, x: number, y: number): boolean => {
+    if (el.type === 'rectangle' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
+      const minX = Math.min(el.x, el.x + el.w) - ERASER_RADIUS
+      const maxX = Math.max(el.x, el.x + el.w) + ERASER_RADIUS
+      const minY = Math.min(el.y, el.y + el.h) - ERASER_RADIUS
+      const maxY = Math.max(el.y, el.y + el.h) + ERASER_RADIUS
+      return x >= minX && x <= maxX && y >= minY && y <= maxY
+    }
+    if (el.type === 'circle' && el.x !== undefined && el.y !== undefined && el.w !== undefined) {
+      return Math.sqrt((x - el.x) ** 2 + (y - el.y) ** 2) <= el.w + ERASER_RADIUS
+    }
+    if (el.type === 'line' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
+      // Distance from point to line segment
+      const dx = el.w - el.x; const dy = el.h - el.y
+      const len2 = dx * dx + dy * dy
+      if (len2 === 0) return Math.sqrt((x - el.x) ** 2 + (y - el.y) ** 2) < ERASER_RADIUS
+      const t = Math.max(0, Math.min(1, ((x - el.x) * dx + (y - el.y) * dy) / len2))
+      return Math.sqrt((x - el.x - t * dx) ** 2 + (y - el.y - t * dy) ** 2) < ERASER_RADIUS
+    }
+    if (el.type === 'pencil' && el.points) {
+      return el.points.some(([px, py]) => Math.sqrt((x - px) ** 2 + (y - py) ** 2) < ERASER_RADIUS)
+    }
+    if (el.type === 'text' && el.x !== undefined && el.y !== undefined) {
+      return Math.abs(x - el.x) < 60 && Math.abs(y - el.y) < 20
+    }
+    return false
+  }
+
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing.current || !currentElementId.current || !svgRef.current) return
+    if (!svgRef.current) return
     const rect = svgRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
+    if (tool === 'eraser') setMousePos({ x, y })
+
+    if (!isDrawing.current || !currentElementId.current) return
+
+    // Eraser brush — erase any element the cursor touches while dragging
+    if (tool === 'eraser') {
+      setElements(prev => {
+        const next = prev.filter(el => !hitTest(el, x, y))
+        if (next.length !== prev.length) saveDrawing(next)
+        return next
+      })
+      return
+    }
 
     setElements((prev) =>
       prev.map((el) => {
@@ -217,7 +248,8 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
     if (isDrawing.current) {
       isDrawing.current = false
       currentElementId.current = null
-      saveDrawing(elements)
+      // Use ref to get the latest elements (avoids stale closure during eraser drag)
+      if (tool !== 'eraser') saveDrawing(elementsRef.current)
     }
   }
 
@@ -397,12 +429,12 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseLeave={() => { handleMouseUp(); setMousePos(null) }}
         style={{
           flex: 1,
           width: '100%',
           height: '100%',
-          cursor: tool === 'eraser' ? 'cell' : tool === 'text' ? 'text' : 'crosshair',
+          cursor: tool === 'eraser' ? 'none' : tool === 'text' ? 'text' : 'crosshair',
           backgroundImage: 'radial-gradient(var(--border-color) 1px, transparent 0)',
           backgroundSize: '24px 24px'
         }}
@@ -483,6 +515,19 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
 
           return null
         })}
+
+        {/* Eraser brush circle — shows where eraser will hit */}
+        {tool === 'eraser' && mousePos && (
+          <circle
+            cx={mousePos.x}
+            cy={mousePos.y}
+            r={ERASER_RADIUS}
+            fill="rgba(255,255,255,0.08)"
+            stroke="rgba(255,255,255,0.4)"
+            strokeWidth={1}
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
       </svg>
 
       {/* Floating Text Input Box */}
