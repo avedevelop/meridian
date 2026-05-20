@@ -294,6 +294,17 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     day: 'numeric'
   })
 
+  const historyTicks = useMemo(() => {
+    if (maxTime === minTime) return []
+    const count = 6
+    return Array.from({ length: count + 1 }, (_, i) => {
+      const frac = i / count
+      const ts = minTime + (maxTime - minTime) * frac
+      const year = new Date(ts).getFullYear()
+      return { frac, year }
+    }).filter((t, i, arr) => i === 0 || t.year !== arr[i - 1].year)
+  }, [minTime, maxTime])
+
   const applyFiltersAndVisibility = useCallback(() => {
     const state = d3Ref.current
     if (!state) return
@@ -1608,6 +1619,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       {viewMode === 'history' && (
         <div
           style={{
+            position: 'relative' as const,
             height: 60,
             background: 'rgba(20, 20, 25, 0.8)',
             backdropFilter: 'blur(12px)',
@@ -1621,6 +1633,26 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             flexShrink: 0
           }}
         >
+          {/* Year tick marks */}
+          {historyTicks.map(({ frac, year }) => (
+            <div
+              key={year}
+              style={{
+                position: 'absolute',
+                left: `calc(${isSettingsOpen ? 348 : 16}px + (100% - ${isSettingsOpen ? 348 + 16 : 32}px) * ${frac})`,
+                top: 6,
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.3)',
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none',
+                userSelect: 'none' as const,
+                whiteSpace: 'nowrap' as const,
+                lineHeight: 1
+              }}
+            >
+              {year}
+            </div>
+          ))}
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
             {formattedDate}
           </span>
