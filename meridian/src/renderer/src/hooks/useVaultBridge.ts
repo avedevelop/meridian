@@ -20,6 +20,7 @@ declare global {
       onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
       exportHtml: (suggestedName: string, html: string) => Promise<string | null>
+      exportPdf: (suggestedName: string, html: string) => Promise<string | null>
       saveVideo: (data: Uint8Array) => Promise<string | null>
       fetchUrlMetadata: (
         url: string
@@ -407,6 +408,65 @@ ${bodyHtml}
     }
   }, [])
 
+  const exportPdf = useCallback(async () => {
+    const { panes, activePaneId } = useVaultStore.getState()
+    const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0]
+    const activeTab = activePane?.openTabs.find((t) => t.path === activePane?.activeTabPath)
+    if (!activeTab) return
+
+    try {
+      const { unified } = await import('unified')
+      const { default: remarkParse } = await import('remark-parse')
+      const { default: remarkGfm } = await import('remark-gfm')
+      const { default: remarkRehype } = await import('remark-rehype')
+      const { default: rehypeSanitize } = await import('rehype-sanitize')
+      const { default: rehypeStringify } = await import('rehype-stringify')
+
+      const processor = unified()
+        .use(remarkParse)
+        .use(remarkGfm)
+        .use(remarkRehype)
+        .use(rehypeSanitize)
+        .use(rehypeStringify)
+
+      const bodyHtml = String(processor.processSync(activeTab.content))
+      const title = activeTab.name.replace(/\.md$/i, '')
+      const escapedTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+      const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${escapedTitle}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { max-width: 720px; margin: 0 auto; padding: 48px 32px; font-family: Georgia, serif; line-height: 1.8; color: #1a1a1a; }
+    h1, h2, h3, h4, h5, h6 { font-weight: 700; line-height: 1.3; margin-top: 2em; margin-bottom: 0.5em; }
+    h1 { font-size: 2em; border-bottom: 2px solid #eee; padding-bottom: 0.3em; margin-top: 0; }
+    p { margin: 0 0 1em; }
+    a { color: #5b4fcf; }
+    code { background: #f0eff5; padding: 2px 5px; border-radius: 3px; font-size: 0.88em; font-family: monospace; }
+    pre { background: #f5f4fa; padding: 16px 20px; border-radius: 6px; overflow-x: auto; margin: 1.5em 0; }
+    pre code { background: none; padding: 0; }
+    blockquote { border-left: 4px solid #ddd; margin: 1em 0; padding: 0.5em 1em; color: #555; }
+    img { max-width: 100%; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; margin: 1.5em 0; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background: #f5f4fa; font-weight: 600; }
+    ul, ol { padding-left: 1.5em; margin: 0 0 1em; }
+  </style>
+</head>
+<body>${bodyHtml}</body>
+</html>`
+
+      const result = await window.vault.exportPdf(`${title}.pdf`, fullHtml)
+      if (result) console.log('[Bridge] PDF exported to', result)
+    } catch (e) {
+      console.error('[Bridge] exportPdf error', e)
+      window.alert(`Could not export PDF: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+
   const listTemplates = useCallback(async (): Promise<Array<{ name: string; path: string }>> => {
     const allFiles = useVaultStore.getState().files
 
@@ -518,6 +578,7 @@ ${bodyHtml}
     openDailyNote,
     saveImage,
     exportNote,
+    exportPdf,
     createNewVault,
     listTemplates,
     applyTemplate

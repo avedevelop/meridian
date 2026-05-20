@@ -233,6 +233,37 @@ export function registerIpcHandlers(settings: AppSettings): void {
     return result.filePath
   })
 
+  ipcMain.handle(IPC.VAULT_EXPORT_PDF, async (_event, suggestedName: string, html: string) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Export Note as PDF',
+      defaultPath: suggestedName,
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+      buttonLabel: 'Export'
+    })
+    if (!filePath) return null
+
+    const { tmpdir } = await import('os')
+    const { join: joinPath } = await import('path')
+    const { writeFile: wf, unlink } = await import('fs/promises')
+    const tmpHtml = joinPath(tmpdir(), `meridian-pdf-${Date.now()}.html`)
+
+    try {
+      await wf(tmpHtml, html, 'utf-8')
+      const { BrowserWindow: BW } = await import('electron')
+      const win = new BW({ show: false, webPreferences: { javascript: false, sandbox: true } })
+      await win.loadFile(tmpHtml)
+      const pdfData = await win.webContents.printToPDF({
+        printBackground: true,
+        pageSize: 'A4'
+      })
+      win.close()
+      await wf(filePath, pdfData)
+      return filePath
+    } finally {
+      try { await unlink(tmpHtml) } catch { /* ignore */ }
+    }
+  })
+
   ipcMain.handle(IPC.VAULT_SAVE_VIDEO, async (_event, data: Uint8Array) => {
     const { filePath } = await dialog.showSaveDialog({
       title: 'Export Graph Animation',

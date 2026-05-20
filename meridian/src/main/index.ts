@@ -42,6 +42,7 @@ function buildMenu() {
         { type: 'separator' },
         { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => send('save') },
         { label: 'Export to HTML…', accelerator: 'CmdOrCtrl+E', click: () => send('export-html') },
+        { label: 'Export to PDF…', accelerator: 'CmdOrCtrl+Shift+E', click: () => send('export-pdf') },
         { type: 'separator' },
         { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send('close-tab') }
       ]

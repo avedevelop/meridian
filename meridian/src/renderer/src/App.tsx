@@ -80,7 +80,7 @@ export default function App() {
   const openTabs = useVaultStore((s) => s.openTabs)
   const allFiles = useLinkStore((s) => s.allFiles)
   const indexVersion = useLinkStore((s) => s.indexVersion)
-  const { openFile, openVault, openDailyNote, exportNote, createFile, saveFile, listTemplates, applyTemplate } = useVaultBridge()
+  const { openFile, openVault, openDailyNote, exportNote, exportPdf, createFile, saveFile, listTemplates, applyTemplate } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph'>('files')
@@ -258,6 +258,9 @@ export default function App() {
         case 'export-html':
           exportNote()
           break
+        case 'export-pdf':
+          exportPdf()
+          break
         case 'close-tab':
           if (activeTabPath) closeTab(activeTabPath)
           break
@@ -283,6 +286,7 @@ export default function App() {
     openVault,
     saveFile,
     exportNote,
+    exportPdf,
     closeTab,
     activeTabPath,
     openTabs
