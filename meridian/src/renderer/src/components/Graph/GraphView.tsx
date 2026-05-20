@@ -302,7 +302,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       const ts = minTime + (maxTime - minTime) * frac
       const year = new Date(ts).getFullYear()
       return { frac, year }
-    }).filter((t, i, arr) => i === 0 || t.year !== arr[i - 1].year)
+    }).filter((t, i, arr) => t.frac > 0.04 && t.frac < 0.96 && (i === 0 || t.year !== arr[i - 1].year))
   }, [minTime, maxTime])
 
   const activityBuckets = useMemo(() => {
@@ -1770,10 +1770,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 height: 34
               }}
             >
+              <option value={5000}>5s</option>
               <option value={10000}>10s</option>
               <option value={20000}>20s</option>
-              <option value={40000}>40s</option>
-              <option value={60000}>60s</option>
+              <option value={30000}>30s</option>
+              <option value={60000}>1 min</option>
+              <option value={120000}>2 min</option>
+              <option value={300000}>5 min</option>
+              <option value={600000}>10 min</option>
             </select>
             {isRecording ? (
               <button
@@ -1816,9 +1820,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               </button>
             )}
           </div>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.15)', flexShrink: 0 }}>
-            Space·←→
-          </span>
         </div>
       )}
 
