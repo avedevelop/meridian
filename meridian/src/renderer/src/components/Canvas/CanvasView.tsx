@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { useLinkStore } from '../../store/useLinkStore'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { TrashIcon, NoteConvertIcon, FrameIcon } from '../Icons'
 
 /* ------------------------------------------------------------------ */
@@ -108,6 +109,71 @@ function isUrl(str: string): boolean {
   }
 }
 
+function getEdgePoints(
+  from: CanvasNodeData,
+  to: CanvasNodeData,
+  style: 'straight' | 'curved' | 'orthogonal'
+): { points: number[]; bezier?: boolean } {
+  const fc = { x: from.x + from.width / 2, y: from.y + from.height / 2 }
+  const tc = { x: to.x + to.width / 2, y: to.y + to.height / 2 }
+
+  let p1 = { x: fc.x, y: fc.y }
+  let p2 = { x: tc.x, y: tc.y }
+
+  const dx = tc.x - fc.x
+  const dy = tc.y - fc.y
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0) {
+      p1 = { x: from.x + from.width, y: fc.y }
+      p2 = { x: to.x, y: tc.y }
+    } else {
+      p1 = { x: from.x, y: fc.y }
+      p2 = { x: to.x + to.width, y: tc.y }
+    }
+  } else {
+    if (dy > 0) {
+      p1 = { x: fc.x, y: from.y + from.height }
+      p2 = { x: tc.x, y: to.y }
+    } else {
+      p1 = { x: fc.x, y: from.y }
+      p2 = { x: tc.x, y: to.y + to.height }
+    }
+  }
+
+  if (style === 'curved') {
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    const offset = Math.min(100, dist * 0.4)
+    let cp1x = p1.x
+    let cp1y = p1.y
+    let cp2x = p2.x
+    let cp2y = p2.y
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      cp1x += dx > 0 ? offset : -offset
+      cp2x += dx > 0 ? -offset : offset
+    } else {
+      cp1y += dy > 0 ? offset : -offset
+      cp2y += dy > 0 ? -offset : offset
+    }
+
+    return {
+      points: [p1.x, p1.y, cp1x, cp1y, cp2x, cp2y, p2.x, p2.y],
+      bezier: true
+    }
+  } else if (style === 'orthogonal') {
+    if (Math.abs(dx) > Math.abs(dy)) {
+      const midX = p1.x + dx / 2
+      return { points: [p1.x, p1.y, midX, p1.y, midX, p2.y, p2.x, p2.y] }
+    } else {
+      const midY = p1.y + dy / 2
+      return { points: [p1.x, p1.y, p1.x, midY, p2.x, midY, p2.x, p2.y] }
+    }
+  }
+
+  return { points: [p1.x, p1.y, p2.x, p2.y] }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Dot-grid background                                                */
 /* ------------------------------------------------------------------ */
@@ -152,6 +218,7 @@ function DotGrid({ stageX, stageY, stageScale, width, height }: DotGridProps) {
 export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const { openFile, refreshFiles } = useVaultBridge()
   const vault = useVaultStore((s) => s.vault)
+  const connectionLineStyle = useSettingsStore((s) => s.connectionLineStyle) || 'curved'
 
   /* --- Container sizing ------------------------------------------- */
   const containerRef = useRef<HTMLDivElement>(null)
@@ -705,35 +772,54 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     // Build adjacency list (directed: fromNode → toNode)
     const children = new Map<string, string[]>()
     const hasParent = new Set<string>()
-    nodes.forEach(n => children.set(n.id, []))
-    edges.forEach(e => {
+    nodes.forEach((n) => children.set(n.id, []))
+    edges.forEach((e) => {
       children.get(e.fromNode)?.push(e.toNode)
       hasParent.add(e.toNode)
     })
 
     // Find roots (nodes with no incoming edges)
-    const roots = nodes.filter(n => !hasParent.has(n.id)).map(n => n.id)
+    const roots = nodes.filter((n) => !hasParent.has(n.id)).map((n) => n.id)
     if (roots.length === 0) roots.push(nodes[0].id) // fallback: first node
 
     const H_GAP = 80   // horizontal gap between nodes
     const V_GAP = 60   // vertical gap between rows
     const positions = new Map<string, { x: number; y: number }>()
-    const visited = new Set<string>()
 
-    // Compute subtree height (in rows) for a node
-    function subtreeHeight(id: string): number {
+    // Compute subtree height (in rows) for a node, preventing infinite loops
+    const heightCache = new Map<string, number>()
+    function subtreeHeight(id: string, pathStack: Set<string> = new Set()): number {
+      if (pathStack.has(id)) return 1 // break cycle
+      if (heightCache.has(id)) return heightCache.get(id)!
+
       const kids = children.get(id) ?? []
       if (kids.length === 0) return 1
-      return kids.reduce((sum, c) => sum + subtreeHeight(c), 0)
+
+      pathStack.add(id)
+      let sum = 0
+      for (const kid of kids) {
+        sum += subtreeHeight(kid, pathStack)
+      }
+      pathStack.delete(id)
+
+      const height = sum || 1
+      heightCache.set(id, height)
+      return height
     }
 
     // Place a subtree rooted at `id`, top-left corner at (x, startY)
     // Returns the total height consumed
-    function place(id: string, x: number, startY: number): number {
-      if (visited.has(id)) return 0
-      visited.add(id)
-      const node = nodes.find(n => n.id === id)
-      if (!node) return 0
+    const placed = new Set<string>()
+    function place(id: string, x: number, startY: number, pathStack: Set<string> = new Set()): number {
+      if (placed.has(id) || pathStack.has(id)) return 0
+      placed.add(id)
+      pathStack.add(id)
+
+      const node = nodes.find((n) => n.id === id)
+      if (!node) {
+        pathStack.delete(id)
+        return 0
+      }
 
       const kids = children.get(id) ?? []
       const totalRows = Math.max(1, subtreeHeight(id))
@@ -743,38 +829,70 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       positions.set(id, { x, y: cy })
 
       let cursor = startY
-      kids.forEach(kid => {
-        const kidNode = nodes.find(n => n.id === kid)
+      kids.forEach((kid) => {
+        const kidNode = nodes.find((n) => n.id === kid)
         if (!kidNode) return
         const h = subtreeHeight(kid)
-        place(kid, x + node.width + H_GAP, cursor)
+        place(kid, x + node.width + H_GAP, cursor, pathStack)
         cursor += h * (kidNode.height + V_GAP)
       })
 
+      pathStack.delete(id)
       return totalH
     }
 
     // Place each root tree, stacking vertically
     const ROOT_X = 80
     let cursor = 80
-    roots.forEach(root => {
+    roots.forEach((root) => {
       const h = place(root, ROOT_X, cursor)
-      const node = nodes.find(n => n.id === root)
+      const node = nodes.find((n) => n.id === root)
       cursor += h + (node?.height ?? 120) + V_GAP
     })
 
-    // Animate: update positions with smooth transition via Konva Tween
-    // Since we don't have Tween here, we apply directly and let React re-render
-    mutateWithUndo(prev => ({
-      ...prev,
-      nodes: prev.nodes.map(n => {
-        const pos = positions.get(n.id)
-        return pos ? { ...n, x: pos.x, y: pos.y } : n
-      })
-    }))
+    // Animate: update positions with smooth transition via requestAnimationFrame
+    const startPositions = new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }]))
+    const targetPositions = positions
 
-    // Fit to content after layout
-    setTimeout(fitToContent, 50)
+    const startTime = performance.now()
+    const duration = 500 // ms
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const t = 1 - Math.pow(1 - progress, 3) // cubic ease-out
+
+      setCanvasData((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) => {
+          const start = startPositions.get(n.id)
+          const target = targetPositions.get(n.id)
+          if (start && target) {
+            return {
+              ...n,
+              x: start.x + (target.x - start.x) * t,
+              y: start.y + (target.y - start.y) * t
+            }
+          }
+          return n
+        })
+      }))
+
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        // Complete the animation by saving the final coordinates to history/file
+        mutateWithUndo((prev) => ({
+          ...prev,
+          nodes: prev.nodes.map((n) => {
+            const target = targetPositions.get(n.id)
+            return target ? { ...n, x: target.x, y: target.y } : n
+          })
+        }))
+        setTimeout(fitToContent, 50)
+      }
+    }
+    requestAnimationFrame(animate)
   }, [canvasData, mutate, fitToContent])
 
   /* --- Build edge lines ------------------------------------------- */
@@ -785,12 +903,15 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         const from = nodeMap.get(edge.fromNode)
         const to = nodeMap.get(edge.toNode)
         if (!from || !to) return null
-        const fc = nodeCenter(from)
-        const tc = nodeCenter(to)
-        return { id: edge.id, points: [fc.x, fc.y, tc.x, tc.y] }
+        const res = getEdgePoints(from, to, connectionLineStyle)
+        return {
+          id: edge.id,
+          points: res.points,
+          bezier: res.bezier ?? false
+        }
       })
-      .filter(Boolean) as { id: string; points: number[] }[]
-  }, [canvasData])
+      .filter(Boolean) as { id: string; points: number[]; bezier: boolean }[]
+  }, [canvasData, connectionLineStyle])
   /* --- Drop handler for files from sidebar ------------------------ */
   const handleContainerDragOver = useCallback((e: React.DragEvent) => {
     // Must call preventDefault to allow drop
@@ -1286,6 +1407,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               <Line
                 key={edge.id}
                 points={edge.points}
+                bezier={edge.bezier}
                 stroke={isEdgeSelected ? '#a78bfa' : EDGE_COLOR}
                 strokeWidth={isEdgeSelected ? 3 : 2}
                 opacity={isEdgeSelected ? 1 : 0.6}
