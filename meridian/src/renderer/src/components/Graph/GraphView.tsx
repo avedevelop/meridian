@@ -305,6 +305,18 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     }).filter((t, i, arr) => i === 0 || t.year !== arr[i - 1].year)
   }, [minTime, maxTime])
 
+  const activityBuckets = useMemo(() => {
+    const BUCKETS = 80
+    const counts = new Array<number>(BUCKETS).fill(0)
+    birthtimes.forEach((ts) => {
+      const frac = (ts - minTime) / (maxTime - minTime)
+      const idx = Math.min(Math.floor(frac * BUCKETS), BUCKETS - 1)
+      counts[idx]++
+    })
+    const maxCount = Math.max(...counts, 1)
+    return counts.map((c) => c / maxCount)
+  }, [birthtimes, minTime, maxTime])
+
   const applyFiltersAndVisibility = useCallback(() => {
     const state = d3Ref.current
     if (!state) return
@@ -1642,7 +1654,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         <div
           style={{
             position: 'relative' as const,
-            height: 60,
+            height: 72,
             background: 'rgba(20, 20, 25, 0.8)',
             backdropFilter: 'blur(12px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1675,6 +1687,40 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               {year}
             </div>
           ))}
+          {/* Activity minimap */}
+          <svg
+            style={{
+              position: 'absolute',
+              left: isSettingsOpen ? 348 : 16,
+              right: 16,
+              top: 4,
+              height: 18,
+              pointerEvents: 'none',
+              opacity: 0.4
+            }}
+            preserveAspectRatio="none"
+            viewBox={`0 0 ${activityBuckets.length} 1`}
+          >
+            {activityBuckets.map((h, i) => (
+              <rect
+                key={i}
+                x={i}
+                y={1 - h}
+                width={0.85}
+                height={h}
+                fill="var(--accent-color)"
+              />
+            ))}
+            <line
+              x1={progress * activityBuckets.length}
+              y1={0}
+              x2={progress * activityBuckets.length}
+              y2={1}
+              stroke="#fff"
+              strokeWidth={0.4}
+              opacity={0.7}
+            />
+          </svg>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
             {formattedDate}
           </span>
@@ -1783,7 +1829,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 80 : 24,
+          bottom: viewMode === 'history' ? 96 : 24,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(20, 20, 26, 0.85)',
@@ -1846,7 +1892,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 80 : 24,
+          bottom: viewMode === 'history' ? 96 : 24,
           right: 24,
           background: 'rgba(20, 20, 26, 0.85)',
           backdropFilter: 'blur(12px)',
