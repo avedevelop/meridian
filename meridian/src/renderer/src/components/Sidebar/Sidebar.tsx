@@ -688,7 +688,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   alignItems: 'center',
                   gap: 10,
                   padding: '8px 16px',
-                  paddingTop: 38,
                   borderBottom: '1px solid var(--border-color)',
                   flexShrink: 0,
                   // @ts-ignore -- Electron drag region style is not part of React CSSProperties.
