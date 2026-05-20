@@ -1,23 +1,34 @@
 @import './base.css';
 
-/* Horizontal scrollbars completely hidden — scroll still works via trackpad/wheel */
-::-webkit-scrollbar:horizontal {
-  height: 0;
-  display: none;
+/* Tab bar scroll — thin dark scrollbar that fits in the 36px row */
+.tab-bar-scroll::-webkit-scrollbar {
+  height: 2px;
 }
-/* Vertical scrollbars: thin and subtle */
+.tab-bar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tab-bar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+.tab-bar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Global vertical scrollbars — thin and subtle */
 ::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 body {
