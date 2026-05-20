@@ -214,6 +214,50 @@ export function MarkdownPreview({
     })
   }, [html])
 
+  // Render Mermaid diagrams
+  useEffect(() => {
+    if (!containerRef.current) return
+    const codeEls = Array.from(
+      containerRef.current.querySelectorAll('code.language-mermaid')
+    ) as HTMLElement[]
+    if (codeEls.length === 0) return
+
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const mermaid = (await import('mermaid')).default
+        mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' })
+
+        for (const codeEl of codeEls) {
+          if (cancelled) break
+          const code = codeEl.textContent ?? ''
+          const pre = codeEl.parentElement
+          if (!pre || pre.dataset.mermaidDone) continue
+
+          const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+          try {
+            const { svg } = await mermaid.render(id, code)
+            const wrapper = document.createElement('div')
+            wrapper.style.cssText =
+              'overflow-x:auto;margin:12px 0;background:var(--bg-secondary);border-radius:6px;padding:16px;text-align:center'
+            wrapper.innerHTML = svg
+            pre.replaceWith(wrapper)
+          } catch {
+            // Leave as code block on render error — don't crash the preview
+            pre.dataset.mermaidDone = 'error'
+          }
+        }
+      } catch {
+        // mermaid import failed — leave code blocks unchanged
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [html])
+
   return (
     <div
       ref={containerRef}
