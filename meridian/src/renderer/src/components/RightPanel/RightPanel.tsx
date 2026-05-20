@@ -5,6 +5,7 @@ import { TocPanel } from './TocPanel'
 import { LocalGraphView } from './LocalGraphView'
 import { PropertiesPanel } from './PropertiesPanel'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { SlidersIcon, LinkIcon, TagIcon, OutlineIcon, WebIcon } from '../Icons'
 
 type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties'
 
@@ -12,13 +13,13 @@ export function RightPanel() {
   const [activeTab, setActiveTab] = useState<RightTab>('properties')
   const plugins = useSettingsStore((s) => s.pluginsEnabled)
 
-  const tabs: { id: RightTab; label: string }[] = [
-    { id: 'properties', label: 'Props' },
-    plugins.backlinksPanel ? { id: 'backlinks', label: 'Links' } : null,
-    plugins.tagsPanel ? { id: 'tags', label: 'Tags' } : null,
-    plugins.tocPanel ? { id: 'toc', label: 'ToC' } : null,
-    { id: 'local-graph', label: 'Local' }
-  ].filter((t): t is { id: RightTab; label: string } => t !== null)
+  const tabs = ([
+    { id: 'properties', label: 'Properties', Icon: (props: any) => <SlidersIcon size={15} {...props} /> },
+    plugins.backlinksPanel ? { id: 'backlinks', label: 'Backlinks & Tags', Icon: (props: any) => <LinkIcon size={15} {...props} /> } : null,
+    plugins.tagsPanel ? { id: 'tags', label: 'Tags List', Icon: (props: any) => <TagIcon size={15} {...props} /> } : null,
+    plugins.tocPanel ? { id: 'toc', label: 'Outline (ToC)', Icon: (props: any) => <OutlineIcon size={15} {...props} /> } : null,
+    { id: 'local-graph', label: 'Local Graph', Icon: (props: any) => <WebIcon size={15} {...props} /> }
+  ].filter((t) => t !== null) as { id: RightTab; label: string; Icon: (props: any) => React.ReactElement }[])
 
   const activeTabExists = tabs.some((t) => t.id === activeTab)
   const effectiveTab = activeTabExists ? activeTab : tabs[0]?.id || 'local-graph'
@@ -31,6 +32,7 @@ export function RightPanel() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              title={tab.label}
               onMouseEnter={(e) => {
                 if (effectiveTab !== tab.id) {
                   e.currentTarget.style.color = 'var(--text-primary)'
@@ -45,21 +47,20 @@ export function RightPanel() {
               }}
               style={{
                 flex: 1,
-                padding: '10px 0',
+                padding: '12px 0',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
                 background: effectiveTab === tab.id ? 'var(--bg-primary)' : 'transparent',
-                color: effectiveTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                color: effectiveTab === tab.id ? 'var(--accent-color)' : 'var(--text-secondary)',
                 borderBottom:
                   effectiveTab === tab.id ? '3px solid var(--accent-color)' : '3px solid transparent',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              {tab.label}
+              <tab.Icon />
             </button>
           ))}
         </div>
