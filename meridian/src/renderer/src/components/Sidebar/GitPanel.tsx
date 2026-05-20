@@ -195,8 +195,20 @@ export function GitPanel() {
           Initialize Repository
         </button>
         {error && (
-          <div style={{ fontSize: 11, color: '#f87171', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            Error: {error}
+          <div style={{
+            margin: '8px 12px',
+            padding: '8px 12px',
+            background: 'rgba(248,113,113,0.08)',
+            border: '1px solid rgba(248,113,113,0.2)',
+            borderRadius: 6,
+            fontSize: 12,
+            color: '#f87171',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8
+          }}>
+            <span style={{ flexShrink: 0 }}>⚠</span>
+            <span>{error}</span>
           </div>
         )}
       </div>
@@ -323,8 +335,20 @@ export function GitPanel() {
 
       {/* Notifications and errors */}
       {error && (
-        <div style={{ padding: '8px 16px', fontSize: 11, color: '#f87171', whiteSpace: 'pre-wrap', wordBreak: 'break-all', borderBottom: '1px solid var(--border-color)' }}>
-          Error: {error}
+        <div style={{
+          margin: '8px 12px',
+          padding: '8px 12px',
+          background: 'rgba(248,113,113,0.08)',
+          border: '1px solid rgba(248,113,113,0.2)',
+          borderRadius: 6,
+          fontSize: 12,
+          color: '#f87171',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 8
+        }}>
+          <span style={{ flexShrink: 0 }}>⚠</span>
+          <span>{error}</span>
         </div>
       )}
 
