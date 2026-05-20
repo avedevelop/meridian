@@ -1109,6 +1109,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     } else {
       setProgress(0)
       setIsPlaying(false)
+      setIsSettingsOpen(false)
     }
     // Notify header about mode change
     window.dispatchEvent(new CustomEvent('graph:mode-changed', { detail: mode }))
@@ -1668,14 +1669,15 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           }}
         >
           {/* Top row: minimap + year ticks */}
-          <div style={{ position: 'relative', height: 22, flexShrink: 0 }}>
+          <div style={{ position: 'relative', height: 24, flexShrink: 0 }}>
+            {/* Minimap sparkline */}
             <svg
-              style={{ position: 'absolute', inset: '0 0 8px 0', width: '100%', height: 14, pointerEvents: 'none', opacity: 0.5 }}
+              style={{ display: 'block', width: '100%', height: 16, pointerEvents: 'none', opacity: 0.55 }}
               preserveAspectRatio="none"
               viewBox={`0 0 ${activityBuckets.length} 1`}
             >
               {activityBuckets.map((h, i) => (
-                <rect key={i} x={i} y={1 - h} width={0.85} height={h} fill="var(--accent-color)" />
+                <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
               ))}
               <line
                 x1={progress * activityBuckets.length}
@@ -1683,29 +1685,32 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 x2={progress * activityBuckets.length}
                 y2={1}
                 stroke="#fff"
-                strokeWidth={0.5}
+                strokeWidth={0.6}
                 opacity={0.9}
               />
             </svg>
-            {historyTicks.map(({ frac, year }) => (
-              <div
-                key={year}
-                style={{
-                  position: 'absolute',
-                  left: `${frac * 100}%`,
-                  bottom: 0,
-                  fontSize: 9,
-                  color: 'rgba(255,255,255,0.28)',
-                  transform: 'translateX(-50%)',
-                  pointerEvents: 'none',
-                  userSelect: 'none' as const,
-                  whiteSpace: 'nowrap' as const,
-                  lineHeight: 1
-                }}
-              >
-                {year}
-              </div>
-            ))}
+            {/* Year tick labels */}
+            <div style={{ position: 'relative', height: 8 }}>
+              {historyTicks.map(({ frac, year }) => (
+                <span
+                  key={year}
+                  style={{
+                    position: 'absolute',
+                    left: `${frac * 100}%`,
+                    top: 0,
+                    fontSize: 9,
+                    lineHeight: '8px',
+                    color: 'rgba(255,255,255,0.25)',
+                    transform: 'translateX(-50%)',
+                    pointerEvents: 'none',
+                    userSelect: 'none' as const,
+                    whiteSpace: 'nowrap' as const
+                  }}
+                >
+                  {year}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Bottom row: controls */}
