@@ -7,7 +7,7 @@ import {
 import { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 
-function wikiLinkSource(getFileNames: () => string[]) {
+export function makeWikiLinkSource(getFileNames: () => string[]) {
   return (context: CompletionContext): CompletionResult | null => {
     const match = context.matchBefore(/\[\[[^\]]*/)
     if (!match) return null
@@ -21,7 +21,6 @@ function wikiLinkSource(getFileNames: () => string[]) {
         return {
           label,
           apply: (view: EditorView, _c: unknown, _from: number, to: number) => {
-            // Look past cursor for auto-inserted ]] from closeBrackets
             const after = view.state.doc.sliceString(to, to + 2)
             const endPos = after === ']]' ? to + 2 : to
             view.dispatch({
@@ -35,17 +34,21 @@ function wikiLinkSource(getFileNames: () => string[]) {
   }
 }
 
+export function makeWikiLinkTriggerListener() {
+  return EditorView.updateListener.of((update) => {
+    if (!update.docChanged) return
+    const cursor = update.state.selection.main.head
+    if (cursor >= 2) {
+      const text = update.state.doc.sliceString(cursor - 2, cursor)
+      if (text === '[[') startCompletion(update.view)
+    }
+  })
+}
+
+// Legacy export — used when slash commands are disabled
 export function wikiLinkCompletion(getFileNames: () => string[]): Extension {
   return [
-    autocompletion({ override: [wikiLinkSource(getFileNames)], activateOnTyping: true }),
-    // Force-trigger completion whenever [[ is typed
-    EditorView.updateListener.of((update) => {
-      if (!update.docChanged) return
-      const cursor = update.state.selection.main.head
-      if (cursor >= 2) {
-        const text = update.state.doc.sliceString(cursor - 2, cursor)
-        if (text === '[[') startCompletion(update.view)
-      }
-    })
+    autocompletion({ override: [makeWikiLinkSource(getFileNames)], activateOnTyping: true }),
+    makeWikiLinkTriggerListener()
   ]
 }

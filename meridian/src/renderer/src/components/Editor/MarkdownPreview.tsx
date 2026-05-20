@@ -4,25 +4,62 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import remarkRehype from 'remark-rehype'
+import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
-import { flattenVaultFiles, postprocessWikiLinks, processCallouts, processHighlights } from './markdownUtils'
+import { flattenVaultFiles, postprocessWikiLinks, CALLOUT_TYPES } from './markdownUtils'
 
+// Allow custom elements (div, mark, span) and style/class attrs for callouts + highlights
 const sanitizeSchema = {
   ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), 'mark', 'div', 'span'],
+  attributes: {
+    ...defaultSchema.attributes,
+    mark: ['style', 'class'],
+    div: ['style', 'class', 'data-*'],
+    span: [...(defaultSchema.attributes?.span ?? []), 'style', 'class'],
+    '*': [...(defaultSchema.attributes?.['*'] ?? []), 'style', 'class']
+  },
   protocols: {
     ...defaultSchema.protocols,
-    src: [...(defaultSchema.protocols?.src ?? []), ''] // '' allows relative URLs
+    src: [...(defaultSchema.protocols?.src ?? []), '']
   }
+}
+
+// Pre-process callout syntax before remark so it passes through as HTML
+function preProcessCallouts(md: string): string {
+  return md.replace(
+    /^(> \[!([\w]+)\][^\n]*(?:\n> [^\n]*)*)/gm,
+    (block) => {
+      const lines = block.split('\n')
+      const firstLine = lines[0]
+      const m = firstLine.match(/^> \[!([\w]+)\](.*)/)
+      if (!m) return block
+      const typeKey = m[1].toLowerCase()
+      const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
+      const displayTitle = m[2].trim() || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1))
+      const body = lines.slice(1).map(l => l.replace(/^> ?/, '')).join('\n').trim()
+      return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
+    }
+  )
+}
+
+// Pre-process ==highlight== before remark (skip inside backtick code)
+function preProcessHighlights(md: string): string {
+  return md.replace(/(`+[\s\S]*?`+)|==([^=\n]{1,300})==/g, (m, code, hl) => {
+    if (code !== undefined) return m
+    return `<mark style="background:rgba(255,220,0,0.3);border-radius:2px;padding:0 2px">${hl}</mark>`
+  })
 }
 
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkBreaks)
-  .use(remarkRehype)
+  .use(remarkRehype, { allowDangerousHtml: true })
+  .use(rehypeRaw)
   .use(rehypeSanitize, sanitizeSchema)
   .use(rehypeStringify)
 
@@ -124,11 +161,12 @@ export function MarkdownPreview({
 
   const html = useMemo(() => {
     try {
-      const sanitized = String(processor.processSync(content))
+      // Strip YAML frontmatter before rendering so it doesn't appear as text
+      const stripped = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
+      const preprocessed = preProcessHighlights(preProcessCallouts(stripped))
+      const sanitized = String(processor.processSync(preprocessed))
       const withLinks = postprocessWikiLinks(sanitized, files)
-      const withCallouts = processCallouts(withLinks)
-      const withHighlights = processHighlights(withCallouts)
-      const withIds = addHeadingIds(withHighlights)
+      const withIds = addHeadingIds(withLinks)
       if (!vaultPath) return withIds
       return withIds.replace(
         /(<img)([^>]*src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/\/)([^"]+)(")/g,

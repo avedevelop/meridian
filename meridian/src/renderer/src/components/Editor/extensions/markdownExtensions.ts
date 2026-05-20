@@ -23,12 +23,12 @@ import {
   foldKeymap
 } from '@codemirror/language'
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
-import { completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { lintKeymap } from '@codemirror/lint'
+import { completionKeymap, closeBrackets, closeBracketsKeymap, autocompletion } from '@codemirror/autocomplete'
 import { wikiLinkExtension } from './wikiLinkExtension'
-import { wikiLinkCompletion } from './wikiLinkCompletion'
+import { makeWikiLinkSource, makeWikiLinkTriggerListener } from './wikiLinkCompletion'
 import { imagePasteExtension } from './imagePaste'
-import { slashCommandExtension } from './slashCommands'
+import { makeSlashSource } from './slashCommands'
 
 function getFontFamilyValue(font: string) {
   switch (font) {
@@ -145,13 +145,22 @@ export function createMarkdownExtensions(
     ]),
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     onLinkClick ? wikiLinkExtension(onLinkClick) : [],
-    getFileNames ? wikiLinkCompletion(getFileNames) : [],
+    // Single autocompletion with all sources — avoids "Config merge conflict for field override"
+    autocompletion({
+      override: [
+        ...(getFileNames ? [makeWikiLinkSource(getFileNames)] : []),
+        ...(slashCommandsEnabled ? [makeSlashSource] : [])
+      ],
+      activateOnTyping: true,
+      closeOnBlur: true,
+      maxRenderedOptions: 20
+    }),
+    getFileNames ? makeWikiLinkTriggerListener() : [],
     onChange
       ? EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.doc.toString())
         })
       : [],
-    onImagePaste ? imagePasteExtension(onImagePaste) : [],
-    slashCommandsEnabled ? slashCommandExtension() : []
+    onImagePaste ? imagePasteExtension(onImagePaste) : []
   ]
 }

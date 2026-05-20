@@ -233,10 +233,10 @@ export function TabBar({ paneId }: TabBarProps) {
           height: 56,
           display: 'flex',
           flexWrap: 'nowrap',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           overflowX: 'scroll',
           overflowY: 'hidden',
-          padding: '0 4px 0 8px',
+          padding: '5px 4px 0 8px',
           gap: '4px',
           boxSizing: 'border-box',
         }}

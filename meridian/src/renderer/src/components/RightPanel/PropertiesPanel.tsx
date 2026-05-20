@@ -82,7 +82,7 @@ export function PropertiesPanel() {
   }
 
   return (
-    <div style={{ padding: '12px 12px 16px' }}>
+    <div key={activeTab.path} style={{ padding: '12px 12px 16px' }}>
       <div
         style={{
           fontSize: 11,

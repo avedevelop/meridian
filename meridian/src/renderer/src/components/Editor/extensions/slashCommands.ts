@@ -1,4 +1,4 @@
-import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
+import { type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
 
 interface SlashCommand {
   label: string
@@ -25,11 +25,11 @@ const SLASH_COMMANDS: SlashCommand[] = [
   { label: '/Callout Tip', apply: '> [!TIP]\n> ', detail: 'tip callout' },
 ]
 
-function slashCompletion(context: CompletionContext): CompletionResult | null {
+// Export source function — combined into one autocompletion in markdownExtensions.ts
+export function makeSlashSource(context: CompletionContext): CompletionResult | null {
   const match = context.matchBefore(/\/[\w\s]*/)
   if (!match) return null
 
-  // Only activate when the line before the '/' is empty or whitespace
   const lineStart = context.state.doc.lineAt(match.from).from
   const textBeforeSlash = context.state.doc.sliceString(lineStart, match.from)
   if (textBeforeSlash.trim() !== '') return null
@@ -57,13 +57,4 @@ function slashCompletion(context: CompletionContext): CompletionResult | null {
     })),
     filter: false
   }
-}
-
-export function slashCommandExtension() {
-  return autocompletion({
-    override: [slashCompletion],
-    closeOnBlur: true,
-    maxRenderedOptions: 16,
-    activateOnTyping: true
-  })
 }

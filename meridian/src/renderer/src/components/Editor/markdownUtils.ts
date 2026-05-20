@@ -20,16 +20,19 @@ export const CALLOUT_TYPES: Record<string, { icon: string; color: string }> = {
 }
 
 export function processCallouts(html: string): string {
-  return html.replace(
-    /<blockquote>\s*<p>\[!([\w]+)\]([^<\n]*)(?:<br>)?([\s\S]*?)<\/p>([\s\S]*?)<\/blockquote>/gi,
-    (_match, type, titleRest, firstParaRest, bodyRest) => {
-      const typeKey = type.toLowerCase()
-      const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
-      const displayTitle = titleRest.trim() || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1))
-      const body = (firstParaRest + bodyRest).trim()
-      return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
-    }
-  )
+  // Two-step: first capture each blockquote, then check if it's a callout
+  return html.replace(/<blockquote>([\s\S]*?)<\/blockquote>/gi, (fullMatch, inner) => {
+    // Accept [!TYPE] at start of first <p>, with optional title, optional <br> variant, newline
+    const m = inner.match(/^\s*<p>\[!([\w]+)\]([^<\n]*?)(?:<br\s*\/?>)?\n?([\s\S]*?)<\/p>([\s\S]*)$/i)
+    if (!m) return fullMatch
+
+    const [, type, titleRest, firstParaRest, rest] = m
+    const typeKey = type.toLowerCase()
+    const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
+    const displayTitle = titleRest.trim() || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1))
+    const body = (firstParaRest + rest).trim()
+    return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
+  })
 }
 
 export function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
@@ -63,9 +66,11 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
     const mdMatch = flatFiles.find((f) => {
       if (f.isDirectory || !f.name.endsWith('.md')) return false
       const nameNoExt = f.name.replace(/\.md$/i, '')
+      const relPathNoExt = f.relativePath.replace(/\.md$/i, '')
       return (
         nameNoExt.toLowerCase() === linkNoExt.toLowerCase() ||
-        f.relativePath.toLowerCase() === linkText.toLowerCase()
+        f.relativePath.toLowerCase() === linkText.toLowerCase() ||
+        relPathNoExt.toLowerCase() === linkNoExt.toLowerCase()
       )
     })
     if (mdMatch) {
@@ -74,6 +79,12 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
       return `<div class="note-embed" data-path="${escapedPath}" style="border:1px solid var(--border-color);border-radius:6px;padding:12px 16px;margin:12px 0;background:var(--bg-secondary)"><div class="note-embed-title" style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;letter-spacing:0.04em">📄 ${displayName}</div><div class="note-embed-content" style="color:var(--text-primary);font-size:0.95em">Loading…</div></div>`
     }
 
+    // If the link explicitly ends in .md but no matching file was found,
+    // strip the leading "!" so the second pass converts [[...]] to a wiki-link span.
+    // For all other unresolved embeds (e.g. ![[Unknown Note]]) pass through unchanged.
+    if (/\.md$/i.test(linkText)) {
+      return fullMatch.slice(1) // strip leading "!" → let second pass handle [[...]]
+    }
     return fullMatch
   })
 
