@@ -87,7 +87,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [textSize, setTextSize] = useState(11)
   const [linkThickness, setLinkThickness] = useState(1)
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
-  const [hoveredTick, setHoveredTick] = useState<number | null>(null)
+  const [hoveredTick, setHoveredTick] = useState<number | null>(null) // stores frac value
 
   const [strictFilter, setStrictFilter] = useState(false)
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set())
@@ -297,13 +297,24 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
   const historyTicks = useMemo(() => {
     if (maxTime === minTime) return []
+    const span = maxTime - minTime
+    const MS_MONTH = 30 * 86400000
+    const MS_YEAR = 365 * 86400000
     const count = 6
     return Array.from({ length: count + 1 }, (_, i) => {
       const frac = i / count
-      const ts = minTime + (maxTime - minTime) * frac
-      const year = new Date(ts).getFullYear()
-      return { frac, year }
-    }).filter((t, i, arr) => t.frac > 0.04 && t.frac < 0.96 && (i === 0 || t.year !== arr[i - 1].year))
+      const ts = minTime + span * frac
+      const d = new Date(ts)
+      let label: string
+      if (span > MS_YEAR * 1.5) {
+        label = String(d.getFullYear())
+      } else if (span > MS_MONTH * 2) {
+        label = d.toLocaleDateString('en-US', { month: 'short' })
+      } else {
+        label = String(d.getDate())
+      }
+      return { frac, label }
+    }).filter((t, i, arr) => t.frac > 0.04 && t.frac < 0.96 && (i === 0 || t.label !== arr[i - 1].label))
   }, [minTime, maxTime])
 
   const activityBuckets = useMemo(() => {
@@ -1699,31 +1710,35 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
               ))}
             </svg>
-            {/* Year ticks — clamped so they don't overflow edges */}
-            <div style={{ position: 'relative', height: 8 }}>
-              {historyTicks.map(({ frac, year }) => (
+            {/* Year ticks */}
+            <div style={{ position: 'relative', height: 16, zIndex: 2 }}>
+              {historyTicks.map(({ frac, label }) => (
                 <span
-                  key={year}
+                  key={frac}
                   onClick={() => { setProgress(frac); setIsPlaying(false); }}
-                  onMouseEnter={() => setHoveredTick(year)}
+                  onMouseEnter={() => setHoveredTick(frac)}
                   onMouseLeave={() => setHoveredTick(null)}
                   style={{
                     position: 'absolute',
                     left: `${frac * 100}%`,
                     top: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
                     fontSize: 9,
-                    lineHeight: '8px',
-                    color: hoveredTick === year ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.22)',
-                    transform: frac === 0 ? 'none' : frac >= 0.95 ? 'translateX(-100%)' : 'translateX(-50%)',
+                    color: hoveredTick === frac ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.28)',
+                    transform: frac <= 0.05 ? 'none' : frac >= 0.95 ? 'translateX(-100%)' : 'translateX(-50%)',
                     cursor: 'pointer',
                     userSelect: 'none' as const,
                     whiteSpace: 'nowrap' as const,
-                    transition: 'color 0.15s ease',
-                    padding: '0 4px',
-                    margin: '0 -4px'
+                    transition: 'color 0.15s ease, background 0.15s ease',
+                    padding: '0 5px',
+                    background: hoveredTick === frac ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    borderRadius: 3,
+                    pointerEvents: 'all' as const
                   }}
                 >
-                  {year}
+                  {label}
                 </span>
               ))}
             </div>
