@@ -87,6 +87,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [textSize, setTextSize] = useState(11)
   const [linkThickness, setLinkThickness] = useState(1)
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
+  const [hoveredTick, setHoveredTick] = useState<number | null>(null)
 
   const [strictFilter, setStrictFilter] = useState(false)
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set())
@@ -1701,17 +1702,23 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               {historyTicks.map(({ frac, year }) => (
                 <span
                   key={year}
+                  onClick={() => { setProgress(frac); setIsPlaying(false); }}
+                  onMouseEnter={() => setHoveredTick(year)}
+                  onMouseLeave={() => setHoveredTick(null)}
                   style={{
                     position: 'absolute',
                     left: `${frac * 100}%`,
                     top: 0,
                     fontSize: 9,
                     lineHeight: '8px',
-                    color: 'rgba(255,255,255,0.22)',
+                    color: hoveredTick === year ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.22)',
                     transform: frac === 0 ? 'none' : frac >= 0.95 ? 'translateX(-100%)' : 'translateX(-50%)',
-                    pointerEvents: 'none',
+                    cursor: 'pointer',
                     userSelect: 'none' as const,
-                    whiteSpace: 'nowrap' as const
+                    whiteSpace: 'nowrap' as const,
+                    transition: 'color 0.15s ease',
+                    padding: '0 4px',
+                    margin: '0 -4px'
                   }}
                 >
                   {year}
