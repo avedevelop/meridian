@@ -1202,6 +1202,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
       {/* Slide-out Glassmorphic Sidebar */}
       <div
+        className="graph-sidebar"
         style={{
           position: 'absolute',
           top: 12,

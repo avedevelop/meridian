@@ -89,3 +89,29 @@ body,
   margin-bottom: 4px !important;
   line-height: 1.4 !important;
 }
+
+/* Compact range inputs in Graph Analysis sidebar */
+.graph-sidebar input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.12);
+  outline: none;
+  cursor: pointer;
+}
+.graph-sidebar input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(124,106,240,0.3);
+}
+.graph-sidebar input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+}
