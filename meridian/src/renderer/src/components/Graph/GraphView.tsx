@@ -1659,61 +1659,63 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             backdropFilter: 'blur(12px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 12,
+            flexDirection: 'column',
             paddingLeft: isSettingsOpen ? 348 : 16,
             paddingRight: 16,
+            paddingTop: 5,
+            paddingBottom: 5,
+            gap: 3,
             transition: 'padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             flexShrink: 0
           }}
         >
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
-            {formattedDate}
-          </span>
-
-          {/* Scrubber column: minimap + ticks + range input stacked */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* Minimap sparkline — exact width of scrubber */}
-            <svg
-              style={{ display: 'block', width: '100%', height: 14, pointerEvents: 'none', opacity: 0.55 }}
-              preserveAspectRatio="none"
-              viewBox={`0 0 ${activityBuckets.length} 1`}
-            >
-              {activityBuckets.map((h, i) => (
-                <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
-              ))}
-              <line
-                x1={progress * activityBuckets.length}
-                y1={0}
-                x2={progress * activityBuckets.length}
-                y2={1}
-                stroke="#fff"
-                strokeWidth={0.6}
-                opacity={0.9}
-              />
-            </svg>
-            {/* Year tick labels — same width, aligned to minimap */}
-            <div style={{ position: 'relative', height: 9 }}>
-              {historyTicks.map(({ frac, year }) => (
-                <span
-                  key={year}
-                  style={{
-                    position: 'absolute',
-                    left: `${frac * 100}%`,
-                    top: 0,
-                    fontSize: 9,
-                    lineHeight: '9px',
-                    color: 'rgba(255,255,255,0.25)',
-                    transform: 'translateX(-50%)',
-                    pointerEvents: 'none',
-                    userSelect: 'none' as const,
-                    whiteSpace: 'nowrap' as const
-                  }}
-                >
-                  {year}
-                </span>
-              ))}
+          {/* Row 1: minimap + ticks, spacer matches date label width */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flex: 1 }}>
+            <div style={{ minWidth: 136, flexShrink: 0 }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <svg
+                style={{ display: 'block', width: '100%', height: 14, pointerEvents: 'none', opacity: 0.5 }}
+                preserveAspectRatio="none"
+                viewBox={`0 0 ${activityBuckets.length} 1`}
+              >
+                {activityBuckets.map((h, i) => (
+                  <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
+                ))}
+                <line
+                  x1={progress * activityBuckets.length} y1={0}
+                  x2={progress * activityBuckets.length} y2={1}
+                  stroke="#fff" strokeWidth={0.6} opacity={0.9}
+                />
+              </svg>
+              <div style={{ position: 'relative', height: 9 }}>
+                {historyTicks.map(({ frac, year }) => (
+                  <span
+                    key={year}
+                    style={{
+                      position: 'absolute',
+                      left: `${frac * 100}%`,
+                      top: 0,
+                      fontSize: 9,
+                      lineHeight: '9px',
+                      color: 'rgba(255,255,255,0.25)',
+                      transform: 'translateX(-50%)',
+                      pointerEvents: 'none',
+                      userSelect: 'none' as const,
+                      whiteSpace: 'nowrap' as const
+                    }}
+                  >
+                    {year}
+                  </span>
+                ))}
+              </div>
             </div>
+          </div>
+
+          {/* Row 2: date + scrubber + buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
+              {formattedDate}
+            </span>
             <input
               type="range"
               min={0}
@@ -1723,11 +1725,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 setProgress(Number(e.target.value) / 1000)
                 setIsPlaying(false)
               }}
-              style={{ width: '100%', accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
+              style={{ flex: 1, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
             />
-          </div>
-
-          <button
+            <button
               onClick={() => {
                 if (progress >= 1) setProgress(0)
                 setIsPlaying((p) => !p)
@@ -1804,6 +1804,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 4 }}>
               Space · ←→
             </span>
+          </div>
         </div>
       )}
 
