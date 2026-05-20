@@ -1681,11 +1681,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 {activityBuckets.map((h, i) => (
                   <rect key={i} x={i} y={1 - h} width={1} height={h} fill="var(--accent-color)" />
                 ))}
-                <line
-                  x1={progress * activityBuckets.length} y1={0}
-                  x2={progress * activityBuckets.length} y2={1}
-                  stroke="#fff" strokeWidth={0.6} opacity={0.9}
-                />
               </svg>
               <div style={{ position: 'relative', height: 9 }}>
                 {historyTicks.map(({ frac, year }) => (
