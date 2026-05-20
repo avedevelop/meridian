@@ -42,3 +42,43 @@ describe('postprocessWikiLinks note embeds', () => {
     expect(result).not.toContain('note-embed')
   })
 })
+
+import { processHighlights } from '../../src/renderer/src/components/Editor/markdownUtils'
+
+describe('processHighlights', () => {
+  it('converts ==text== to <mark> tag with background style', () => {
+    const result = processHighlights('<p>Hello ==world== here</p>')
+    expect(result).toContain('<mark')
+    expect(result).toContain('world')
+    expect(result).toContain('background:')
+    expect(result).not.toContain('==world==')
+  })
+
+  it('does not convert ==text== inside <code>', () => {
+    const result = processHighlights('<p>See <code>==not highlighted==</code></p>')
+    expect(result).toContain('==not highlighted==')
+    expect(result).not.toContain('<mark')
+  })
+
+  it('does not convert ==text== inside <pre><code>', () => {
+    const result = processHighlights('<pre><code>==not highlighted==</code></pre>')
+    expect(result).toContain('==not highlighted==')
+    expect(result).not.toContain('<mark')
+  })
+
+  it('handles multiple highlights in one paragraph', () => {
+    const result = processHighlights('<p>==first== and ==second==</p>')
+    const markCount = (result.match(/<mark/g) ?? []).length
+    expect(markCount).toBe(2)
+  })
+
+  it('leaves text without == unchanged', () => {
+    const result = processHighlights('<p>normal text</p>')
+    expect(result).toBe('<p>normal text</p>')
+  })
+
+  it('does not convert single = signs', () => {
+    const result = processHighlights('<p>a = b</p>')
+    expect(result).not.toContain('<mark')
+  })
+})

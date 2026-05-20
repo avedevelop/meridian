@@ -83,3 +83,16 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
     return `<span class="wiki-link" data-link="${linkAttr}" style="color:var(--accent-color);text-decoration:underline;cursor:pointer">${label}</span>`
   })
 }
+
+export function processHighlights(html: string): string {
+  return html.replace(
+    /(<(?:pre|code)[^>]*>[\s\S]*?<\/(?:pre|code)>)|==([^=\n]{1,300})==/gi,
+    (fullMatch, codeBlock, highlight) => {
+      if (codeBlock !== undefined) return fullMatch
+      if (highlight !== undefined) {
+        return `<mark style="background:rgba(255,220,0,0.25);border-radius:2px;padding:0 2px">${highlight}</mark>`
+      }
+      return fullMatch
+    }
+  )
+}

@@ -8,7 +8,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
-import { flattenVaultFiles, postprocessWikiLinks, processCallouts } from './markdownUtils'
+import { flattenVaultFiles, postprocessWikiLinks, processCallouts, processHighlights } from './markdownUtils'
 
 const sanitizeSchema = {
   ...defaultSchema,
@@ -127,7 +127,8 @@ export function MarkdownPreview({
       const sanitized = String(processor.processSync(content))
       const withLinks = postprocessWikiLinks(sanitized, files)
       const withCallouts = processCallouts(withLinks)
-      const withIds = addHeadingIds(withCallouts)
+      const withHighlights = processHighlights(withCallouts)
+      const withIds = addHeadingIds(withHighlights)
       if (!vaultPath) return withIds
       return withIds.replace(
         /(<img)([^>]*src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/\/)([^"]+)(")/g,
