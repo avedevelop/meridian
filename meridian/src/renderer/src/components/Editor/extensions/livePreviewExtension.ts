@@ -1,169 +1,131 @@
 import { ViewPlugin, ViewUpdate, Decoration, DecorationSet, WidgetType, EditorView } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
-import { collectCmDecorations } from '../../../lib/markdownCore'
+import { unified } from 'unified'
+import remarkParse from 'remark-parse'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import remarkRehype from 'remark-rehype'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
+import rehypeStringify from 'rehype-stringify'
+import { applyPreprocessors, applyPostprocessors } from '../../../lib/markdownCore'
+import { useVaultStore } from '../../../store/useVaultStore'
 import '../../../lib/markdownCore'
 
-class HRWidget extends WidgetType {
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), 'mark', 'div', 'span'],
+  attributes: {
+    ...defaultSchema.attributes,
+    mark: ['style', 'class'],
+    div: ['style', 'class', 'data-*'],
+    span: [...(defaultSchema.attributes?.span ?? []), 'style', 'class'],
+    '*': [...(defaultSchema.attributes?.['*'] ?? []), 'style', 'class']
+  },
+  protocols: { ...defaultSchema.protocols, src: [...(defaultSchema.protocols?.src ?? []), ''] }
+}
+
+const processor = unified()
+  .use(remarkParse)
+  .use(remarkGfm)
+  .use(remarkBreaks)
+  .use(remarkRehype, { allowDangerousHtml: true })
+  .use(rehypeRaw)
+  .use(rehypeSanitize, sanitizeSchema)
+  .use(rehypeStringify)
+
+// Cache rendered HTML per block text to avoid re-processing on every cursor move
+const renderCache = new Map<string, string>()
+
+function renderBlock(text: string): string {
+  if (renderCache.has(text)) return renderCache.get(text)!
+  try {
+    const files = useVaultStore.getState().files
+    const vault = useVaultStore.getState().vault
+    const preprocessed = applyPreprocessors(text)
+    let html = String(processor.processSync(preprocessed))
+    html = applyPostprocessors(html, files)
+    // Fix relative image paths to vault:// protocol
+    if (vault?.path) {
+      html = html.replace(
+        /(<img)([^>]*src=")(?!https?:\/\/)(?!data:)(?!vault:\/\/\/)([^"]+)(")/g,
+        (_m, tag, pre, src, post) =>
+          `${tag} style="max-width:100%;height:auto;border-radius:4px"${pre}vault:///${src}${post}`
+      )
+    }
+    if (renderCache.size > 300) {
+      const first = renderCache.keys().next().value
+      renderCache.delete(first)
+    }
+    renderCache.set(text, html)
+    return html
+  } catch {
+    return `<p style="color:var(--text-primary)">${text.replace(/</g, '&lt;')}</p>`
+  }
+}
+
+class BlockWidget extends WidgetType {
+  constructor(private html: string) { super() }
+
   toDOM() {
     const div = document.createElement('div')
-    div.className = 'cm-lp-hr'
+    div.className = 'cm-live-block'
+    div.innerHTML = this.html
     return div
   }
-  eq() { return true }
+
+  eq(other: BlockWidget) { return other.html === this.html }
   ignoreEvent() { return false }
 }
 
-function cursorOnLine(view: EditorView, from: number): boolean {
-  const head = view.state.selection.main.head
-  const line = view.state.doc.lineAt(from)
-  return head >= line.from && head <= line.to
-}
-
-type Entry = { from: number; to: number; deco: Decoration }
+const TOP_LEVEL_BLOCKS = new Set([
+  'ATXHeading1', 'ATXHeading2', 'ATXHeading3', 'ATXHeading4', 'ATXHeading5', 'ATXHeading6',
+  'SetextHeading1', 'SetextHeading2',
+  'Paragraph',
+  'BulletList', 'OrderedList',
+  'Blockquote',
+  'FencedCode', 'IndentedCode',
+  'HorizontalRule',
+  'HTMLBlock',
+  'Table',
+])
 
 function buildDecos(view: EditorView): DecorationSet {
   const { state } = view
-  const entries: Entry[] = []
+  const cursorPos = state.selection.main.head
+  const cursorLineNum = state.doc.lineAt(cursorPos).number
 
-  // Collect decorations from registered core formatters
-  const coreEntries = collectCmDecorations(view)
-  entries.push(...coreEntries)
+  const blocks: { from: number; to: number; text: string }[] = []
 
   syntaxTree(state).iterate({
     enter(node) {
-      const { from, to } = node
+      if (node.parent?.name !== 'Document') return
+      if (!TOP_LEVEL_BLOCKS.has(node.name)) return false
 
-      switch (node.name) {
-        // Heading line decorations
-        case 'ATXHeading1': {
-          const line = state.doc.lineAt(from)
-          entries.push({ from: line.from, to: line.from, deco: Decoration.line({ class: 'cm-lp-h1' }) })
-          break
-        }
-        case 'ATXHeading2': {
-          const line = state.doc.lineAt(from)
-          entries.push({ from: line.from, to: line.from, deco: Decoration.line({ class: 'cm-lp-h2' }) })
-          break
-        }
-        case 'ATXHeading3': {
-          const line = state.doc.lineAt(from)
-          entries.push({ from: line.from, to: line.from, deco: Decoration.line({ class: 'cm-lp-h3' }) })
-          break
-        }
-        case 'ATXHeading4':
-        case 'ATXHeading5':
-        case 'ATXHeading6': {
-          const line = state.doc.lineAt(from)
-          entries.push({ from: line.from, to: line.from, deco: Decoration.line({ class: 'cm-lp-h4' }) })
-          break
-        }
+      const lineFrom = state.doc.lineAt(node.from).from
+      const lineTo = state.doc.lineAt(node.to).to
+      const startLine = state.doc.lineAt(lineFrom).number
+      const endLine = state.doc.lineAt(lineTo).number
 
-        // Hide # markers when cursor is not on that line
-        case 'HeaderMark': {
-          if (!cursorOnLine(view, from)) {
-            // Hide the marker + trailing space
-            const end = to < state.doc.length && state.doc.sliceString(to, to + 1) === ' ' ? to + 1 : to
-            entries.push({ from, to: end, deco: Decoration.replace({}) })
-          }
-          break
-        }
+      // Show raw markdown when cursor is in or adjacent to this block
+      if (cursorLineNum >= startLine && cursorLineNum <= endLine) return false
 
-        // Bold — mark the full range, hide ** markers away from cursor
-        case 'StrongEmphasis': {
-          entries.push({ from, to, deco: Decoration.mark({ class: 'cm-lp-bold' }) })
-          break
-        }
-
-        // Italic — mark the full range
-        case 'Emphasis': {
-          entries.push({ from, to, deco: Decoration.mark({ class: 'cm-lp-italic' }) })
-          break
-        }
-
-        // EmphasisMark: hide * _ ** _ when not on cursor line
-        case 'EmphasisMark': {
-          if (!cursorOnLine(view, from)) {
-            entries.push({ from, to, deco: Decoration.replace({}) })
-          }
-          break
-        }
-
-        // Strikethrough
-        case 'Strikethrough': {
-          entries.push({ from, to, deco: Decoration.mark({ class: 'cm-lp-strike' }) })
-          break
-        }
-
-        // StrikethroughMark: hide ~~ when not on cursor line
-        case 'StrikethroughMark': {
-          if (!cursorOnLine(view, from)) {
-            entries.push({ from, to, deco: Decoration.replace({}) })
-          }
-          break
-        }
-
-        // Horizontal rule — replace line with widget
-        case 'HorizontalRule': {
-          const line = state.doc.lineAt(from)
-          if (!cursorOnLine(view, from)) {
-            entries.push({
-              from: line.from,
-              to: line.to,
-              deco: Decoration.replace({ widget: new HRWidget() })
-            })
-          }
-          break
-        }
-
-        // Blockquote lines
-        case 'Blockquote': {
-          let pos = from
-          while (pos <= to && pos < state.doc.length) {
-            const line = state.doc.lineAt(pos)
-            entries.push({ from: line.from, to: line.from, deco: Decoration.line({ class: 'cm-lp-blockquote' }) })
-            pos = line.to + 1
-          }
-          break
-        }
-
-        // QuoteMark: hide > when not on cursor line
-        case 'QuoteMark': {
-          if (!cursorOnLine(view, from)) {
-            const end = to < state.doc.length && state.doc.sliceString(to, to + 1) === ' ' ? to + 1 : to
-            entries.push({ from, to: end, deco: Decoration.replace({}) })
-          }
-          break
-        }
-
-        // Inline code styling
-        case 'InlineCode': {
-          entries.push({ from, to, deco: Decoration.mark({ class: 'cm-lp-code' }) })
-          break
-        }
-      }
+      blocks.push({ from: lineFrom, to: lineTo, text: state.doc.sliceString(lineFrom, lineTo) })
+      return false
     }
   })
 
-  // Sort: from asc, then to asc (zero-length line decos come first for same from)
-  entries.sort((a, b) => a.from !== b.from ? a.from - b.from : a.to - b.to)
+  blocks.sort((a, b) => a.from - b.from)
 
-  // Decoration.replace ranges must not overlap each other.
-  // Decoration.mark and Decoration.line can overlap freely.
   const builder = new RangeSetBuilder<Decoration>()
-  let lastReplaceEnd = -1
+  let lastTo = -1
 
-  for (const { from, to, deco } of entries) {
-    const isLine = from === to
-    const isMark = !isLine && (deco as any).spec?.class !== undefined
-    const isReplace = !isLine && !isMark
-    if (isReplace && from < lastReplaceEnd) continue
-    try {
-      builder.add(from, to, deco)
-      if (isReplace) lastReplaceEnd = Math.max(lastReplaceEnd, to)
-    } catch {
-      // skip conflicting range
-    }
+  for (const { from, to, text } of blocks) {
+    if (from < lastTo) continue
+    const html = renderBlock(text)
+    builder.add(from, to, Decoration.replace({ widget: new BlockWidget(html), block: true }))
+    lastTo = to
   }
 
   return builder.finish()
@@ -178,7 +140,8 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || update.selectionSet) {
+      if (update.docChanged || update.selectionSet || update.viewportChanged) {
+        if (update.docChanged) renderCache.clear()
         this.decorations = buildDecos(update.view)
       }
     }
