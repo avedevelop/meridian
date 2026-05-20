@@ -1725,7 +1725,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               }}
               style={{ width: '100%', accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
             />
-            <button
+          </div>
+
+          <button
               onClick={() => {
                 if (progress >= 1) setProgress(0)
                 setIsPlaying((p) => !p)
@@ -1802,7 +1804,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginLeft: 4 }}>
               Space · ←→
             </span>
-          </div>
         </div>
       )}
 
