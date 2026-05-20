@@ -555,18 +555,20 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'var(--text-secondary)',
           background: 'var(--bg-tertiary)',
-          
           boxSizing: 'border-box'
         }}
       >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
-            <FileIcon size={48} color="var(--border-color)" />
+        <div style={{ textAlign: 'center', userSelect: 'none' }}>
+          <div style={{ marginBottom: 12, opacity: 0.2 }}>
+            <FileIcon size={40} color="var(--text-primary)" />
           </div>
-          <p>Pane is empty</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Open a file or split screen</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 6px', fontWeight: 500 }}>
+            No file open
+          </p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0, opacity: 0.6 }}>
+            Open a file from the sidebar or press ⌘K
+          </p>
         </div>
       </div>
     )
