@@ -37,3 +37,6 @@ registerFormatter(highlightsFormatter)
 
 import { wikiLinksFormatter } from './markdownCoreFormatters/wikiLinksFormatter'
 registerFormatter(wikiLinksFormatter)
+
+import { taskListFormatter } from './markdownCoreFormatters/taskListFormatter'
+registerFormatter(taskListFormatter)
