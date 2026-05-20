@@ -241,7 +241,7 @@ export function Layout({
 }: LayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('layout-sidebar-width')
-    return saved ? parseInt(saved, 10) : 220
+    return saved ? Math.max(180, parseInt(saved, 10)) : 220
   })
 
   const [rightPanelWidth, setRightPanelWidth] = useState(() => {
@@ -272,13 +272,13 @@ export function Layout({
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX
       const newWidth = startWidth + deltaX
-      if (newWidth < 80) {
+      if (newWidth < 120) {
         setSidebarCollapsed(true)
         localStorage.setItem('layout-sidebar-collapsed', 'true')
       } else {
         setSidebarCollapsed(false)
         localStorage.setItem('layout-sidebar-collapsed', 'false')
-        const clamped = Math.max(150, Math.min(600, newWidth))
+        const clamped = Math.max(180, Math.min(600, newWidth))
         setSidebarWidth(clamped)
         localStorage.setItem('layout-sidebar-width', clamped.toString())
       }

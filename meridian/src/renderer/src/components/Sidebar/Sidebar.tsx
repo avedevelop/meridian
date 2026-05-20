@@ -425,6 +425,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 placeholder="Filter files..."
                 style={{
                   flex: 1,
+                  minWidth: 40,
+                  width: 0,
                   padding: '6px 10px',
                   borderRadius: 6,
                   background: 'var(--bg-surface)',
@@ -443,7 +445,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                     color: 'var(--text-secondary)',
                     cursor: 'pointer',
                     padding: '0 4px',
-                    fontSize: 14
+                    fontSize: 14,
+                    flexShrink: 0
                   }}
                 >
                   ×
@@ -462,7 +465,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transition: 'background 0.15s, color 0.15s'
+                  transition: 'background 0.15s, color 0.15s',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'var(--bg-surface)'
@@ -496,7 +500,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   alignItems: 'center',
                   minWidth: 28,
                   justifyContent: 'center',
-                  transition: 'background 0.15s, color 0.15s'
+                  transition: 'background 0.15s, color 0.15s',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'var(--bg-surface)'
