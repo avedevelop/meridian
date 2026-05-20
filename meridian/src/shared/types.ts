@@ -52,5 +52,9 @@ export const IPC = {
   VAULT_OPEN_EXTERNAL: 'vault:open-external',
   GIT_STATUS: 'git:status',
   GIT_COMMIT: 'git:commit',
-  GIT_SYNC: 'git:sync'
+  GIT_SYNC: 'git:sync',
+  GIT_INIT: 'git:init',
+  GIT_LOG: 'git:log',
+  PREFERENCES_GET: 'preferences:get',
+  PREFERENCES_SET: 'preferences:set'
 } as const

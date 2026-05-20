@@ -83,10 +83,38 @@ export default function App() {
   const { openFile, openVault, openDailyNote, exportNote, exportPdf, createFile, saveFile, listTemplates, applyTemplate } = useVaultBridge()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph'>('files')
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'>('files')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('layout-sidebar-collapsed') === 'true'
+  })
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(() => {
+    return localStorage.getItem('layout-right-collapsed') === 'true'
+  })
+
+  const handleTabChange = useCallback((tab: typeof activeSidebarTab) => {
+    setActiveSidebarTab((curr) => {
+      if (curr === tab) {
+        setSidebarCollapsed((prev) => {
+          const next = !prev
+          localStorage.setItem('layout-sidebar-collapsed', String(next))
+          return next
+        })
+        return curr
+      } else {
+        setSidebarCollapsed(false)
+        localStorage.setItem('layout-sidebar-collapsed', 'false')
+        return tab
+      }
+    })
+  }, [])
 
   const theme = useSettingsStore((s) => s.theme)
   const accentColor = useSettingsStore((s) => s.accentColor)
+
+  // Load preferences from disk on mount
+  useEffect(() => {
+    useSettingsStore.getState().loadFromDisk()
+  }, [])
 
   useVaultFileWatcher()
   useAutoSave()
@@ -231,6 +259,22 @@ export default function App() {
           e.preventDefault()
           exportNote()
         }
+        if (e.key === 'b') {
+          e.preventDefault()
+          if (e.altKey) {
+            setRightPanelCollapsed((prev) => {
+              const next = !prev
+              localStorage.setItem('layout-right-collapsed', String(next))
+              return next
+            })
+          } else {
+            setSidebarCollapsed((prev) => {
+              const next = !prev
+              localStorage.setItem('layout-sidebar-collapsed', String(next))
+              return next
+            })
+          }
+        }
       }
     }
     window.addEventListener('keydown', handler)
@@ -272,6 +316,8 @@ export default function App() {
           break
         case 'graph-view':
           setActiveSidebarTab('graph')
+          setSidebarCollapsed(false)
+          localStorage.setItem('layout-sidebar-collapsed', 'false')
           break
         case 'reset-layout':
           window.dispatchEvent(new Event('layout:reset'))
@@ -318,10 +364,15 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Layout
+        sidebarCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
+        rightPanelCollapsed={rightPanelCollapsed}
+        setRightPanelCollapsed={setRightPanelCollapsed}
         activityBar={
           <ActivityBar
             activeTab={activeSidebarTab}
-            onTabChange={setActiveSidebarTab}
+            onTabChange={handleTabChange}
+            sidebarCollapsed={sidebarCollapsed}
             onSettings={() => setSettingsOpen(true)}
           />
         }
@@ -329,7 +380,7 @@ export default function App() {
           <Sidebar
             key={vault.path}
             activeTab={activeSidebarTab}
-            onTabChange={setActiveSidebarTab}
+            onTabChange={handleTabChange}
           />
         }
         editor={<EditorArea />}

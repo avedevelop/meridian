@@ -54,7 +54,7 @@ export interface SettingsState {
   updateSetting: <
     K extends keyof Omit<
       SettingsState,
-      'setFontSize' | 'setLineWidth' | 'updateSetting' | 'resetToDefault' | 'togglePlugin'
+      'setFontSize' | 'setLineWidth' | 'updateSetting' | 'resetToDefault' | 'togglePlugin' | 'loadFromDisk'
     >
   >(
     key: K,
@@ -62,11 +62,12 @@ export interface SettingsState {
   ) => void
   togglePlugin: (pluginId: keyof SettingsState['pluginsEnabled']) => void
   resetToDefault: () => void
+  loadFromDisk: () => Promise<void>
 }
 
 const DEFAULTS: Omit<
   SettingsState,
-  'setFontSize' | 'setLineWidth' | 'updateSetting' | 'resetToDefault' | 'togglePlugin'
+  'setFontSize' | 'setLineWidth' | 'updateSetting' | 'resetToDefault' | 'togglePlugin' | 'loadFromDisk'
 > = {
   fontSize: 15,
   lineWidth: 720,
@@ -123,8 +124,20 @@ function loadSettings(): typeof DEFAULTS {
   return DEFAULTS
 }
 
-function saveSettings(state: typeof DEFAULTS): void {
-  localStorage.setItem('meridian-settings', JSON.stringify(state))
+function saveSettings(state: any): void {
+  const toSave = { ...state }
+  // Dynamically strip out functions before saving
+  Object.keys(toSave).forEach((key) => {
+    if (typeof toSave[key] === 'function') {
+      delete toSave[key]
+    }
+  })
+  localStorage.setItem('meridian-settings', JSON.stringify(toSave))
+  if (window.settings && typeof window.settings.setPreferences === 'function') {
+    window.settings.setPreferences(toSave).catch((e) => {
+      console.error('Failed to save preferences to disk:', e)
+    })
+  }
 }
 
 const initial = loadSettings()
@@ -202,5 +215,25 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       saveSettings(DEFAULTS)
       return next
     })
+  },
+
+  loadFromDisk: async () => {
+    try {
+      if (window.settings && typeof window.settings.getPreferences === 'function') {
+        const prefs = await window.settings.getPreferences()
+        if (prefs && Object.keys(prefs).length > 0) {
+          set((s) => ({
+            ...s,
+            ...prefs,
+            pluginsEnabled: {
+              ...s.pluginsEnabled,
+              ...((prefs.pluginsEnabled as any) || {})
+            }
+          }))
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load preferences from disk:', e)
+    }
   }
 }))

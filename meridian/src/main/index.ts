@@ -120,12 +120,16 @@ function buildMenu() {
 
 function createWindow(): BrowserWindow {
   const { windowBounds } = settings.get()
+  const width = windowBounds?.width ?? 1200
+  const height = windowBounds?.height ?? 800
+  const x = windowBounds?.x
+  const y = windowBounds?.y
 
   const win = new BrowserWindow({
-    width: windowBounds.width,
-    height: windowBounds.height,
-    x: windowBounds.x,
-    y: windowBounds.y,
+    width,
+    height,
+    x,
+    y,
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#1a1a1a',
     webPreferences: {
@@ -150,7 +154,16 @@ function createWindow(): BrowserWindow {
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        shell.openExternal(url)
+      } else {
+        console.warn('[Main] Blocked window open for non-http/https protocol:', url)
+      }
+    } catch {
+      // Ignore invalid URL
+    }
     return { action: 'deny' }
   })
 

@@ -51,26 +51,35 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
   const onSaveRef = useRef(onSave)
   onSaveRef.current = onSave
 
-  // Load drawing only when the FILE changes, NOT on every save
-  // (content changes on save would reset undoStack otherwise)
+  const loadedPathsRef = useRef<Record<string, string>>({})
+
+  // Load drawing only when the FILE changes or on initial asynchronous load
   useEffect(() => {
-    try {
-      if (content.trim()) {
-        const parsed = JSON.parse(content)
-        if (parsed.type === 'meridian-drawing' && Array.isArray(parsed.elements)) {
-          setElements(parsed.elements)
-          setUndoStack([])
-          setRedoStack([])
-          return
+    const lastLoadedContent = loadedPathsRef.current[filePath]
+    const isNewFile = lastLoadedContent === undefined
+    const isInitialLoad = !lastLoadedContent && content.trim() !== ''
+
+    if (isNewFile || isInitialLoad) {
+      try {
+        if (content.trim()) {
+          const parsed = JSON.parse(content)
+          if (parsed.type === 'meridian-drawing' && Array.isArray(parsed.elements)) {
+            setElements(parsed.elements)
+            setUndoStack([])
+            setRedoStack([])
+            loadedPathsRef.current[filePath] = content
+            return
+          }
         }
+      } catch {
+        // not valid drawing
       }
-    } catch {
-      // not valid drawing
+      setElements([])
+      setUndoStack([])
+      setRedoStack([])
+      loadedPathsRef.current[filePath] = content
     }
-    setElements([])
-    setUndoStack([])
-    setRedoStack([])
-  }, [filePath]) // ← only filePath, not content
+  }, [filePath, content])
 
   // Stable save function via ref — never goes stale in callbacks
   const saveDrawing = useCallback((newElements: DrawingElement[]) => {

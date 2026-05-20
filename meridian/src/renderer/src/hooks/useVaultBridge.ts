@@ -26,13 +26,32 @@ declare global {
         url: string
       ) => Promise<{ title: string; description: string; image: string; url: string }>
       openExternal: (url: string) => Promise<void>
-      gitStatus: () => Promise<{ isRepo: boolean; clean?: boolean; changesCount?: number }>
+      gitStatus: () => Promise<{
+        isRepo: boolean
+        clean?: boolean
+        changesCount?: number
+        changes?: { path: string; status: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown' }[]
+      }>
       gitCommit: (message?: string) => Promise<{ success: boolean; error?: string; message?: string }>
-      gitSync: () => Promise<{ success: boolean; error?: string }>
+      gitSync: () => Promise<{ success: boolean; error?: string; noRemote?: boolean }>
+      gitInit: () => Promise<{ success: boolean; error?: string }>
+      gitLog: () => Promise<{
+        success: boolean
+        error?: string
+        commits?: {
+          hash: string
+          shortHash: string
+          author: string
+          date: string
+          subject: string
+        }[]
+      }>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
       set: (key: string, value: unknown) => Promise<void>
+      getPreferences: () => Promise<Record<string, unknown>>
+      setPreferences: (prefs: Record<string, unknown>) => Promise<void>
     }
   }
 }

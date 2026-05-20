@@ -237,12 +237,20 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
   /* --- Canvas data state ------------------------------------------ */
   const [canvasData, setCanvasData] = useState<CanvasData>(() => parseCanvasData(content))
+  const loadedPathsRef = useRef<Record<string, string>>({})
 
-  // Only reset when the FILE changes, not on every save (same fix as SketchpadView)
+  // Only reset when the FILE changes or on initial asynchronous load
   useEffect(() => {
-    setCanvasData(parseCanvasData(content))
-    undoHistoryRef.current = []
-  }, [filePath]) // eslint-disable-line react-hooks/exhaustive-deps
+    const lastLoadedContent = loadedPathsRef.current[filePath]
+    const isNewFile = lastLoadedContent === undefined
+    const isInitialLoad = !lastLoadedContent && content.trim() !== ''
+
+    if (isNewFile || isInitialLoad) {
+      setCanvasData(parseCanvasData(content))
+      undoHistoryRef.current = []
+      loadedPathsRef.current[filePath] = content
+    }
+  }, [filePath, content])
 
   /* --- Undo history (ref — no extra re-renders) -------------------- */
   const undoHistoryRef = useRef<CanvasData[]>([])
@@ -1077,7 +1085,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                 width: `${node.width}px`,
                 height: `${node.height}px`,
                 overflow: 'hidden',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                zIndex: canvasData.nodes.findIndex((n) => n.id === node.id)
               }
             }}
           >
@@ -1205,7 +1214,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               })()
             ) : (
               <div
-                className="markdown-preview"
+                className="markdown-preview canvas-card-content"
                 style={{
                   color: getContrastColor(node.color),
                   fontFamily: FONT_FAMILY,
@@ -1218,7 +1227,15 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                   overflowY: 'auto',
                   overflowX: 'hidden',
                   wordBreak: 'break-word',
-                  whiteSpace: 'pre-wrap'
+                  whiteSpace: 'pre-wrap',
+                  background: node.color ?? NODE_FILL,
+                  border: isSelected
+                    ? `2px solid ${NODE_SELECTED_STROKE}`
+                    : `1px solid ${NODE_STROKE}`,
+                  borderRadius: '8px',
+                  boxShadow: isSelected
+                    ? '0 6px 12px rgba(0,0,0,0.4)'
+                    : '0 2px 4px rgba(0,0,0,0.2)'
                 }}
               >
                 <div

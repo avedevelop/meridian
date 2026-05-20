@@ -220,6 +220,33 @@ export function registerIpcHandlers(settings: AppSettings): void {
     if (key === 'lastVault') settings.setLastVault(value as string)
   })
 
+  ipcMain.handle(IPC.PREFERENCES_GET, async () => {
+    try {
+      const { readFileSync, existsSync } = await import('fs')
+      const { join } = await import('path')
+      const { app } = await import('electron')
+      const prefPath = join(app.getPath('userData'), 'meridian', 'preferences.json')
+      if (existsSync(prefPath)) {
+        return JSON.parse(readFileSync(prefPath, 'utf-8'))
+      }
+    } catch (e) {
+      console.error('[IPC] Error reading preferences:', e)
+    }
+    return {}
+  })
+
+  ipcMain.handle(IPC.PREFERENCES_SET, async (_event, prefs: Record<string, unknown>) => {
+    try {
+      const { writeFileSync } = await import('fs')
+      const { join } = await import('path')
+      const { app } = await import('electron')
+      const prefPath = join(app.getPath('userData'), 'meridian', 'preferences.json')
+      writeFileSync(prefPath, JSON.stringify(prefs, null, 2), 'utf-8')
+    } catch (e) {
+      console.error('[IPC] Error writing preferences:', e)
+    }
+  })
+
   ipcMain.handle(IPC.VAULT_EXPORT_HTML, async (_event, suggestedName: string, html: string) => {
     const result = await dialog.showSaveDialog({
       title: 'Export Note as HTML',
@@ -328,7 +355,12 @@ export function registerIpcHandlers(settings: AppSettings): void {
 
   ipcMain.handle(IPC.VAULT_OPEN_EXTERNAL, async (_event, url: string) => {
     try {
-      await shell.openExternal(url)
+      const parsed = new URL(url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        await shell.openExternal(url)
+      } else {
+        console.warn('[IPC] Blocked openExternal call for non-http/https protocol:', url)
+      }
     } catch (e) {
       console.error('[IPC] openExternal error:', e)
     }
@@ -337,36 +369,70 @@ export function registerIpcHandlers(settings: AppSettings): void {
   ipcMain.handle(IPC.GIT_STATUS, async () => {
     if (!vaultManager) return { isRepo: false }
     const cwd = vaultManager.vaultPath
-    const { exec } = await import('child_process')
+    const { execFile } = await import('child_process')
     const { promisify } = await import('util')
-    const execAsync = promisify(exec)
+    const execFileAsync = promisify(execFile)
 
     try {
-      await execAsync('git rev-parse --is-inside-work-tree', { cwd })
-      const { stdout } = await execAsync('git status --porcelain', { cwd })
+      await execFileAsync('git', ['rev-parse', '--is-inside-work-tree'], { cwd })
+      const { stdout } = await execFileAsync('git', ['status', '--porcelain'], { cwd })
       const lines = stdout.split('\n').filter(Boolean)
-      return { isRepo: true, clean: lines.length === 0, changesCount: lines.length }
+
+      const changes = lines.map((line) => {
+        const status = line.slice(0, 2)
+        const path = line.slice(2).trim()
+        
+        let type: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown' = 'unknown'
+        if (status.includes('M')) type = 'modified'
+        else if (status.includes('A')) type = 'added'
+        else if (status.includes('D')) type = 'deleted'
+        else if (status.includes('?')) type = 'untracked'
+
+        return { path, status: type }
+      })
+
+      return {
+        isRepo: true,
+        clean: lines.length === 0,
+        changesCount: lines.length,
+        changes
+      }
     } catch (e) {
       return { isRepo: false }
+    }
+  })
+
+  ipcMain.handle(IPC.GIT_INIT, async () => {
+    if (!vaultManager) throw new Error('No vault open')
+    const cwd = vaultManager.vaultPath
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    try {
+      await execFileAsync('git', ['init'], { cwd })
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message || String(e) }
     }
   })
 
   ipcMain.handle(IPC.GIT_COMMIT, async (_event, message?: string) => {
     if (!vaultManager) throw new Error('No vault open')
     const cwd = vaultManager.vaultPath
-    const { exec } = await import('child_process')
+    const { execFile } = await import('child_process')
     const { promisify } = await import('util')
-    const execAsync = promisify(exec)
+    const execFileAsync = promisify(execFile)
 
     const msg = message || `Meridian auto-commit: ${new Date().toISOString()}`
     try {
-      await execAsync('git add .', { cwd })
+      await execFileAsync('git', ['add', '.'], { cwd })
       // Check if there are staged changes to commit
-      const { stdout: diffOut } = await execAsync('git diff --cached --name-only', { cwd })
+      const { stdout: diffOut } = await execFileAsync('git', ['diff', '--cached', '--name-only'], { cwd })
       if (!diffOut.trim()) {
         return { success: true, message: 'Nothing to commit' }
       }
-      await execAsync(`git commit -m "${msg.replace(/"/g, '\\"')}"`, { cwd })
+      await execFileAsync('git', ['commit', '-m', msg], { cwd })
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message || String(e) }
@@ -376,17 +442,63 @@ export function registerIpcHandlers(settings: AppSettings): void {
   ipcMain.handle(IPC.GIT_SYNC, async () => {
     if (!vaultManager) throw new Error('No vault open')
     const cwd = vaultManager.vaultPath
-    const { exec } = await import('child_process')
+    const { execFile } = await import('child_process')
     const { promisify } = await import('util')
-    const execAsync = promisify(exec)
+    const execFileAsync = promisify(execFile)
 
     try {
-      // Pull with rebase, then push
-      await execAsync('git pull --rebase', { cwd })
-      await execAsync('git push', { cwd })
-      return { success: true }
+      // Check if remote is configured
+      const { stdout: remoteStdout } = await execFileAsync('git', ['remote'], { cwd })
+      const hasRemote = remoteStdout.trim().length > 0
+
+      if (hasRemote) {
+        await execFileAsync('git', ['pull', '--rebase'], { cwd })
+        await execFileAsync('git', ['push'], { cwd })
+        return { success: true }
+      } else {
+        return { success: true, noRemote: true }
+      }
     } catch (e: any) {
       return { success: false, error: e.message || String(e) }
+    }
+  })
+
+  ipcMain.handle(IPC.GIT_LOG, async () => {
+    if (!vaultManager) throw new Error('No vault open')
+    const cwd = vaultManager.vaultPath
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    try {
+      const { stdout } = await execFileAsync(
+        'git',
+        ['log', '-n', '50', '--pretty=format:%H|%an|%ad|%s', '--date=short'],
+        { cwd }
+      )
+      const commits = stdout
+        .split('\n')
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const [hash, author, date, subject] = line.split('|')
+          return {
+            hash,
+            shortHash: hash ? hash.slice(0, 7) : '',
+            author: author || '',
+            date: date || '',
+            subject: subject || ''
+          }
+        })
+      return { success: true, commits }
+    } catch (e: any) {
+      const errorMsg = e.message || String(e)
+      if (
+        errorMsg.includes('does not have any commits') ||
+        errorMsg.includes('fatal: bad default revision')
+      ) {
+        return { success: true, commits: [] }
+      }
+      return { success: false, error: errorMsg }
     }
   })
 }

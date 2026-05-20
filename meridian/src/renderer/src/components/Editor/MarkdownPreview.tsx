@@ -72,6 +72,16 @@ function addHeadingIds(html: string): string {
 }
 
 
+function escapeHtml(str: string): string {
+  if (typeof str !== 'string') return ''
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 function renderDrawingToSVG(elements: any[]): string {
   return elements
     .map((el) => {
@@ -82,7 +92,7 @@ function renderDrawingToSVG(elements: any[]): string {
             .slice(1)
             .map((p) => `L ${p[0]} ${p[1]}`)
             .join(' ')
-        return `<path d="${d}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`
+        return `<path d="${d}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`
       }
       if (
         el.type === 'rectangle' &&
@@ -93,7 +103,7 @@ function renderDrawingToSVG(elements: any[]): string {
       ) {
         const x = el.w < 0 ? el.x + el.w : el.x
         const y = el.h < 0 ? el.y + el.h : el.y
-        return `<rect x="${x}" y="${y}" width="${Math.abs(el.w)}" height="${Math.abs(el.h)}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" fill="${el.fill}" />`
+        return `<rect x="${x}" y="${y}" width="${Math.abs(el.w)}" height="${Math.abs(el.h)}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" fill="${escapeHtml(el.fill)}" />`
       }
       if (
         el.type === 'circle' &&
@@ -101,7 +111,7 @@ function renderDrawingToSVG(elements: any[]): string {
         el.y !== undefined &&
         el.w !== undefined
       ) {
-        return `<circle cx="${el.x}" cy="${el.y}" r="${el.w}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" fill="${el.fill}" />`
+        return `<circle cx="${el.x}" cy="${el.y}" r="${el.w}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" fill="${escapeHtml(el.fill)}" />`
       }
       if (
         el.type === 'line' &&
@@ -110,10 +120,10 @@ function renderDrawingToSVG(elements: any[]): string {
         el.w !== undefined &&
         el.h !== undefined
       ) {
-        return `<line x1="${el.x}" y1="${el.y}" x2="${el.w}" y2="${el.h}" stroke="${el.stroke}" stroke-width="${el.strokeWidth}" />`
+        return `<line x1="${el.x}" y1="${el.y}" x2="${el.w}" y2="${el.h}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" />`
       }
       if (el.type === 'text' && el.x !== undefined && el.y !== undefined && el.text) {
-        return `<text x="${el.x}" y="${el.y}" fill="${el.stroke}" font-size="${el.strokeWidth}" font-family="sans-serif">${el.text}</text>`
+        return `<text x="${el.x}" y="${el.y}" fill="${escapeHtml(el.stroke)}" font-size="${el.strokeWidth}" font-family="sans-serif">${escapeHtml(el.text)}</text>`
       }
       return ''
     })

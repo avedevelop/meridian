@@ -53,14 +53,20 @@ const vaultAPI = {
 
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.VAULT_OPEN_EXTERNAL, url),
 
-  gitStatus: (): Promise<{ isRepo: boolean; clean?: boolean; changesCount?: number }> =>
+  gitStatus: (): Promise<any> =>
     ipcRenderer.invoke(IPC.GIT_STATUS),
 
   gitCommit: (message?: string): Promise<{ success: boolean; error?: string; message?: string }> =>
     ipcRenderer.invoke(IPC.GIT_COMMIT, message),
 
-  gitSync: (): Promise<{ success: boolean; error?: string }> =>
+  gitSync: (): Promise<{ success: boolean; error?: string; noRemote?: boolean }> =>
     ipcRenderer.invoke(IPC.GIT_SYNC),
+
+  gitInit: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC.GIT_INIT),
+
+  gitLog: (): Promise<{ success: boolean; error?: string; commits?: any[] }> =>
+    ipcRenderer.invoke(IPC.GIT_LOG),
 
   onFileChanged: (callback: (event: VaultFileChangeEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, change: VaultFileChangeEvent) =>
@@ -73,7 +79,10 @@ const vaultAPI = {
 const settingsAPI = {
   get: (): Promise<AppConfig> => ipcRenderer.invoke(IPC.SETTINGS_GET),
   set: (key: string, value: unknown): Promise<void> =>
-    ipcRenderer.invoke(IPC.SETTINGS_SET, key, value)
+    ipcRenderer.invoke(IPC.SETTINGS_SET, key, value),
+  getPreferences: (): Promise<Record<string, unknown>> => ipcRenderer.invoke(IPC.PREFERENCES_GET),
+  setPreferences: (prefs: Record<string, unknown>): Promise<void> =>
+    ipcRenderer.invoke(IPC.PREFERENCES_SET, prefs)
 }
 
 contextBridge.exposeInMainWorld('vault', vaultAPI)
