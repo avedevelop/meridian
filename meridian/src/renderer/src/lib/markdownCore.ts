@@ -34,3 +34,6 @@ registerFormatter(calloutsFormatter)
 
 import { highlightsFormatter } from './markdownCoreFormatters/highlightsFormatter'
 registerFormatter(highlightsFormatter)
+
+import { wikiLinksFormatter } from './markdownCoreFormatters/wikiLinksFormatter'
+registerFormatter(wikiLinksFormatter)
