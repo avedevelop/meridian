@@ -48,6 +48,7 @@ declare global {
         isRepo: boolean
         clean?: boolean
         changesCount?: number
+        hasRemote?: boolean
         changes?: { path: string; status: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown' }[]
       }>
       gitCommit: (message?: string) => Promise<{ success: boolean; error?: string; message?: string }>
@@ -65,6 +66,7 @@ declare global {
         }[]
       }>
       gitShowHead: (relativePath: string) => Promise<{ success: boolean; content: string }>
+      gitSetRemote: (url: string) => Promise<{ success: boolean; error?: string }>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
@@ -136,6 +138,9 @@ export function useVaultBridge() {
 
   const initVault = useCallback(
     async (config: import('@shared/types').VaultConfig) => {
+      // Read saved session BEFORE resetting state — the store subscriber will overwrite
+      // localStorage with empty tabs as soon as setState fires, so we must capture it first.
+      const savedSession = localStorage.getItem(`meridian-tabs-${config.path}`)
       useVaultStore.setState({ openTabs: [], activeTabPath: null })
       useLinkStore.getState().reset()
       setVault(config)
@@ -152,7 +157,7 @@ export function useVaultBridge() {
           }
         }
       }
-      await restoreSession(config.path, openFile)
+      await restoreSession(config.path, openFile, savedSession)
     },
     [setVault, setFiles, openFile]
   )

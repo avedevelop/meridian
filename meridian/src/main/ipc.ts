@@ -391,11 +391,20 @@ export function registerIpcHandlers(settings: AppSettings): void {
         return { path, status: type }
       })
 
+      let hasRemote = false
+      try {
+        const { stdout: remoteOut } = await execFileAsync('git', ['remote'], { cwd })
+        hasRemote = remoteOut.trim().length > 0
+      } catch {
+        hasRemote = false
+      }
+
       return {
         isRepo: true,
         clean: lines.length === 0,
         changesCount: lines.length,
-        changes
+        changes,
+        hasRemote
       }
     } catch (e) {
       return { isRepo: false }
@@ -519,6 +528,27 @@ export function registerIpcHandlers(settings: AppSettings): void {
       return { success: true, content: stdout }
     } catch (e: any) {
       return { success: true, content: '' }
+    }
+  })
+
+  ipcMain.handle(IPC.GIT_SET_REMOTE, async (_event, url: string) => {
+    if (!vaultManager) throw new Error('No vault open')
+    const cwd = vaultManager.vaultPath
+    const { execFile } = await import('child_process')
+    const { promisify } = await import('util')
+    const execFileAsync = promisify(execFile)
+
+    try {
+      const { stdout } = await execFileAsync('git', ['remote'], { cwd })
+      const hasOrigin = stdout.trim().split('\n').includes('origin')
+      if (hasOrigin) {
+        await execFileAsync('git', ['remote', 'set-url', 'origin', url], { cwd })
+      } else {
+        await execFileAsync('git', ['remote', 'add', 'origin', url], { cwd })
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message || String(e) }
     }
   })
 }

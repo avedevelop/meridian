@@ -10,6 +10,7 @@ export function GitPanel() {
     isRepo: boolean
     clean?: boolean
     changesCount?: number
+    hasRemote?: boolean
     changes?: { path: string; status: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown' }[]
   } | null>(null)
   
@@ -27,6 +28,9 @@ export function GitPanel() {
   const [error, setError] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
+
+  const [remoteUrl, setRemoteUrl] = useState('')
+  const [settingRemote, setSettingRemote] = useState(false)
 
   const [changesExpanded, setChangesExpanded] = useState(true)
   const [historyExpanded, setHistoryExpanded] = useState(true)
@@ -133,6 +137,27 @@ export function GitPanel() {
       setError(e.message || String(e))
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const handleSetRemote = async () => {
+    if (!remoteUrl.trim()) return
+    setSettingRemote(true)
+    setError(null)
+    try {
+      const res = await window.vault.gitSetRemote(remoteUrl.trim())
+      if (res.success) {
+        setRemoteUrl('')
+        setInfoMessage('Remote configured! Click Sync to push.')
+        setTimeout(() => setInfoMessage(null), 5000)
+        await fetchStatus()
+      } else {
+        setError(res.error ?? 'Failed to set remote')
+      }
+    } catch (e: any) {
+      setError(e.message || String(e))
+    } finally {
+      setSettingRemote(false)
     }
   }
 
@@ -251,6 +276,50 @@ export function GitPanel() {
           </svg>
         </button>
       </div>
+
+      {/* Remote Setup Form */}
+      {gitState?.isRepo && !gitState.hasRemote && (
+        <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
+            Connect to a remote to enable sync (GitHub, GitLab, etc.)
+          </div>
+          <input
+            value={remoteUrl}
+            onChange={(e) => setRemoteUrl(e.target.value)}
+            placeholder="https://github.com/user/vault.git"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSetRemote() }}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              borderRadius: 5,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              outline: 'none',
+              color: 'var(--text-primary)',
+              fontSize: 11,
+              boxSizing: 'border-box' as const,
+              marginBottom: 6
+            }}
+          />
+          <button
+            onClick={handleSetRemote}
+            disabled={settingRemote || !remoteUrl.trim()}
+            style={{
+              width: '100%',
+              padding: '6px 0',
+              borderRadius: 5,
+              background: 'var(--accent-color)',
+              color: '#fff',
+              border: 'none',
+              fontSize: 12,
+              cursor: settingRemote || !remoteUrl.trim() ? 'not-allowed' : 'pointer',
+              opacity: settingRemote || !remoteUrl.trim() ? 0.6 : 1
+            }}
+          >
+            {settingRemote ? 'Connecting…' : 'Set Remote'}
+          </button>
+        </div>
+      )}
 
       {/* Commit Input Field / Sync */}
       <div style={{ padding: '0 16px 12px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: '1px solid var(--border-color)' }}>

@@ -75,6 +75,9 @@ const vaultAPI = {
   gitShowHead: (relativePath: string): Promise<{ success: boolean; content: string }> =>
     ipcRenderer.invoke(IPC.GIT_SHOW_HEAD, relativePath),
 
+  gitSetRemote: (url: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC.GIT_SET_REMOTE, url),
+
   onFileChanged: (callback: (event: VaultFileChangeEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, change: VaultFileChangeEvent) =>
       callback(change)
