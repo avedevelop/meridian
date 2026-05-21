@@ -283,6 +283,10 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number } | null>(null)
 
+  const lastPathRef = useRef<string | null>(null)
+  const selectionRef = useRef<{ anchor: number; head: number } | null>(null)
+  const scrollRef = useRef<number | null>(null)
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -457,9 +461,14 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   useEffect(() => {
     if (!editorRef.current || isCanvasFile || isDrawingFile || isDiffFile) return
 
+    const initialSelection = (lastPathRef.current === activeTabPath && selectionRef.current)
+      ? { anchor: selectionRef.current.anchor, head: selectionRef.current.head }
+      : undefined
+
     const view = new EditorView({
       state: EditorState.create({
         doc: activeTab?.content ?? '',
+        selection: initialSelection,
         extensions: [
           createMarkdownExtensions(
             handleChange,
@@ -504,7 +513,22 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     })
 
     viewRef.current = view
+
+    if (lastPathRef.current === activeTabPath && scrollRef.current !== null) {
+      view.scrollDOM.scrollTop = scrollRef.current
+    }
+
+    // Reset temporary selection and scroll states
+    selectionRef.current = null
+    scrollRef.current = null
+    lastPathRef.current = activeTabPath
+
     return () => {
+      if (viewRef.current) {
+        const sel = viewRef.current.state.selection.main
+        selectionRef.current = { anchor: sel.anchor, head: sel.head }
+        scrollRef.current = viewRef.current.scrollDOM.scrollTop
+      }
       view.destroy()
       viewRef.current = null
       if (isActive) {
