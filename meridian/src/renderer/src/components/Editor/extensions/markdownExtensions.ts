@@ -8,7 +8,6 @@ import {
   lineNumbers,
   highlightActiveLineGutter,
   highlightSpecialChars,
-  drawSelection,
   dropCursor,
   rectangularSelection,
   crosshairCursor,
@@ -25,6 +24,7 @@ import {
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
 import { lintKeymap } from '@codemirror/lint'
 import { completionKeymap, closeBrackets, closeBracketsKeymap, autocompletion } from '@codemirror/autocomplete'
+import { markdownKeymap } from './markdownKeymap'
 import { wikiLinkExtension } from './wikiLinkExtension'
 import { makeWikiLinkSource, makeWikiLinkTriggerListener } from './wikiLinkCompletion'
 import { imagePasteExtension } from './imagePaste'
@@ -125,7 +125,6 @@ export function createMarkdownExtensions(
     highlightSpecialChars(),
     history(),
     foldGutter(),
-    drawSelection(),
     dropCursor(),
     EditorState.allowMultipleSelections.of(true),
     indentOnInput(),
@@ -137,6 +136,7 @@ export function createMarkdownExtensions(
     highlightActiveLine(),
     highlightSelectionMatches(),
     keymap.of([
+      ...markdownKeymap,
       ...closeBracketsKeymap,
       ...defaultKeymap,
       ...searchKeymap,
