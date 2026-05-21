@@ -64,7 +64,8 @@ class BlockWidget extends WidgetType {
 
     // Click → move cursor into block → block becomes editable raw markdown
     div.addEventListener('click', () => {
-      if (window.getSelection()?.toString()) return
+      const sel = window.getSelection()
+      if (sel && sel.type === 'Range') return
       view.dispatch({ selection: { anchor: this.anchor } })
       view.focus()
     })
@@ -120,6 +121,7 @@ class FrontmatterWidget extends WidgetType {
   toDOM(view: EditorView) {
     const div = document.createElement('div')
     div.style.display = 'none'
+    // Frontmatter is hidden (display:none) — no text selection needed, keep preventDefault
     div.addEventListener('mousedown', (e) => {
       e.preventDefault()
       view.dispatch({ selection: { anchor: 0 } })
