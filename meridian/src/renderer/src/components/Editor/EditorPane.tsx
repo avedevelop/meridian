@@ -503,7 +503,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             fontFamily,
             fontWeight,
             lineHeight,
-            pluginsEnabled.slashCommands
+            pluginsEnabled.slashCommands,
+            pluginsEnabled.vimMode
           ),
           EditorView.updateListener.of((update) => {
             if (!update.selectionSet && !update.docChanged) return

@@ -29,6 +29,7 @@ import { wikiLinkExtension } from './wikiLinkExtension'
 import { makeWikiLinkSource, makeWikiLinkTriggerListener } from './wikiLinkCompletion'
 import { imagePasteExtension } from './imagePaste'
 import { makeSlashSource } from './slashCommands'
+import { vim } from '@replit/codemirror-vim'
 
 function getFontFamilyValue(font: string) {
   switch (font) {
@@ -114,9 +115,11 @@ export function createMarkdownExtensions(
   fontFamily = 'Georgia',
   fontWeight = '400',
   lineHeight = 1.8,
-  slashCommandsEnabled = false
+  slashCommandsEnabled = false,
+  vimModeEnabled = false
 ) {
   return [
+    ...(vimModeEnabled ? [vim()] : []),
     oneDark,
     createMeridianTheme(fontSize, lineWidth, readableLineLength, fontFamily, fontWeight, lineHeight),
     lineWrapping ? EditorView.lineWrapping : [],

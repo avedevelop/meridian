@@ -45,6 +45,7 @@ export interface SettingsState {
     tocPanel: boolean
     gitBackup: boolean
     excalidraw: boolean
+    vimMode: boolean
   }
 
   // Actions
@@ -99,7 +100,8 @@ const DEFAULTS: Omit<
     backlinksPanel: true,
     tocPanel: true,
     gitBackup: false,
-    excalidraw: false
+    excalidraw: false,
+    vimMode: false
   }
 }
 

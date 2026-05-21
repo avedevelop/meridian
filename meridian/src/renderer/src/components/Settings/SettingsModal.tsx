@@ -970,6 +970,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       name: 'Excalidraw Sketchpad',
       desc: 'Integrate dynamic hand-drawn diagrams inside notes.',
       author: 'ave'
+    },
+    {
+      id: 'vimMode',
+      name: 'Vim Mode',
+      desc: 'Enable Vim keybindings in the markdown editor (Normal, Insert, Visual modes).',
+      author: 'ave'
     }
   ] as const
 
