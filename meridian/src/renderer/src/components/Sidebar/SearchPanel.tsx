@@ -1,18 +1,29 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
-
 import { FileIcon } from '../Icons'
 
 export function SearchPanel() {
   const [query, setQuery] = useState('')
+  const [hoveredPath, setHoveredPath] = React.useState<string | null>(null)
   const { search, searchResults } = useLinkStore()
   const { openFile } = useVaultBridge()
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(e.target.value)
-    search(e.target.value)
+    const value = e.target.value
+    setQuery(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      search(value)
+    }, 200)
   }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -21,6 +32,7 @@ export function SearchPanel() {
           value={query}
           onChange={handleChange}
           placeholder="Search vault..."
+          autoFocus
           style={{
             width: '100%',
             padding: '6px 10px',
@@ -38,20 +50,34 @@ export function SearchPanel() {
           <div
             key={result.path}
             onClick={() => openFile(result.path, result.name)}
+            onMouseEnter={() => setHoveredPath(result.path)}
+            onMouseLeave={() => setHoveredPath(null)}
             style={{
-              padding: '6px 12px',
+              padding: '8px 12px',
               cursor: 'pointer',
-              fontSize: 13,
-              color: 'var(--text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
+              borderBottom: '1px solid var(--border-color)',
+              background: hoveredPath === result.path ? 'var(--bg-surface)' : 'transparent',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-surface)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <FileIcon size={12} color="var(--accent-color)" />
-            <span>{result.name.replace(/\.md$/, '')}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+              <FileIcon size={12} color="var(--accent-color)" />
+              <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>
+                {result.name.replace(/\.md$/, '')}
+              </span>
+            </div>
+            {result.snippet && (
+              <div style={{
+                fontSize: 11,
+                color: 'var(--text-secondary)',
+                lineHeight: 1.5,
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              } as React.CSSProperties}>
+                {result.snippet}
+              </div>
+            )}
           </div>
         ))}
         {query && searchResults.length === 0 && (
