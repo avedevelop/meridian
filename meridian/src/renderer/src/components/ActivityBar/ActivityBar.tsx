@@ -136,7 +136,8 @@ export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollaps
         flexDirection: 'column',
         alignItems: expanded ? 'stretch' : 'center',
         transition: 'width 0.15s ease-in-out',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        userSelect: 'none'
       }}
     >
       {TABS.map(({ id, label, Icon }) => {
