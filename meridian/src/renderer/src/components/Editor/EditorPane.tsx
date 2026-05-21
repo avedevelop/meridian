@@ -390,15 +390,55 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
 
   const handleEditorDragOver = useCallback((e: React.DragEvent) => {
     const types = e.dataTransfer.types
-    if (types.includes('application/meridian-file') || types.includes('text/plain')) {
+    if (
+      types.includes('application/meridian-file') ||
+      types.includes('text/plain') ||
+      types.includes('Files')
+    ) {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'copy'
     }
   }, [])
 
   const handleEditorDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault()
+
+      // Handle image files dragged from Finder
+      const imageExts = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp'])
+      const droppedFiles = Array.from(e.dataTransfer.files)
+      const imageFile = droppedFiles.find((f) => {
+        const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
+        return imageExts.has(ext)
+      })
+
+      if (imageFile) {
+        const ext = imageFile.name.split('.').pop()?.toLowerCase() ?? 'png'
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const result = reader.result as string
+            resolve(result.split(',')[1] ?? '')
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(imageFile)
+        })
+        const savedPath = await saveImage(base64, ext)
+        if (savedPath) {
+          const view = viewRef.current
+          if (view) {
+            const sel = view.state.selection.main
+            const insertText = `![image](${savedPath})`
+            view.dispatch({
+              changes: { from: sel.from, to: sel.to, insert: insertText },
+              selection: { anchor: sel.from + insertText.length }
+            })
+            view.focus()
+          }
+        }
+        return
+      }
+
       const raw = e.dataTransfer.getData('application/meridian-file')
       const plainText = e.dataTransfer.getData('text/plain')
 
@@ -452,7 +492,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
         view.focus()
       }
     },
-    [vault]
+    [vault, saveImage]
   )
 
   const fileNamesRef = useRef<string[]>([])
