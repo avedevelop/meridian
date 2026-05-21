@@ -212,6 +212,7 @@ export function TabBar({ paneId }: TabBarProps) {
         flexShrink: 0,
         cursor: 'default',
         transition: 'border-bottom-color 0.2s ease',
+        userSelect: 'none'
       }}
     >
       {/* Clip container: 36px tall, overflow hidden — cuts off scrollbar below */}

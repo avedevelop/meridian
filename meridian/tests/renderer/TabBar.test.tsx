@@ -45,4 +45,10 @@ describe('TabBar', () => {
     const pane = state.panes.find((p) => p.id === PANE_ID)
     expect(pane?.activeTabPath).toBe('/v/B.md')
   })
+
+  it('has user-select: none on root element', () => {
+    const { container } = render(<TabBar paneId={PANE_ID} />)
+    const root = container.firstChild as HTMLElement
+    expect(root.style.userSelect).toBe('none')
+  })
 })
