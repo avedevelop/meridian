@@ -43,6 +43,7 @@ interface DecoItem {
 }
 
 export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
+  console.log('[buildLivePreviewDecorations] building decorations for document...')
   const state = view.state
   const cursorLines = getCursorLines(state)
   const decos: DecoItem[] = []
@@ -293,7 +294,12 @@ export const livePreviewPlugin = ViewPlugin.fromClass(
       this.decorations = buildLivePreviewDecorations(view)
     }
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || update.selectionSet) {
+      if (
+        update.docChanged ||
+        update.viewportChanged ||
+        update.selectionSet ||
+        syntaxTree(update.startState) !== syntaxTree(update.state)
+      ) {
         this.decorations = buildLivePreviewDecorations(update.view)
       }
     }

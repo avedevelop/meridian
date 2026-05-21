@@ -116,6 +116,7 @@ export function createMarkdownExtensions(
   slashCommandsEnabled = false,
   livePreviewEnabled = false
 ) {
+  console.log('[createMarkdownExtensions] livePreviewEnabled:', livePreviewEnabled)
   return [
     oneDark,
     createMeridianTheme(fontSize, lineWidth, readableLineLength, fontFamily, fontWeight, lineHeight),
