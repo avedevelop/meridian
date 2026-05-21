@@ -63,6 +63,7 @@ import { useSettingsStore } from './store/useSettingsStore'
 
 import { useAutoSave } from './hooks/useAutoSave'
 import { useGitSync } from './hooks/useGitSync'
+import { useSessionPersist } from './hooks/useSessionPersist'
 
 declare global {
   interface Window {
@@ -120,6 +121,7 @@ export default function App() {
   useVaultFileWatcher()
   useAutoSave()
   useGitSync()
+  useSessionPersist()
 
   useEffect(() => {
     const root = document.documentElement

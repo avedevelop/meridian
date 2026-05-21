@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
 import { useLinkStore } from '../store/useLinkStore'
 import type { VaultConfig, VaultFile, VaultFileChangeEvent } from '@shared/types'
+import { restoreSession } from './useSessionPersist'
 
 function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
   return files.flatMap((f) => (f.children ? [f, ...flattenVaultFiles(f.children)] : [f]))
@@ -92,34 +93,6 @@ function flattenFiles(files: VaultFile[]): VaultFile[] {
 export function useVaultBridge() {
   const { setVault, setFiles, openTab, setTabContent, markTabDirty } = useVaultStore()
 
-  const initVault = useCallback(
-    async (config: import('@shared/types').VaultConfig) => {
-      useVaultStore.setState({ openTabs: [], activeTabPath: null })
-      useLinkStore.getState().reset()
-      setVault(config)
-      const files = await window.vault.listFiles()
-      setFiles(files)
-      const { indexFile } = useLinkStore.getState()
-      for (const f of flattenFiles(files)) {
-        if (!f.isDirectory && f.name.endsWith('.md')) {
-          try {
-            const content = await window.vault.readFile(f.path)
-            indexFile(f.path, f.name, content, config.path)
-          } catch {
-            // Skip files that disappeared or became unreadable during initial indexing.
-          }
-        }
-      }
-    },
-    [setVault, setFiles]
-  )
-
-  const openVault = useCallback(async () => {
-    const config = await window.vault.openDialog()
-    if (!config) return
-    await initVault(config)
-  }, [initVault])
-
   const refreshFiles = useCallback(async () => {
     const files = await window.vault.listFiles()
     setFiles(files)
@@ -160,6 +133,35 @@ export function useVaultBridge() {
     },
     [openTab, setTabContent]
   )
+
+  const initVault = useCallback(
+    async (config: import('@shared/types').VaultConfig) => {
+      useVaultStore.setState({ openTabs: [], activeTabPath: null })
+      useLinkStore.getState().reset()
+      setVault(config)
+      const files = await window.vault.listFiles()
+      setFiles(files)
+      const { indexFile } = useLinkStore.getState()
+      for (const f of flattenFiles(files)) {
+        if (!f.isDirectory && f.name.endsWith('.md')) {
+          try {
+            const content = await window.vault.readFile(f.path)
+            indexFile(f.path, f.name, content, config.path)
+          } catch {
+            // Skip files that disappeared or became unreadable during initial indexing.
+          }
+        }
+      }
+      await restoreSession(config.path, openFile)
+    },
+    [setVault, setFiles, openFile]
+  )
+
+  const openVault = useCallback(async () => {
+    const config = await window.vault.openDialog()
+    if (!config) return
+    await initVault(config)
+  }, [initVault])
 
   const saveFile = useCallback(
     async (path: string, content: string) => {
