@@ -9,6 +9,7 @@ export function StatusBar() {
   const cursorPos = useEditorStore((s) => s.cursorPos)
   const showWordCounter = useSettingsStore((s) => s.pluginsEnabled.wordCounter)
   const gitBackupEnabled = useSettingsStore((s) => s.pluginsEnabled.gitBackup)
+  const autoBackupInterval = useSettingsStore((s) => s.autoBackupInterval)
 
   const [gitState, setGitState] = useState<{ isRepo: boolean; clean?: boolean; changesCount?: number } | null>(null)
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle')
@@ -60,19 +61,17 @@ export function StatusBar() {
       setGitState(null)
       return
     }
-
     fetchGitStatus()
+    if (autoBackupInterval === 0) return
     const timer = setInterval(() => {
       fetchGitStatus().then(() => {
-        // If repo has unsaved modifications, auto-sync
         if (gitState && gitState.isRepo && !gitState.clean && syncState === 'idle') {
           handleGitSync()
         }
       })
-    }, 45000) // check every 45s
-
+    }, autoBackupInterval * 60 * 1000)
     return () => clearInterval(timer)
-  }, [gitBackupEnabled, fetchGitStatus, gitState, syncState, handleGitSync])
+  }, [gitBackupEnabled, autoBackupInterval, fetchGitStatus, gitState, syncState, handleGitSync])
 
   // Also fetch git status on file tab activity/dirty states changes
   useEffect(() => {
@@ -129,34 +128,32 @@ export function StatusBar() {
                 </span>
               )}
               {syncState === 'idle' && (
-                <span style={{ opacity: 0.8 }}>
-                  {gitState.clean ? 'Up-to-date' : `${gitState.changesCount} pending`}
+                <span style={{ opacity: gitState.clean ? 0.5 : 0.9, color: gitState.clean ? 'inherit' : 'var(--accent-color)' }}>
+                  {gitState.clean ? 'Up-to-date' : `${gitState.changesCount} unsaved`}
                 </span>
               )}
-              
-              <button
-                onClick={handleGitSync}
-                disabled={syncState === 'syncing'}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--accent-color)',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  borderRadius: 3,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  textTransform: 'uppercase'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-surface)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                }}
-              >
-                Sync
-              </button>
+
+              {syncState === 'idle' && !gitState.clean && (
+                <button
+                  onClick={handleGitSync}
+                  disabled={false}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--accent-color)',
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                    borderRadius: 3,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    textTransform: 'uppercase'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-surface)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  SYNC
+                </button>
+              )}
             </>
           )}
         </div>

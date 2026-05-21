@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { FileIcon } from '../Icons'
+import { useSettingsStore } from '../../store/useSettingsStore'
 
 function timeAgo(dateStr: string): string {
   const now = new Date()
@@ -178,6 +179,7 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
 
 export function GitPanel() {
   const openTab = useVaultStore((s) => s.openTab)
+  const { autoBackupInterval, updateSetting } = useSettingsStore()
   
   const [loading, setLoading] = useState(true)
   const [gitState, setGitState] = useState<{
@@ -808,6 +810,43 @@ export function GitPanel() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Auto-backup toggle */}
+      <div style={{
+        padding: '10px 14px',
+        borderTop: '1px solid var(--border-color)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        flexShrink: 0
+      }}>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>Auto-backup</div>
+          <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
+            {autoBackupInterval === 0 ? 'Off' : `Every ${autoBackupInterval} min`}
+          </div>
+        </div>
+        <select
+          value={autoBackupInterval}
+          onChange={(e) => updateSetting('autoBackupInterval', Number(e.target.value) as 0 | 15 | 30 | 60)}
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 5,
+            color: 'var(--text-primary)',
+            fontSize: 11,
+            padding: '3px 6px',
+            cursor: 'pointer',
+            outline: 'none'
+          }}
+        >
+          <option value={0}>Off</option>
+          <option value={15}>15 min</option>
+          <option value={30}>30 min</option>
+          <option value={60}>1 hour</option>
+        </select>
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `

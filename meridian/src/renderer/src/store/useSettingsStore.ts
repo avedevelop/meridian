@@ -18,6 +18,7 @@ export interface SettingsState {
   // New Auto-Save Settings
   autoSaveTrigger: 'off' | 'afterDelay' | 'onFocusChange' | 'onWindowBlur'
   autoSaveDelay: number // in seconds: 1, 5, 30
+  autoBackupInterval: 0 | 15 | 30 | 60 // minutes, 0 = disabled
   closeBehavior: 'ask' | 'save' | 'discard'
 
   // Files & Links
@@ -82,6 +83,7 @@ const DEFAULTS: Omit<
   lineHeight: 1.8,
   autoSaveTrigger: 'afterDelay',
   autoSaveDelay: 5,
+  autoBackupInterval: 0,
   closeBehavior: 'ask',
   linkFormat: 'wiki',
   newNotesFolder: '',
