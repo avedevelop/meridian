@@ -608,3 +608,7 @@ button:active:not(:disabled) {
   color: #6366f1 !important;
 }
 
+
+button {
+  user-select: none;
+}
