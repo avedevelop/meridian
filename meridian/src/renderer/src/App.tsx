@@ -263,6 +263,8 @@ export default function App() {
           exportNote()
         }
         if (e.key === 'b') {
+          // Let CodeMirror handle Cmd+B when the editor is focused
+          if (!e.altKey && document.activeElement?.closest('.cm-editor')) return
           e.preventDefault()
           if (e.altKey) {
             setRightPanelCollapsed((prev) => {
@@ -283,6 +285,12 @@ export default function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [openVault, openDailyNote, exportNote])
+
+  useEffect(() => {
+    const handler = () => setSettingsOpen(true)
+    window.addEventListener('meridian:open-settings', handler)
+    return () => window.removeEventListener('meridian:open-settings', handler)
+  }, [])
 
   useEffect(() => {
     if (!window.menuAPI) return

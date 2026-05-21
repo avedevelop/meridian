@@ -30,6 +30,152 @@ function autoCommitMessage(changes: { path: string; status: string }[]): string 
   return `${action}: ${names.join(', ')}${suffix}`
 }
 
+interface SetupWizardProps {
+  isRepo: boolean
+  ghConnected: boolean
+  ghUsername: string
+  hasRemote: boolean
+  onInit: () => void
+  onSetRemote: (url: string) => void
+  loading: boolean
+  error: string | null
+}
+
+function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSetRemote, loading, error }: SetupWizardProps) {
+  const [remoteUrl, setRemoteUrl] = React.useState('')
+
+  const steps = [
+    { done: isRepo, label: 'Enable backup', desc: 'Set up version history for this vault' },
+    { done: ghConnected, label: 'Connect GitHub', desc: 'Sign in to upload notes online' },
+    { done: hasRemote, label: 'Set repository', desc: 'Choose where to store your backup' },
+  ]
+  const currentStep = steps.findIndex((s) => !s.done)
+
+  return (
+    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', overflowY: 'auto' }}>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+          ☁️ Set up Cloud Backup
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+          Complete these steps to back up your notes automatically.
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {steps.map((step, i) => {
+          const isActive = i === currentStep
+          const isDone = step.done
+          return (
+            <div
+              key={step.label}
+              style={{
+                display: 'flex',
+                gap: 12,
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: isActive ? 'var(--bg-surface)' : 'transparent',
+                border: isActive ? '1px solid var(--border-color)' : '1px solid transparent',
+                opacity: !isDone && !isActive ? 0.4 : 1
+              }}
+            >
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                background: isDone ? '#4ade80' : isActive ? 'var(--accent-color)' : 'var(--bg-surface)',
+                color: isDone || isActive ? '#fff' : 'var(--text-secondary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700
+              }}>
+                {isDone ? '✓' : i + 1}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{step.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 1 }}>{step.desc}</div>
+
+                {isActive && i === 0 && (
+                  <button
+                    onClick={onInit}
+                    disabled={loading}
+                    style={{
+                      marginTop: 8, padding: '6px 14px', borderRadius: 6,
+                      background: 'var(--accent-color)', color: '#fff',
+                      border: 'none', fontSize: 12, fontWeight: 600,
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      opacity: loading ? 0.6 : 1
+                    }}
+                  >
+                    {loading ? 'Setting up…' : 'Enable Backup'}
+                  </button>
+                )}
+
+                {isActive && i === 1 && (
+                  <button
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('meridian:open-settings', { detail: 'sync' }))
+                    }}
+                    style={{
+                      marginTop: 8, padding: '6px 14px', borderRadius: 6,
+                      background: '#24292e', color: '#fff',
+                      border: '1px solid #444', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 6
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    Connect GitHub Account
+                  </button>
+                )}
+
+                {isActive && i === 2 && (
+                  <div style={{ marginTop: 8 }}>
+                    {ghUsername && (
+                      <div style={{ fontSize: 11, color: '#4ade80', marginBottom: 6 }}>
+                        ✓ Signed in as @{ghUsername}
+                      </div>
+                    )}
+                    <input
+                      value={remoteUrl}
+                      onChange={(e) => setRemoteUrl(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && remoteUrl.trim()) onSetRemote(remoteUrl.trim()) }}
+                      placeholder="https://github.com/you/my-notes.git"
+                      style={{
+                        width: '100%', padding: '6px 8px', borderRadius: 5,
+                        background: 'var(--bg-surface)', border: '1px solid var(--border-color)',
+                        outline: 'none', color: 'var(--text-primary)', fontSize: 11,
+                        boxSizing: 'border-box' as const, marginBottom: 6
+                      }}
+                    />
+                    <button
+                      onClick={() => onSetRemote(remoteUrl.trim())}
+                      disabled={!remoteUrl.trim()}
+                      style={{
+                        width: '100%', padding: '6px 0', borderRadius: 5,
+                        background: 'var(--accent-color)', color: '#fff',
+                        border: 'none', fontSize: 12, fontWeight: 600,
+                        cursor: remoteUrl.trim() ? 'pointer' : 'not-allowed',
+                        opacity: remoteUrl.trim() ? 1 : 0.5
+                      }}
+                    >
+                      Connect Repository
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {error && (
+        <div style={{ fontSize: 11, color: '#f87171', padding: '6px 10px', background: 'rgba(248,113,113,0.08)', borderRadius: 6 }}>
+          ⚠ {error}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function GitPanel() {
   const openTab = useVaultStore((s) => s.openTab)
   
@@ -58,9 +204,6 @@ export function GitPanel() {
   const [error, setError] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
-
-  const [remoteUrl, setRemoteUrl] = useState('')
-  const [settingRemote, setSettingRemote] = useState(false)
 
   const [ghConnected, setGhConnected] = useState(false)
   const [ghUsername, setGhUsername] = useState('')
@@ -209,27 +352,6 @@ export function GitPanel() {
     }
   }
 
-  const handleSetRemote = async () => {
-    if (!remoteUrl.trim()) return
-    setSettingRemote(true)
-    setError(null)
-    try {
-      const res = await window.vault.gitSetRemote(remoteUrl.trim())
-      if (res.success) {
-        setRemoteUrl('')
-        setInfoMessage('GitHub connected! Click Backup Now to upload.')
-        setTimeout(() => setInfoMessage(null), 5000)
-        await fetchStatus()
-      } else {
-        setError(res.error ?? 'Failed to set remote')
-      }
-    } catch (e: any) {
-      setError(e.message || String(e))
-    } finally {
-      setSettingRemote(false)
-    }
-  }
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
@@ -251,65 +373,27 @@ export function GitPanel() {
     )
   }
 
-  if (!gitState?.isRepo) {
+  // Show setup wizard when backup is not fully configured
+  if (!gitState?.isRepo || !ghConnected || !gitState.hasRemote) {
     return (
-      <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>
-          Cloud Backup
-        </h3>
-        <div style={{
-          padding: 12,
-          background: 'var(--bg-secondary)',
-          border: '1px dashed var(--border-color)',
-          borderRadius: 8,
-          fontSize: 13,
-          color: 'var(--text-secondary)',
-          lineHeight: '1.6',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: 20, marginBottom: 8 }}>☁️</div>
-          <div style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>No backup set up</div>
-          <div style={{ fontSize: 12 }}>
-            Enable backup to keep a full history of your notes and sync them to GitHub.
-          </div>
-        </div>
-        <button
-          onClick={handleInit}
-          style={{
-            background: 'var(--accent-color)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: 6,
-            padding: '8px 12px',
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'opacity 0.2s',
-            width: '100%'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-        >
-          Enable Backup
-        </button>
-        {error && (
-          <div style={{
-            margin: '8px 12px',
-            padding: '8px 12px',
-            background: 'rgba(248,113,113,0.08)',
-            border: '1px solid rgba(248,113,113,0.2)',
-            borderRadius: 6,
-            fontSize: 12,
-            color: '#f87171',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 8
-          }}>
-            <span style={{ flexShrink: 0 }}>⚠</span>
-            <span>{error}</span>
-          </div>
-        )}
-      </div>
+      <SetupWizard
+        isRepo={gitState?.isRepo ?? false}
+        ghConnected={ghConnected}
+        ghUsername={ghUsername}
+        hasRemote={gitState?.hasRemote ?? false}
+        onInit={handleInit}
+        onSetRemote={async (url) => {
+          setError(null)
+          const res = await window.vault.gitSetRemote(url)
+          if (res.success) {
+            await fetchStatus()
+          } else {
+            setError(res.error ?? 'Failed to connect repository')
+          }
+        }}
+        loading={loading}
+        error={error}
+      />
     )
   }
 
@@ -343,50 +427,6 @@ export function GitPanel() {
           </svg>
         </button>
       </div>
-
-      {/* Remote Setup Form */}
-      {gitState?.isRepo && !gitState.hasRemote && (
-        <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
-            Paste your GitHub repository URL to enable online backup.
-          </div>
-          <input
-            value={remoteUrl}
-            onChange={(e) => setRemoteUrl(e.target.value)}
-            placeholder="https://github.com/user/vault.git"
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSetRemote() }}
-            style={{
-              width: '100%',
-              padding: '6px 8px',
-              borderRadius: 5,
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              outline: 'none',
-              color: 'var(--text-primary)',
-              fontSize: 11,
-              boxSizing: 'border-box' as const,
-              marginBottom: 6
-            }}
-          />
-          <button
-            onClick={handleSetRemote}
-            disabled={settingRemote || !remoteUrl.trim()}
-            style={{
-              width: '100%',
-              padding: '6px 0',
-              borderRadius: 5,
-              background: 'var(--accent-color)',
-              color: '#fff',
-              border: 'none',
-              fontSize: 12,
-              cursor: settingRemote || !remoteUrl.trim() ? 'not-allowed' : 'pointer',
-              opacity: settingRemote || !remoteUrl.trim() ? 0.6 : 1
-            }}
-          >
-            {settingRemote ? 'Connecting…' : 'Connect Repository'}
-          </button>
-        </div>
-      )}
 
       {/* Commit Input Field / Sync */}
       <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: '1px solid var(--border-color)' }}>
