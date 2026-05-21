@@ -1,4 +1,5 @@
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
+import { GFM } from '@lezer/markdown'
 import { languages } from '@codemirror/language-data'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { keymap, EditorView } from '@codemirror/view'
@@ -146,7 +147,7 @@ export function createMarkdownExtensions(
       ...completionKeymap,
       ...lintKeymap
     ]),
-    markdown({ base: markdownLanguage, codeLanguages: languages }),
+    markdown({ base: markdownLanguage, codeLanguages: languages, extensions: GFM }),
     onLinkClick ? wikiLinkExtension(onLinkClick) : [],
     // Single autocompletion with all sources — avoids "Config merge conflict for field override"
     autocompletion({

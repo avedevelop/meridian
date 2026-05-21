@@ -8,6 +8,7 @@ import {
   WidgetType
 } from '@codemirror/view'
 import { syntaxTree } from '@codemirror/language'
+import { CALLOUT_TYPES } from '../markdownUtils'
 
 // ---------- Widget for Horizontal Rules ----------
 class HRWidget extends WidgetType {
@@ -18,6 +19,92 @@ class HRWidget extends WidgetType {
   }
   ignoreEvent(): boolean {
     return false
+  }
+}
+
+// ---------- Widget for Bullet List Dots ----------
+class ListBulletWidget extends WidgetType {
+  toDOM(): HTMLElement {
+    const span = document.createElement('span')
+    span.className = 'cm-lp-bullet'
+    span.textContent = '•'
+    return span
+  }
+  ignoreEvent(): boolean {
+    return true
+  }
+}
+
+// ---------- Widget for Task Checkboxes ----------
+class TaskCheckboxWidget extends WidgetType {
+  constructor(
+    public checked: boolean,
+    public from: number,
+    public to: number
+  ) {
+    super()
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const input = document.createElement('input')
+    input.type = 'checkbox'
+    input.checked = this.checked
+    input.className = 'cm-lp-task-checkbox'
+
+    input.addEventListener('click', (e) => {
+      e.preventDefault()
+      const newChar = this.checked ? ' ' : 'x'
+      view.dispatch({
+        changes: {
+          from: this.from + 1,
+          to: this.from + 2,
+          insert: newChar
+        }
+      })
+    })
+
+    return input
+  }
+
+  ignoreEvent(): boolean {
+    return true
+  }
+}
+
+// ---------- Widget for Callout Headers ----------
+class CalloutHeaderWidget extends WidgetType {
+  constructor(
+    public type: string,
+    public hasCustomTitle: boolean
+  ) {
+    super()
+  }
+
+  toDOM(): HTMLElement {
+    const header = document.createElement('span')
+    header.className = 'cm-lp-callout-header-widget'
+
+    const typeKey = this.type.toLowerCase()
+    const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
+
+    const icon = document.createElement('span')
+    icon.className = 'cm-lp-callout-icon'
+    icon.textContent = info.icon
+    header.appendChild(icon)
+
+    if (!this.hasCustomTitle) {
+      const title = document.createElement('span')
+      title.className = 'cm-lp-callout-title'
+      title.textContent = typeKey.charAt(0).toUpperCase() + typeKey.slice(1)
+      title.style.color = info.color
+      header.appendChild(title)
+    }
+
+    return header
+  }
+
+  ignoreEvent(): boolean {
+    return true
   }
 }
 
@@ -83,16 +170,13 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
           }
           // Hide HeaderMark (the # characters) if cursor not on this line
           if (!isCursorLine) {
-            // Walk children to find HeaderMark
             const cursor = node.node.cursor()
             if (cursor.firstChild()) {
               do {
                 if (cursor.name === 'HeaderMark') {
-                  // Hide the mark plus any trailing space
                   const markEnd = cursor.to
                   const lineText = state.doc.sliceString(lineObj.from, lineObj.to)
                   const markLocalEnd = markEnd - lineObj.from
-                  // Find the end of whitespace after the mark
                   let hideEnd = markEnd
                   if (markLocalEnd < lineText.length && lineText[markLocalEnd] === ' ') {
                     hideEnd = markEnd + 1
@@ -106,7 +190,7 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
               } while (cursor.nextSibling())
             }
           }
-          return false // don't enter heading children at top level
+          return false
         }
 
         // --- Strong Emphasis (bold) **text** ---
@@ -114,7 +198,6 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
           const lineNum = state.doc.lineAt(nodeFrom).number
           const isCursorLine = cursorLines.has(lineNum)
 
-          // Style the whole span as bold
           decos.push({
             from: nodeFrom,
             to: nodeTo,
@@ -122,7 +205,6 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
           })
 
           if (!isCursorLine) {
-            // Hide the ** markers
             const cursor = node.node.cursor()
             if (cursor.firstChild()) {
               do {
@@ -167,6 +249,34 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
           return false
         }
 
+        // --- Strikethrough ~~text~~ ---
+        if (nodeName === 'Strikethrough') {
+          const lineNum = state.doc.lineAt(nodeFrom).number
+          const isCursorLine = cursorLines.has(lineNum)
+
+          decos.push({
+            from: nodeFrom,
+            to: nodeTo,
+            deco: Decoration.mark({ class: 'cm-lp-strikethrough' })
+          })
+
+          if (!isCursorLine) {
+            const cursor = node.node.cursor()
+            if (cursor.firstChild()) {
+              do {
+                if (cursor.name === 'StrikethroughMark') {
+                  decos.push({
+                    from: cursor.from,
+                    to: cursor.to,
+                    deco: Decoration.replace({})
+                  })
+                }
+              } while (cursor.nextSibling())
+            }
+          }
+          return false
+        }
+
         // --- Inline Code `code` ---
         if (nodeName === 'InlineCode') {
           const lineNum = state.doc.lineAt(nodeFrom).number
@@ -197,7 +307,6 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
 
         // --- Fenced Code Blocks ---
         if (nodeName === 'FencedCode') {
-          // Add background to each line of the code block
           for (let pos = nodeFrom; pos <= nodeTo; ) {
             const line = state.doc.lineAt(pos)
             const lineNum = line.number
@@ -209,12 +318,10 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
                 deco: Decoration.line({ class: 'cm-lp-codeblock-line' })
               })
             }
-            // Move to next line
             if (line.to >= nodeTo) break
             pos = line.to + 1
           }
 
-          // Hide the fence markers (``` lines) if cursor is not on them
           const cursor = node.node.cursor()
           if (cursor.firstChild()) {
             do {
@@ -256,17 +363,159 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
           }
         }
 
+        // --- Task list checkbox [ ] or [x] ---
+        if (nodeName === 'TaskMarker') {
+          const lineNum = state.doc.lineAt(nodeFrom).number
+          const isCursorLine = cursorLines.has(lineNum)
+          const markerText = state.doc.sliceString(nodeFrom, nodeTo)
+          const checked = markerText.toLowerCase().includes('x')
+
+          if (!isCursorLine) {
+            decos.push({
+              from: nodeFrom,
+              to: nodeTo,
+              deco: Decoration.replace({
+                widget: new TaskCheckboxWidget(checked, nodeFrom, nodeTo)
+              })
+            })
+          }
+          return false
+        }
+
+        // --- List Markers (bullets/numbers) ---
+        if (nodeName === 'ListMark') {
+          const lineNum = state.doc.lineAt(nodeFrom).number
+          const isCursorLine = cursorLines.has(lineNum)
+          const lineText = state.doc.lineAt(nodeFrom).text
+          const markText = state.doc.sliceString(nodeFrom, nodeTo)
+
+          if (!isCursorLine) {
+            if (/^\s*[-*+]\s+\[[ xX]\]/.test(lineText)) {
+              decos.push({
+                from: nodeFrom,
+                to: nodeTo,
+                deco: Decoration.replace({})
+              })
+            } else if (/^[-*+]$/.test(markText.trim())) {
+              decos.push({
+                from: nodeFrom,
+                to: nodeTo,
+                deco: Decoration.replace({
+                  widget: new ListBulletWidget()
+                })
+              })
+            }
+          }
+        }
+
         // --- Blockquote marker ---
         if (nodeName === 'QuoteMark') {
-          const lineNum = state.doc.lineAt(nodeFrom).number
-          const lineObj = state.doc.lineAt(nodeFrom)
-          if (!lineDecoLines.has(lineNum)) {
-            lineDecoLines.add(lineNum)
-            decos.push({
-              from: lineObj.from,
-              to: lineObj.from,
-              deco: Decoration.line({ class: 'cm-lp-blockquote-line' })
-            })
+          let isCallout = false
+          let curr = node.node.parent
+          while (curr) {
+            if (curr.name === 'Blockquote') {
+              const parentFirstLineText = state.doc.lineAt(curr.from).text
+              if (/^(\s*>\s*)\[!([\w-]+)\]/.test(parentFirstLineText)) {
+                isCallout = true
+                break
+              }
+            }
+            curr = curr.parent
+          }
+
+          if (!isCallout) {
+            const lineNum = state.doc.lineAt(nodeFrom).number
+            const lineObj = state.doc.lineAt(nodeFrom)
+            if (!lineDecoLines.has(lineNum)) {
+              lineDecoLines.add(lineNum)
+              decos.push({
+                from: lineObj.from,
+                to: lineObj.from,
+                deco: Decoration.line({ class: 'cm-lp-blockquote-line' })
+              })
+            }
+          }
+          return false
+        }
+
+        // --- Blockquote / Callout ---
+        if (nodeName === 'Blockquote') {
+          const firstLine = state.doc.lineAt(nodeFrom)
+          const firstLineText = firstLine.text
+          const calloutMatch = firstLineText.match(/^(\s*>\s*)\[!([\w-]+)\](.*)$/)
+
+          if (calloutMatch) {
+            const [, prefix, type, customTitle] = calloutMatch
+            const typeKey = type.toLowerCase()
+            const startLineNum = firstLine.number
+            const endLineNum = state.doc.lineAt(nodeTo).number
+
+            for (let l = startLineNum; l <= endLineNum; l++) {
+              if (!lineDecoLines.has(l)) {
+                lineDecoLines.add(l)
+                const lineObj = state.doc.line(l)
+                const classes = [
+                  'cm-lp-callout-line',
+                  `cm-lp-callout-${typeKey}`
+                ]
+                if (l === startLineNum) classes.push('cm-lp-callout-first')
+                if (l === endLineNum) classes.push('cm-lp-callout-last')
+
+                decos.push({
+                  from: lineObj.from,
+                  to: lineObj.from,
+                  deco: Decoration.line({ class: classes.join(' ') })
+                })
+              }
+            }
+
+            const cursor = node.node.cursor()
+            if (cursor.firstChild()) {
+              do {
+                if (cursor.name === 'QuoteMark') {
+                  const qLine = state.doc.lineAt(cursor.from).number
+                  if (!cursorLines.has(qLine)) {
+                    const qEnd = cursor.to
+                    const qLineObj = state.doc.lineAt(cursor.from)
+                    const qLineText = qLineObj.text
+                    const qLocalEnd = qEnd - qLineObj.from
+                    let hideEnd = qEnd
+                    if (qLocalEnd < qLineText.length && qLineText[qLocalEnd] === ' ') {
+                      hideEnd = qEnd + 1
+                    }
+                    decos.push({
+                      from: cursor.from,
+                      to: hideEnd,
+                      deco: Decoration.replace({})
+                    })
+                  }
+                }
+              } while (cursor.nextSibling())
+            }
+
+            const isFirstLineCursor = cursorLines.has(startLineNum)
+            if (!isFirstLineCursor) {
+              const markerStart = firstLine.from
+              const markerEnd = firstLine.from + prefix.length + type.length + 3
+              
+              const hasCustomTitle = customTitle.trim().length > 0
+              decos.push({
+                from: markerStart,
+                to: markerEnd,
+                deco: Decoration.replace({
+                  widget: new CalloutHeaderWidget(typeKey, hasCustomTitle)
+                })
+              })
+
+              if (hasCustomTitle) {
+                decos.push({
+                  from: markerEnd,
+                  to: firstLine.to,
+                  deco: Decoration.mark({ class: `cm-lp-callout-title-text cm-lp-callout-title-${typeKey}` })
+                })
+              }
+            }
+            return true
           }
         }
 
@@ -275,10 +524,63 @@ export function buildLivePreviewDecorations(view: EditorView): DecorationSet {
     })
   }
 
-  // Sort by from position, then startSide (required by CodeMirror), then to descending (larger/outer spans first)
+  // --- Highlight ==text== ---
+  const highlightRegex = /==([^=\n]+)==/g
+  for (const { from: visFrom, to: visTo } of view.visibleRanges) {
+    const text = state.doc.sliceString(visFrom, visTo)
+    highlightRegex.lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = highlightRegex.exec(text)) !== null) {
+      const matchStart = visFrom + match.index
+      const matchEnd = matchStart + match[0].length
+
+      let isCode = false
+      let pos = matchStart
+      let nodeAtPos = syntaxTree(state).resolveInner(pos, 1)
+      let currNode: typeof nodeAtPos | null = nodeAtPos
+      while (currNode) {
+        if (
+          currNode.name === 'InlineCode' ||
+          currNode.name === 'FencedCode' ||
+          currNode.name === 'CodeBlock' ||
+          currNode.name === 'Comment' ||
+          currNode.name === 'HTMLBlock'
+        ) {
+          isCode = true
+          break
+        }
+        currNode = currNode.parent
+      }
+
+      if (isCode) continue
+
+      const lineNum = state.doc.lineAt(matchStart).number
+      const isCursorLine = cursorLines.has(lineNum)
+
+      decos.push({
+        from: matchStart,
+        to: matchEnd,
+        deco: Decoration.mark({ class: 'cm-lp-highlight' })
+      })
+
+      if (!isCursorLine) {
+        decos.push({
+          from: matchStart,
+          to: matchStart + 2,
+          deco: Decoration.replace({})
+        })
+        decos.push({
+          from: matchEnd - 2,
+          to: matchEnd,
+          deco: Decoration.replace({})
+        })
+      }
+    }
+  }
+
+  // Sort by from position, then startSide, then to descending
   decos.sort((a, b) => a.from - b.from || a.deco.startSide - b.deco.startSide || b.to - a.to)
 
-  // Build RangeSet
   const builder = new RangeSetBuilder<Decoration>()
   for (const d of decos) {
     builder.add(d.from, d.to, d.deco)
@@ -309,48 +611,16 @@ export const livePreviewPlugin = ViewPlugin.fromClass(
 
 // ---------- Base Theme ----------
 const livePreviewTheme = EditorView.baseTheme({
-  // Heading styles (line decorations)
-  '.cm-lp-h1': {
-    fontSize: '1.8em',
-    fontWeight: '700',
-    color: '#ffffff',
-    lineHeight: '1.3'
-  },
-  '.cm-lp-h2': {
-    fontSize: '1.5em',
-    fontWeight: '700',
-    color: '#ffffff',
-    lineHeight: '1.35'
-  },
-  '.cm-lp-h3': {
-    fontSize: '1.3em',
-    fontWeight: '600',
-    color: '#eeeeee',
-    lineHeight: '1.4'
-  },
-  '.cm-lp-h4': {
-    fontSize: '1.15em',
-    fontWeight: '600',
-    color: '#dddddd',
-    lineHeight: '1.4'
-  },
-  '.cm-lp-h5': {
-    fontSize: '1.05em',
-    fontWeight: '600',
-    color: '#cccccc'
-  },
-  '.cm-lp-h6': {
-    fontSize: '1em',
-    fontWeight: '600',
-    color: '#bbbbbb'
-  },
-  // Inline styles
-  '.cm-lp-bold': {
-    fontWeight: '700'
-  },
-  '.cm-lp-italic': {
-    fontStyle: 'italic'
-  },
+  '.cm-lp-h1': { fontSize: '1.8em', fontWeight: '700', color: '#ffffff', lineHeight: '1.3' },
+  '.cm-lp-h2': { fontSize: '1.5em', fontWeight: '700', color: '#ffffff', lineHeight: '1.35' },
+  '.cm-lp-h3': { fontSize: '1.3em', fontWeight: '600', color: '#eeeeee', lineHeight: '1.4' },
+  '.cm-lp-h4': { fontSize: '1.15em', fontWeight: '600', color: '#dddddd', lineHeight: '1.4' },
+  '.cm-lp-h5': { fontSize: '1.05em', fontWeight: '600', color: '#cccccc' },
+  '.cm-lp-h6': { fontSize: '1em', fontWeight: '600', color: '#bbbbbb' },
+  '.cm-lp-bold': { fontWeight: '700' },
+  '.cm-lp-italic': { fontStyle: 'italic' },
+  '.cm-lp-strikethrough': { textDecoration: 'line-through' },
+  '.cm-lp-highlight': { background: 'rgba(255, 220, 0, 0.25)', borderRadius: '2px', padding: '0 2px' },
   '.cm-lp-code': {
     background: 'rgba(255, 255, 255, 0.06)',
     padding: '1px 4px',
@@ -358,20 +628,17 @@ const livePreviewTheme = EditorView.baseTheme({
     fontFamily: '"Fira Code", ui-monospace, SFMono-Regular, monospace',
     fontSize: '0.9em'
   },
-  // Code block lines
   '.cm-lp-codeblock-line': {
     background: 'rgba(255, 255, 255, 0.03)',
     borderLeft: '2px solid rgba(124, 106, 247, 0.3)',
     paddingLeft: '8px'
   },
-  // Horizontal rule widget
   '.cm-lp-hr-widget': {
     border: 'none',
     borderTop: '1px solid rgba(255, 255, 255, 0.12)',
     margin: '12px 0',
     display: 'block'
   },
-  // Blockquote line
   '.cm-lp-blockquote-line': {
     borderLeft: '3px solid rgba(124, 106, 247, 0.5)',
     paddingLeft: '12px',
@@ -383,3 +650,4 @@ const livePreviewTheme = EditorView.baseTheme({
 export function livePreviewExtension(): Extension[] {
   return [livePreviewPlugin, livePreviewTheme]
 }
+
