@@ -32,6 +32,7 @@ export interface CanvasEdgeData {
   toNode: string
   fromSide: 'top' | 'right' | 'bottom' | 'left'
   toSide: 'top' | 'right' | 'bottom' | 'left'
+  label?: string
 }
 
 export interface CanvasData {
@@ -87,6 +88,60 @@ function parseCanvasData(raw: string): CanvasData {
 
 function nodeCenter(n: CanvasNodeData): { x: number; y: number } {
   return { x: n.x + n.width / 2, y: n.y + n.height / 2 }
+}
+
+function getLineMidpoint(points: number[], bezier?: boolean): { x: number; y: number } {
+  if (bezier && points.length === 8) {
+    const [x1, y1, cp1x, cp1y, cp2x, cp2y, x2, y2] = points
+    const x = 0.125 * x1 + 0.375 * cp1x + 0.375 * cp2x + 0.125 * x2
+    const y = 0.125 * y1 + 0.375 * cp1y + 0.375 * cp2y + 0.125 * y2
+    return { x, y }
+  }
+
+  const segments: { p1: { x: number; y: number }; p2: { x: number; y: number }; len: number }[] = []
+  let totalLen = 0
+  for (let i = 0; i - 2 < points.length - 4; i += 2) {
+    const x1 = points[i]
+    const y1 = points[i + 1]
+    const x2 = points[i + 2]
+    const y2 = points[i + 3]
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const len = Math.sqrt(dx * dx + dy * dy)
+    segments.push({ p1: { x: x1, y: y1 }, p2: { x: x2, y: y2 }, len })
+    totalLen += len
+  }
+
+  if (totalLen === 0) {
+    return { x: points[0] ?? 0, y: points[1] ?? 0 }
+  }
+
+  let targetLen = totalLen / 2
+  for (const seg of segments) {
+    if (targetLen <= seg.len) {
+      const ratio = targetLen / seg.len
+      const x = seg.p1.x + (seg.p2.x - seg.p1.x) * ratio
+      const y = seg.p1.y + (seg.p2.y - seg.p1.y) * ratio
+      return { x, y }
+    }
+    targetLen -= seg.len
+  }
+
+  return { x: points[0] ?? 0, y: points[1] ?? 0 }
+}
+
+function measureTextWidth(text: string, fontSize: number, fontFamily: string): number {
+  try {
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (context) {
+      context.font = `${fontSize}px ${fontFamily}`
+      return context.measureText(text).width
+    }
+  } catch {
+    // ignore
+  }
+  return text.length * fontSize * 0.6
 }
 
 function getContrastColor(hexColor: string | undefined): string {
@@ -216,7 +271,7 @@ function DotGrid({ stageX, stageY, stageScale, width, height }: DotGridProps) {
 /* ------------------------------------------------------------------ */
 
 export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
-  const { openFile, refreshFiles } = useVaultBridge()
+  const { refreshFiles } = useVaultBridge()
   const vault = useVaultStore((s) => s.vault)
   const connectionLineStyle = useSettingsStore((s) => s.connectionLineStyle) || 'curved'
 
@@ -400,6 +455,76 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const [editText, setEditText] = useState('')
   const [initialEditingHeight, setInitialEditingHeight] = useState<number>(0)
 
+  /* --- Edge label editing ----------------------------------------- */
+  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
+  const [editEdgeLabel, setEditEdgeLabel] = useState('')
+  const committingNodeEditRef = useRef(false)
+
+  const handleFinishNodeEditing = useCallback(async (nodeId: string, currentText: string, textareaEl: HTMLTextAreaElement | null) => {
+    if (committingNodeEditRef.current) return
+    committingNodeEditRef.current = true
+
+    const node = canvasData.nodes.find((n) => n.id === nodeId)
+    if (!node) {
+      setEditingNodeId(null)
+      return
+    }
+
+    const trimmedText = currentText.trimEnd()
+    let finalH = node.height
+
+    if (textareaEl) {
+      const oldVal = textareaEl.value
+      textareaEl.value = trimmedText
+      const oldH = textareaEl.style.height
+      textareaEl.style.height = '1px'
+      const trimmedH = textareaEl.scrollHeight / stageScale
+      textareaEl.style.height = oldH
+      textareaEl.value = oldVal
+      finalH = Math.max(initialEditingHeight, trimmedH)
+    }
+
+    if (node.type === 'file' && node.file) {
+      try {
+        await window.vault.writeFile(node.file, trimmedText)
+        setFileContents((prev) => ({ ...prev, [node.file!]: trimmedText }))
+      } catch (e) {
+        console.error('Failed to save file node content:', e)
+      }
+      mutate((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) =>
+          n.id === nodeId ? { ...n, height: finalH } : n
+        )
+      }))
+    } else {
+      mutate((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) =>
+          n.id === nodeId ? { ...n, text: trimmedText, height: finalH } : n
+        )
+      }))
+    }
+
+    setEditingNodeId(null)
+  }, [canvasData.nodes, initialEditingHeight, stageScale, mutate])
+
+  const handleFinishEdgeEditing = useCallback((edgeId: string, labelText: string) => {
+    const trimmed = labelText.trim()
+    mutateWithUndo((prev) => ({
+      ...prev,
+      edges: prev.edges.map((edge) =>
+        edge.id === edgeId ? { ...edge, label: trimmed || undefined } : edge
+      )
+    }))
+    setEditingEdgeId(null)
+  }, [mutateWithUndo])
+
+  const handleEdgeDblClick = useCallback((edgeId: string, label: string) => {
+    setEditingEdgeId(edgeId)
+    setEditEdgeLabel(label)
+  }, [])
+
   /* --- Space-bar panning / Shift for edge creation ---------------- */
   const [spaceHeld, setSpaceHeld] = useState(false)
   const [shiftHeld, setShiftHeld] = useState(false)
@@ -448,7 +573,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       )
         return
       if (e.key !== 'Delete' && e.key !== 'Backspace') return
-      if (editingNodeId) return
+      if (editingNodeId || editingEdgeId) return
 
       if (selectedEdgeId) {
         mutateWithUndo((prev) => ({
@@ -471,7 +596,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, selectedEdgeId, editingNodeId, mutate])
+  }, [selectedNodeId, selectedEdgeId, editingNodeId, editingEdgeId, mutate])
 
   /* --- Listen for external center requests (e.g. from TOC) --------- */
   useEffect(() => {
@@ -913,12 +1038,13 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         if (!from || !to) return null
         const res = getEdgePoints(from, to, connectionLineStyle)
         return {
+          edge,
           id: edge.id,
           points: res.points,
           bezier: res.bezier ?? false
         }
       })
-      .filter(Boolean) as { id: string; points: number[]; bezier: boolean }[]
+      .filter(Boolean) as { edge: CanvasEdgeData; id: string; points: number[]; bezier: boolean }[]
   }, [canvasData, connectionLineStyle])
   /* --- Drop handler for files from sidebar ------------------------ */
   const handleContainerDragOver = useCallback((e: React.DragEvent) => {
@@ -996,10 +1122,13 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               setEditingNodeId(node.id)
               setEditText(node.text)
               setInitialEditingHeight(node.height)
+              committingNodeEditRef.current = false
             }
           } else if (node.type === 'file' && node.file) {
-            const fileName = node.file.split('/').pop() ?? ''
-            openFile(node.file, fileName)
+            setEditingNodeId(node.id)
+            setEditText(fileContents[node.file] || '')
+            setInitialEditingHeight(node.height)
+            committingNodeEditRef.current = false
           }
         }}
         onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
@@ -1420,21 +1549,70 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         <Layer>
           {edgeLines.map((edge) => {
             const isEdgeSelected = edge.id === selectedEdgeId
+            const midpoint = getLineMidpoint(edge.points, edge.bezier)
+            const hasLabel = !!edge.edge.label
+            
+            // Text measurements for label
+            const fontSize = 11
+            const padX = 8
+            const padY = 4
+            const textWidth = hasLabel ? measureTextWidth(edge.edge.label || '', fontSize, FONT_FAMILY) : 0
+            const rectW = textWidth + padX * 2
+            const rectH = fontSize + padY * 2
+            
             return (
-              <Line
-                key={edge.id}
-                points={edge.points}
-                bezier={edge.bezier}
-                stroke={isEdgeSelected ? '#a78bfa' : EDGE_COLOR}
-                strokeWidth={isEdgeSelected ? 3 : 2}
-                opacity={isEdgeSelected ? 1 : 0.6}
-                lineCap="round"
-                hitStrokeWidth={16}
-                onClick={() => {
-                  setSelectedEdgeId(edge.id)
-                  setSelectedNodeId(null)
-                }}
-              />
+              <Group key={edge.id}>
+                <Line
+                  points={edge.points}
+                  bezier={edge.bezier}
+                  stroke={isEdgeSelected ? '#a78bfa' : EDGE_COLOR}
+                  strokeWidth={isEdgeSelected ? 3 : 2}
+                  opacity={isEdgeSelected ? 1 : 0.6}
+                  lineCap="round"
+                  hitStrokeWidth={16}
+                  onClick={() => {
+                    setSelectedEdgeId(edge.id)
+                    setSelectedNodeId(null)
+                  }}
+                  onDblClick={() => handleEdgeDblClick(edge.id, edge.edge.label || '')}
+                />
+                {hasLabel && (
+                  <Group
+                    x={midpoint.x - rectW / 2}
+                    y={midpoint.y - rectH / 2}
+                    onClick={() => {
+                      setSelectedEdgeId(edge.id)
+                      setSelectedNodeId(null)
+                    }}
+                    onDblClick={() => handleEdgeDblClick(edge.id, edge.edge.label || '')}
+                    onMouseEnter={(e) => {
+                      const stage = e.target.getStage()
+                      if (stage) stage.container().style.cursor = 'pointer'
+                    }}
+                    onMouseLeave={(e) => {
+                      const stage = e.target.getStage()
+                      if (stage) stage.container().style.cursor = shiftHeld ? 'crosshair' : spaceHeld ? 'grab' : 'default'
+                    }}
+                  >
+                    <Rect
+                      width={rectW}
+                      height={rectH}
+                      fill="#14141a"
+                      stroke={isEdgeSelected ? '#a78bfa' : '#2a2a35'}
+                      strokeWidth={1}
+                      cornerRadius={rectH / 2}
+                    />
+                    <Text
+                      text={edge.edge.label}
+                      x={padX}
+                      y={padY}
+                      fill="#ccc"
+                      fontSize={fontSize}
+                      fontFamily={FONT_FAMILY}
+                    />
+                  </Group>
+                )}
+              </Group>
             )
           })}
           {/* Temporary line while shift-dragging */}
@@ -1514,47 +1692,13 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                 }
               }}
               onBlur={(e) => {
-                const el = e.target
-                const trimmedText = editText.trimEnd()
-                const oldVal = el.value
-                el.value = trimmedText
-                const oldH = el.style.height
-                el.style.height = '1px'
-                const trimmedH = el.scrollHeight / stageScale
-                el.style.height = oldH
-                el.value = oldVal
-
-                const finalH = Math.max(initialEditingHeight, trimmedH)
-
-                mutate((prev) => ({
-                  ...prev,
-                  nodes: prev.nodes.map((n) =>
-                    n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
-                  )
-                }))
-                setEditingNodeId(null)
+                handleFinishNodeEditing(node.id, editText, e.currentTarget)
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  const el = e.currentTarget
-                  const trimmedText = editText.trimEnd()
-                  const oldVal = el.value
-                  el.value = trimmedText
-                  const oldH = el.style.height
-                  el.style.height = '1px'
-                  const trimmedH = el.scrollHeight / stageScale
-                  el.style.height = oldH
-                  el.value = oldVal
-
-                  const finalH = Math.max(initialEditingHeight, trimmedH)
-
-                  mutate((prev) => ({
-                    ...prev,
-                    nodes: prev.nodes.map((n) =>
-                      n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
-                    )
-                  }))
-                  setEditingNodeId(null)
+                const isCmdOrCtrlEnter = (e.metaKey || e.ctrlKey) && e.key === 'Enter'
+                if (e.key === 'Escape' || isCmdOrCtrlEnter) {
+                  e.preventDefault()
+                  handleFinishNodeEditing(node.id, editText, e.currentTarget)
                 }
                 e.stopPropagation()
               }}
@@ -1575,6 +1719,54 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                 outline: 'none',
                 zIndex: 1200,
                 boxSizing: 'border-box'
+              }}
+            />
+          )
+        })()}
+
+      {/* Edge label editing overlay */}
+      {editingEdgeId &&
+        (() => {
+          const edgeItem = edgeLines.find((e) => e.id === editingEdgeId)
+          if (!edgeItem) return null
+          const midpoint = getLineMidpoint(edgeItem.points, edgeItem.bezier)
+          const screenX = midpoint.x * stageScale + stagePos.x
+          const screenY = midpoint.y * stageScale + stagePos.y
+
+          const inputW = 120
+          const inputH = 26
+
+          return (
+            <input
+              autoFocus
+              value={editEdgeLabel}
+              onChange={(e) => setEditEdgeLabel(e.target.value)}
+              onBlur={() => handleFinishEdgeEditing(editingEdgeId, editEdgeLabel)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setEditingEdgeId(null)
+                } else if (e.key === 'Enter') {
+                  handleFinishEdgeEditing(editingEdgeId, editEdgeLabel)
+                }
+                e.stopPropagation()
+              }}
+              style={{
+                position: 'absolute',
+                left: screenX - (inputW * stageScale) / 2,
+                top: screenY - (inputH * stageScale) / 2,
+                width: inputW * stageScale,
+                height: inputH * stageScale,
+                background: '#14141a',
+                border: '1px solid #7c6af7',
+                borderRadius: 6 * stageScale,
+                color: '#fff',
+                fontSize: 11 * stageScale,
+                fontFamily: FONT_FAMILY,
+                textAlign: 'center',
+                outline: 'none',
+                zIndex: 1300,
+                boxSizing: 'border-box',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
               }}
             />
           )

@@ -473,6 +473,38 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     () => [
       // EDITOR
       {
+        id: 'defaultViewMode',
+        label: 'Default view mode',
+        description: 'Choose between Source mode (raw markdown) and Live Preview (rendered inline).',
+        category: 'editor',
+        render: (s) => (
+          <Dropdown
+            label="Default view mode"
+            description="Source mode shows raw markdown syntax. Live Preview hides markup and renders it inline."
+            value={s.defaultViewMode}
+            options={[
+              { value: 'source', label: 'Source Mode' },
+              { value: 'live-preview', label: 'Live Preview' }
+            ]}
+            onChange={(v) => s.updateSetting('defaultViewMode', v)}
+          />
+        )
+      },
+      {
+        id: 'showPreviewPane',
+        label: 'Show split preview',
+        description: 'Show a side-by-side HTML preview panel when editing markdown files.',
+        category: 'editor',
+        render: (s) => (
+          <Toggle
+            label="Show split preview"
+            description="Display the side-by-side HTML preview pane next to the markdown editor."
+            checked={s.showPreviewPane}
+            onChange={(v) => s.updateSetting('showPreviewPane', v)}
+          />
+        )
+      },
+      {
         id: 'fontSize',
         label: 'Font size',
         description: 'Adjust the text font size of both the markdown editor and preview text.',

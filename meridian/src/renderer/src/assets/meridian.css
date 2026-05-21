@@ -118,3 +118,250 @@ body,
   border-radius: 2px;
   background: rgba(255,255,255,0.12);
 }
+
+/* ============================================
+   MICRO-ANIMATIONS & VISUAL POLISH (Phase 4)
+   ============================================ */
+
+/* --- Keyframe Definitions --- */
+
+@keyframes meridian-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes meridian-slideInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes meridian-slideInLeft {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes meridian-scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes meridian-pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 8px 2px var(--accent-glow); }
+}
+
+/* --- Tab & View Transitions --- */
+
+.cm-editor {
+  animation: meridian-fadeIn 0.2s ease-out;
+}
+
+.markdown-preview {
+  animation: meridian-fadeIn 0.25s ease-out;
+}
+
+/* --- File Tree Item Hover --- */
+
+.file-tree-item {
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  will-change: transform;
+}
+
+.file-tree-item:hover {
+  transform: translateX(2px);
+}
+
+.file-tree-item:active {
+  transform: translateX(1px) scale(0.995);
+}
+
+/* --- Input Focus Glow --- */
+
+input[type="text"],
+input[type="search"],
+textarea,
+select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="search"]:focus,
+textarea:focus {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow), 0 0 12px var(--accent-glow) !important;
+  outline: none;
+}
+
+select:focus {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px var(--accent-glow) !important;
+  outline: none;
+}
+
+/* --- Button Hover Transitions --- */
+
+button {
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease,
+    box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98);
+}
+
+/* --- Interactive Card/Panel Hover --- */
+
+.settings-card,
+.plugin-card {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.settings-card:hover,
+.plugin-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* --- Graph Settings Interactions --- */
+
+.graph-sidebar label,
+.graph-sidebar summary {
+  transition: color 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+}
+
+.graph-sidebar label:hover,
+.graph-sidebar summary:hover {
+  color: var(--text-primary);
+}
+
+.graph-sidebar details[open] > summary {
+  color: var(--accent-color);
+}
+
+.graph-sidebar input[type="range"]::-webkit-slider-thumb {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.graph-sidebar input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* --- Sidebar & Panel Transitions --- */
+
+.sidebar-container {
+  transition: width 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.right-panel-container {
+  transition: width 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* --- Activity Bar Button Transitions --- */
+
+.activity-bar-btn {
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.activity-bar-btn:hover {
+  transform: scale(1.08);
+}
+
+.activity-bar-btn:active {
+  transform: scale(0.95);
+}
+
+/* --- Tooltip / Popover Animations --- */
+
+.tooltip-popup,
+.popover-content {
+  animation: meridian-scaleIn 0.15s ease-out;
+  transform-origin: center top;
+}
+
+/* --- Status Bar Subtle Transitions --- */
+
+.status-bar-item {
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.status-bar-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* --- Tab Hover & Active Transitions --- */
+
+.editor-tab {
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.editor-tab:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.editor-tab .tab-close-btn {
+  transition: opacity 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.editor-tab .tab-close-btn:hover {
+  transform: scale(1.15);
+  color: #ff6b6b;
+}
+
+/* --- Command Palette Animation --- */
+
+.command-palette-overlay {
+  animation: meridian-fadeIn 0.12s ease-out;
+}
+
+.command-palette-modal {
+  animation: meridian-slideInUp 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* --- Modal Animations --- */
+
+.modal-overlay {
+  animation: meridian-fadeIn 0.15s ease-out;
+}
+
+.modal-content {
+  animation: meridian-scaleIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* --- Breadcrumb Transitions --- */
+
+.breadcrumb-item {
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.breadcrumb-item:hover {
+  color: var(--text-primary);
+}
+
+/* --- Scrollbar Hover Enhancement --- */
+
+::-webkit-scrollbar-thumb {
+  transition: background 0.2s ease;
+}
+
+/* --- Reduced Motion Preference --- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

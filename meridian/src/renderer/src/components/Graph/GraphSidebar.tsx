@@ -1,5 +1,18 @@
-import React from 'react'
-import { SearchIcon, SettingsIcon, LinkIcon } from '../Icons'
+import { SearchIcon, SettingsIcon, LinkIcon, TrashIcon } from '../Icons'
+import { useSettingsStore, ColorGroupRule } from '../../store/useSettingsStore'
+
+export const PREMIUM_COLORS = [
+  '#f38ba8', // Red
+  '#fab387', // Orange
+  '#f9e2af', // Yellow
+  '#a6e3a1', // Green
+  '#94e2d5', // Teal
+  '#89b4fa', // Blue
+  '#b4befe', // Lavender
+  '#cba6f7', // Mauve
+  '#f5c2e7', // Pink
+  '#eba0ac'  // Maroon
+]
 
 export const GROUP_COLORS = {
   canvas: '#b4befe', // Lavender
@@ -372,6 +385,176 @@ export function GraphSidebar(props: GraphSidebarProps) {
                       </button>
                     )
                   })}
+                </div>
+              </div>
+
+              {/* Color Groups Section */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>COLOR GROUPS</span>
+                  <button
+                    onClick={() => {
+                      const newRule: ColorGroupRule = {
+                        id: Math.random().toString(36).substring(2, 9),
+                        type: 'wildcard',
+                        value: '',
+                        color: PREMIUM_COLORS[Math.floor(Math.random() * PREMIUM_COLORS.length)]
+                      }
+                      const currentGroups = useSettingsStore.getState().colorGroups || []
+                      useSettingsStore.getState().updateSetting('colorGroups', [...currentGroups, newRule])
+                    }}
+                    style={{
+                      background: 'var(--accent-glow)',
+                      border: '1px solid var(--accent-color)',
+                      color: 'var(--text-primary)',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    + Add Rule
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                  {((useSettingsStore((s) => s.colorGroups) || []) as ColorGroupRule[]).map((rule) => {
+                    const updateRule = (updated: Partial<ColorGroupRule>) => {
+                      const currentGroups = useSettingsStore.getState().colorGroups || []
+                      const nextGroups = currentGroups.map((rg) => rg.id === rule.id ? { ...rg, ...updated } : rg)
+                      useSettingsStore.getState().updateSetting('colorGroups', nextGroups)
+                    }
+
+                    const removeRule = () => {
+                      const currentGroups = useSettingsStore.getState().colorGroups || []
+                      const nextGroups = currentGroups.filter((rg) => rg.id !== rule.id)
+                      useSettingsStore.getState().updateSetting('colorGroups', nextGroups)
+                    }
+
+                    return (
+                      <div
+                        key={rule.id}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          borderRadius: 8,
+                          padding: 10,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <select
+                            value={rule.type}
+                            onChange={(e) => updateRule({ type: e.target.value as any })}
+                            style={{
+                              background: 'var(--bg-surface)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: 4,
+                              color: 'var(--text-primary)',
+                              fontSize: 11,
+                              padding: '2px 4px',
+                              outline: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="wildcard">Path wildcard</option>
+                            <option value="tag">Tag</option>
+                            <option value="pattern">Filename pattern</option>
+                          </select>
+
+                          <input
+                            type="text"
+                            placeholder={
+                              rule.type === 'wildcard'
+                                ? 'e.g. /daily/*'
+                                : rule.type === 'tag'
+                                ? 'e.g. #todo'
+                                : 'e.g. draft'
+                            }
+                            value={rule.value}
+                            onChange={(e) => updateRule({ value: e.target.value })}
+                            style={{
+                              flex: 1,
+                              background: 'rgba(0,0,0,0.2)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              borderRadius: 4,
+                              color: 'var(--text-primary)',
+                              fontSize: 11,
+                              padding: '2px 6px',
+                              outline: 'none'
+                            }}
+                          />
+
+                          <button
+                            onClick={removeRule}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              padding: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'color 0.15s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#ff6b6b'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                          >
+                            <TrashIcon size={12} />
+                          </button>
+                        </div>
+
+                        {/* Color selection row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          {PREMIUM_COLORS.map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => updateRule({ color: c })}
+                              style={{
+                                width: 14,
+                                height: 14,
+                                borderRadius: '50%',
+                                background: c,
+                                border: rule.color === c ? '2px solid #ffffff' : 'none',
+                                cursor: 'pointer',
+                                padding: 0,
+                                boxShadow: rule.color === c ? '0 0 4px rgba(255,255,255,0.5)' : 'none',
+                                transform: rule.color === c ? 'scale(1.1)' : 'scale(1)',
+                                transition: 'transform 0.15s ease'
+                              }}
+                            />
+                          ))}
+
+                          {/* Custom color picker */}
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+                            <input
+                              type="color"
+                              value={rule.color}
+                              onChange={(e) => updateRule({ color: e.target.value })}
+                              style={{
+                                width: 18,
+                                height: 18,
+                                border: 'none',
+                                padding: 0,
+                                background: 'transparent',
+                                cursor: 'pointer'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {(!useSettingsStore((s) => s.colorGroups) || useSettingsStore((s) => s.colorGroups).length === 0) && (
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', opacity: 0.5, textAlign: 'center', padding: '6px 0' }}>
+                      No color group rules yet.
+                    </div>
+                  )}
                 </div>
               </div>
 

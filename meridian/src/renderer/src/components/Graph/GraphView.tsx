@@ -6,6 +6,7 @@ import { useVaultBridge } from '../../hooks/useVaultBridge'
 import type { VaultFile } from '@shared/types'
 import { HistoryTimelineBar } from './HistoryTimelineBar'
 import { GraphSidebar, GROUP_COLORS } from './GraphSidebar'
+import { useSettingsStore, ColorGroupRule } from '../../store/useSettingsStore'
 
 interface GNode extends d3.SimulationNodeDatum {
   id: string
@@ -49,6 +50,74 @@ function getNodeGroup(
   return degree > 0 ? 'connected' : 'orphan'
 }
 
+function getNodeColor(
+  id: string,
+  name: string,
+  degree: number,
+  colorGroups: ColorGroupRule[]
+): string {
+  for (const rule of colorGroups) {
+    if (!rule.value.trim()) continue
+
+    if (rule.type === 'wildcard') {
+      const normPath = id.replace(/\\/g, '/');
+      const normWildcard = rule.value.replace(/\\/g, '/');
+      const escaped = normWildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      const regex = new RegExp(escaped.startsWith('/') ? `^${escaped}` : `${escaped}`, 'i');
+      if (regex.test(normPath)) {
+        return rule.color;
+      }
+    } else if (rule.type === 'tag') {
+      const tags = useLinkStore.getState().tagsForFile(id);
+      const cleanRuleTag = rule.value.replace(/^#/, '').toLowerCase().trim();
+      const matched = tags.some((t) => t.toLowerCase().trim() === cleanRuleTag);
+      if (matched) {
+        return rule.color;
+      }
+    } else if (rule.type === 'pattern') {
+      if (name.toLowerCase().includes(rule.value.toLowerCase().trim())) {
+        return rule.color;
+      }
+    }
+  }
+
+  return GROUP_COLORS[getNodeGroup(id, name, degree)];
+}
+
+function getNodeGlowId(
+  id: string,
+  name: string,
+  degree: number,
+  colorGroups: ColorGroupRule[]
+): string {
+  for (const rule of colorGroups) {
+    if (!rule.value.trim()) continue
+
+    if (rule.type === 'wildcard') {
+      const normPath = id.replace(/\\/g, '/');
+      const normWildcard = rule.value.replace(/\\/g, '/');
+      const escaped = normWildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      const regex = new RegExp(escaped.startsWith('/') ? `^${escaped}` : `${escaped}`, 'i');
+      if (regex.test(normPath)) {
+        return `glow-grad-rule-${rule.id}`;
+      }
+    } else if (rule.type === 'tag') {
+      const tags = useLinkStore.getState().tagsForFile(id);
+      const cleanRuleTag = rule.value.replace(/^#/, '').toLowerCase().trim();
+      const matched = tags.some((t) => t.toLowerCase().trim() === cleanRuleTag);
+      if (matched) {
+        return `glow-grad-rule-${rule.id}`;
+      }
+    } else if (rule.type === 'pattern') {
+      if (name.toLowerCase().includes(rule.value.toLowerCase().trim())) {
+        return `glow-grad-rule-${rule.id}`;
+      }
+    }
+  }
+
+  return `glow-grad-${getNodeGroup(id, name, degree)}`;
+}
+
 const nodeR = (d: GNode) => (d.degree > 0 ? 8 + Math.min(d.degree * 2, 12) : 6)
 const labelColor = (d: GNode) => (d.degree > 0 ? 'var(--text-primary)' : 'var(--text-secondary)')
 
@@ -66,6 +135,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const outlinks = useLinkStore((s) => s.outlinks)
   const indexVersion = useLinkStore((s) => s.indexVersion)
   const { openFile } = useVaultBridge()
+  const colorGroups = useSettingsStore((s) => s.colorGroups) || []
 
   const [viewMode, setViewMode] = useState<'live' | 'history'>('live')
   const [progress, setProgress] = useState(1)
@@ -489,8 +559,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         if (targetId === d.id) connectedNodes.add(sourceId)
       })
 
-      const hoverGroup = getNodeGroup(d.id, d.name, d.degree)
-      const hoverColor = GROUP_COLORS[hoverGroup]
+      const hoverColor = getNodeColor(d.id, d.name, d.degree, colorGroups)
 
       d3.select(gEl)
         .select('circle.glow-halo')
@@ -606,13 +675,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       viewMode,
       birthtimes,
       minTime,
-      maxTime
+      maxTime,
+      colorGroups
     ]
   )
 
   const handleMouseOut = useCallback(
     (gEl: SVGGElement, d: GNode) => {
-      const group = getNodeGroup(d.id, d.name, d.degree)
+      const customColor = getNodeColor(d.id, d.name, d.degree, colorGroups)
 
       d3.select(gEl)
         .select('circle.glow-halo')
@@ -626,8 +696,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .transition()
         .duration(150)
         .attr('r', nodeR(d))
-        .attr('fill', GROUP_COLORS[group])
-        .attr('stroke', GROUP_COLORS[group])
+        .attr('fill', customColor)
+        .attr('stroke', customColor)
         .attr('stroke-width', 1.5)
         .style('filter', null)
 
@@ -648,7 +718,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       setHoveredNode(null)
       setHoverPreviewContent('')
     },
-    [textSize, applyFiltersAndVisibility]
+    [textSize, applyFiltersAndVisibility, colorGroups]
   )
 
   const handleMouseOverRef = useRef(handleMouseOver)
@@ -842,6 +912,19 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           .attr('stop-opacity', 0)
       })
 
+      // Soft glow radial gradients for color groups
+      colorGroups.forEach((rule) => {
+        const grad = defs
+          .append('radialGradient')
+          .attr('id', `glow-grad-rule-${rule.id}`)
+          .attr('cx', '50%')
+          .attr('cy', '50%')
+          .attr('r', '50%')
+
+        grad.append('stop').attr('offset', '0%').attr('stop-color', rule.color).attr('stop-opacity', 0.7)
+        grad.append('stop').attr('offset', '100%').attr('stop-color', rule.color).attr('stop-opacity', 0)
+      })
+
       // Grid background
       const pattern = defs
         .append('pattern')
@@ -911,7 +994,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .append('circle')
         .attr('class', 'glow-halo')
         .attr('r', (d) => nodeR(d) + 8)
-        .attr('fill', (d) => `url(#glow-grad-${getNodeGroup(d.id, d.name, d.degree)})`)
+        .attr('fill', (d) => `url(#${getNodeGlowId(d.id, d.name, d.degree, colorGroups)})`)
         .attr('opacity', 0)
         .style('pointer-events', 'none')
         .style('transform-origin', 'center')
@@ -921,8 +1004,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .append('circle')
         .attr('class', 'vis')
         .attr('r', 0)
-        .attr('fill', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
-        .attr('stroke', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
+        .attr('fill', (d) => getNodeColor(d.id, d.name, d.degree, colorGroups))
+        .attr('stroke', (d) => getNodeColor(d.id, d.name, d.degree, colorGroups))
         .attr('stroke-width', 1.5)
 
       nodeG
@@ -999,7 +1082,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     indexVersion,
     disabledCategories,
     strictFilter,
-    strictFilter ? debouncedSearchQuery : ''
+    strictFilter ? debouncedSearchQuery : '',
+    colorGroups
   ])
 
   useEffect(() => {

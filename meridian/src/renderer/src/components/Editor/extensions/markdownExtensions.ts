@@ -29,6 +29,7 @@ import { wikiLinkExtension } from './wikiLinkExtension'
 import { makeWikiLinkSource, makeWikiLinkTriggerListener } from './wikiLinkCompletion'
 import { imagePasteExtension } from './imagePaste'
 import { makeSlashSource } from './slashCommands'
+import { livePreviewExtension } from './livePreview'
 
 function getFontFamilyValue(font: string) {
   switch (font) {
@@ -112,7 +113,8 @@ export function createMarkdownExtensions(
   fontFamily = 'Georgia',
   fontWeight = '400',
   lineHeight = 1.8,
-  slashCommandsEnabled = false
+  slashCommandsEnabled = false,
+  livePreviewEnabled = false
 ) {
   return [
     oneDark,
@@ -161,6 +163,7 @@ export function createMarkdownExtensions(
           if (update.docChanged) onChange(update.state.doc.toString())
         })
       : [],
-    onImagePaste ? imagePasteExtension(onImagePaste) : []
+    onImagePaste ? imagePasteExtension(onImagePaste) : [],
+    livePreviewEnabled ? livePreviewExtension() : []
   ]
 }

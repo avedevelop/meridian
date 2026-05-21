@@ -3,6 +3,7 @@ import { VaultFile } from '@shared/types'
 import { ContextMenu } from './ContextMenu'
 import { FileIcon } from './FileIcon'
 import { uniqueFileName } from '../../hooks/useVaultBridge'
+import { useVaultStore } from '../../store/useVaultStore'
 
 interface FileTreeProps {
   files: VaultFile[]
@@ -51,6 +52,9 @@ export function FileTree({
   // Keep a ref to always read the latest editValue inside event handlers
   const editValueRef = useRef('')
   editValueRef.current = editValue
+
+  const splitPane = useVaultStore((state) => state.splitPane)
+  const activePaneId = useVaultStore((state) => state.activePaneId)
 
   // Auto-expand parents of the active file
   useEffect(() => {
@@ -350,6 +354,13 @@ export function FileTree({
                     onClick: () => {
                       const dir = contextMenu.file.path.split('/').slice(0, -1).join('/')
                       onCreateFile?.(dir, uniqueFileName(dir, 'Untitled', 'md', files))
+                    }
+                  },
+                  {
+                    label: 'Open to the Side',
+                    onClick: async () => {
+                      await onFileClick(contextMenu.file.path, contextMenu.file.name)
+                      splitPane(activePaneId, 'vertical')
                     }
                   },
                   { separator: true as const },

@@ -315,8 +315,10 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     fontFamily,
     fontWeight,
     lineHeight,
-    pluginsEnabled
+    pluginsEnabled,
+    showPreviewPane
   } = useSettingsStore()
+  const defaultViewMode = useSettingsStore((s) => s.defaultViewMode)
 
   const isProgrammaticUpdate = useRef(false)
 
@@ -474,7 +476,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             fontFamily,
             fontWeight,
             lineHeight,
-            pluginsEnabled.slashCommands
+            pluginsEnabled.slashCommands,
+            defaultViewMode === 'live-preview'
           ),
           EditorView.updateListener.of((update) => {
             if (!update.selectionSet && !update.docChanged) return
@@ -525,7 +528,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     isCanvasFile,
     isDrawingFile,
     isDiffFile,
-    isActive
+    isActive,
+    defaultViewMode
   ])
 
   // Sync content programmatically
@@ -622,7 +626,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             onContextMenu={handleContextMenu}
             style={{ flex: 1, overflow: 'auto', height: '100%', background: 'var(--bg-tertiary)' }}
           />
-          {activeTab && (
+          {activeTab && showPreviewPane && (
             <>
               <div style={{ width: 1, background: 'var(--border-color)' }} />
               <MarkdownPreview

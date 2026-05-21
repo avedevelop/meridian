@@ -32,4 +32,14 @@ describe('SearchIndex', () => {
     idx.remove('/vault/A.md')
     expect(idx.search('unique phrase')).toEqual([])
   })
+
+  it('generates a matching snippet around query terms', () => {
+    const idx = new SearchIndex()
+    idx.addOrUpdate('/vault/A.md', 'A.md', 'Start of the note. This is a very long sentence containing a special match term called elephant which is unique. End of the note.')
+    const results = idx.search('elephant')
+    expect(results.length).toBe(1)
+    expect(results[0].snippet).toBeDefined()
+    expect(results[0].snippet).toContain('elephant')
+    expect(results[0].snippet).toContain('special match term')
+  })
 })
