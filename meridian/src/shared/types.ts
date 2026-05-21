@@ -17,6 +17,8 @@ export interface AppConfig {
   recentVaults: VaultConfig[]
   lastVault: string | null // path of last opened vault
   windowBounds: { width: number; height: number; x?: number; y?: number }
+  githubToken?: string
+  githubUsername?: string
 }
 
 export type VaultFileChangeType = 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir'
@@ -57,6 +59,10 @@ export const IPC = {
   GIT_LOG: 'git:log',
   GIT_SHOW_HEAD: 'git:show-head',
   GIT_SET_REMOTE: 'git:set-remote',
+  GIT_GITHUB_DEVICE_CODE: 'git:github-device-code',
+  GIT_GITHUB_POLL_TOKEN: 'git:github-poll-token',
+  GIT_GITHUB_LOGOUT: 'git:github-logout',
+  GIT_GITHUB_STATUS: 'git:github-status',
   PREFERENCES_GET: 'preferences:get',
   PREFERENCES_SET: 'preferences:set'
 } as const

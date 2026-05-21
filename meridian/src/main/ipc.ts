@@ -461,8 +461,38 @@ export function registerIpcHandlers(settings: AppSettings): void {
       const hasRemote = remoteStdout.trim().length > 0
 
       if (hasRemote) {
-        await execFileAsync('git', ['pull', '--rebase'], { cwd })
-        await execFileAsync('git', ['push'], { cwd })
+        const { stdout: branchOut } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd })
+        const branch = branchOut.trim() || 'main'
+        const { githubToken } = settings.get()
+
+        // Get remote URL and temporarily embed token for auth
+        const { stdout: remoteUrlOut } = await execFileAsync('git', ['remote', 'get-url', 'origin'], { cwd })
+        const remoteUrl = remoteUrlOut.trim()
+        let authUrl = remoteUrl
+
+        if (githubToken && remoteUrl.startsWith('https://')) {
+          try {
+            const u = new URL(remoteUrl)
+            u.username = 'oauth2'
+            u.password = githubToken
+            authUrl = u.toString()
+            await execFileAsync('git', ['remote', 'set-url', 'origin', authUrl], { cwd })
+          } catch { /* leave URL unchanged */ }
+        }
+
+        try {
+          // Check if remote has any refs (empty repo on first push)
+          const { stdout: lsRemote } = await execFileAsync('git', ['ls-remote', '--heads', 'origin'], { cwd }).catch(() => ({ stdout: '' }))
+          if (lsRemote.trim().length > 0) {
+            await execFileAsync('git', ['pull', '--rebase', 'origin', branch], { cwd })
+          }
+          await execFileAsync('git', ['push', '-u', 'origin', branch], { cwd })
+        } finally {
+          // Always restore clean URL (no token in git config)
+          if (authUrl !== remoteUrl) {
+            await execFileAsync('git', ['remote', 'set-url', 'origin', remoteUrl], { cwd }).catch(() => {})
+          }
+        }
         return { success: true }
       } else {
         return { success: true, noRemote: true }
@@ -550,6 +580,69 @@ export function registerIpcHandlers(settings: AppSettings): void {
     } catch (e: any) {
       return { success: false, error: e.message || String(e) }
     }
+  })
+
+  const GITHUB_CLIENT_ID = 'Ov23liarJdcZj6OwZFa9'
+
+  ipcMain.handle(IPC.GIT_GITHUB_DEVICE_CODE, async () => {
+    try {
+      const res = await fetch('https://github.com/login/device/code', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo' })
+      })
+      const data = await res.json() as {
+        device_code: string
+        user_code: string
+        verification_uri: string
+        expires_in: number
+        interval: number
+      }
+      return { success: true, ...data }
+    } catch (e: any) {
+      return { success: false, error: e.message || String(e) }
+    }
+  })
+
+  ipcMain.handle(IPC.GIT_GITHUB_POLL_TOKEN, async (_event, deviceCode: string) => {
+    try {
+      const res = await fetch('https://github.com/login/oauth/access_token', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: GITHUB_CLIENT_ID,
+          device_code: deviceCode,
+          grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+        })
+      })
+      const data = await res.json() as {
+        access_token?: string
+        error?: string
+        token_type?: string
+      }
+      if (data.access_token) {
+        // Fetch GitHub username
+        const userRes = await fetch('https://api.github.com/user', {
+          headers: { 'Authorization': `token ${data.access_token}`, 'Accept': 'application/json' }
+        })
+        const user = await userRes.json() as { login?: string }
+        settings.setGithubToken(data.access_token, user.login ?? '')
+        return { success: true, username: user.login ?? '' }
+      }
+      return { success: false, pending: data.error === 'authorization_pending' || data.error === 'slow_down' }
+    } catch (e: any) {
+      return { success: false, error: e.message || String(e) }
+    }
+  })
+
+  ipcMain.handle(IPC.GIT_GITHUB_LOGOUT, () => {
+    settings.setGithubToken('', '')
+    return { success: true }
+  })
+
+  ipcMain.handle(IPC.GIT_GITHUB_STATUS, () => {
+    const { githubToken, githubUsername } = settings.get()
+    return { connected: !!githubToken, username: githubUsername ?? '' }
   })
 }
 

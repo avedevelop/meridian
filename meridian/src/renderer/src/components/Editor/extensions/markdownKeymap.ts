@@ -1,12 +1,12 @@
 import { KeyBinding, EditorView } from '@codemirror/view'
 
-function wrapSelection(view: EditorView, before: string, after: string, placeholder: string): boolean {
+function wrapSelection(view: EditorView, before: string, after: string): boolean {
   const { state, dispatch } = view
   // Only the primary selection range is processed; multiple cursors are not supported.
   const sel = state.selection.main
   const hasSelection = sel.from !== sel.to
 
-  // Check if selection (or cursor) is already inside markers
+  // Check if selection (or cursor) is already inside markers — toggle off
   const beforeStart = Math.max(0, sel.from - before.length)
   const afterEnd = Math.min(state.doc.length, sel.to + after.length)
   const already =
@@ -24,8 +24,8 @@ function wrapSelection(view: EditorView, before: string, after: string, placehol
         scrollIntoView: true
       })
     )
-  } else {
-    const selectedText = hasSelection ? state.sliceDoc(sel.from, sel.to) : placeholder
+  } else if (hasSelection) {
+    const selectedText = state.sliceDoc(sel.from, sel.to)
     const insert = `${before}${selectedText}${after}`
     dispatch(
       state.update({
@@ -34,13 +34,22 @@ function wrapSelection(view: EditorView, before: string, after: string, placehol
         scrollIntoView: true
       })
     )
+  } else {
+    // No selection: insert markers and place cursor between them
+    dispatch(
+      state.update({
+        changes: { from: sel.from, insert: `${before}${after}` },
+        selection: { anchor: sel.from + before.length },
+        scrollIntoView: true
+      })
+    )
   }
   return true
 }
 
 export const markdownKeymap: KeyBinding[] = [
-  { key: 'Mod-b', run: (view) => wrapSelection(view, '**', '**', 'bold text') },
-  { key: 'Mod-i', run: (view) => wrapSelection(view, '*', '*', 'italic text') },
-  { key: 'Mod-`', run: (view) => wrapSelection(view, '`', '`', 'code') },
-  { key: 'Mod-Shift-k', run: (view) => wrapSelection(view, '[[', ']]', 'Note Name') }
+  { key: 'Mod-b', run: (view) => wrapSelection(view, '**', '**') },
+  { key: 'Mod-i', run: (view) => wrapSelection(view, '*', '*') },
+  { key: 'Mod-`', run: (view) => wrapSelection(view, '`', '`') },
+  { key: 'Mod-Shift-k', run: (view) => wrapSelection(view, '[[', ']]') }
 ]

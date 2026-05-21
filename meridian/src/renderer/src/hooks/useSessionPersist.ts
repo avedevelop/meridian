@@ -25,10 +25,11 @@ export function useSessionPersist() {
 
 export async function restoreSession(
   vaultPath: string,
-  openFile: (path: string, name: string) => Promise<void>
+  openFile: (path: string, name: string) => Promise<void>,
+  preReadRaw?: string | null
 ): Promise<void> {
   try {
-    const raw = localStorage.getItem(storageKey(vaultPath))
+    const raw = preReadRaw ?? localStorage.getItem(storageKey(vaultPath))
     if (!raw) return
     const session = JSON.parse(raw) as {
       tabs: { path: string; name: string }[]

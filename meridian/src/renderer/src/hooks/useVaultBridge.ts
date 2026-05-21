@@ -67,6 +67,10 @@ declare global {
       }>
       gitShowHead: (relativePath: string) => Promise<{ success: boolean; content: string }>
       gitSetRemote: (url: string) => Promise<{ success: boolean; error?: string }>
+      githubDeviceCode: () => Promise<{ success: boolean; device_code?: string; user_code?: string; verification_uri?: string; interval?: number; error?: string }>
+      githubPollToken: (deviceCode: string) => Promise<{ success: boolean; username?: string; pending?: boolean; error?: string }>
+      githubLogout: () => Promise<{ success: boolean }>
+      githubStatus: () => Promise<{ connected: boolean; username: string }>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>

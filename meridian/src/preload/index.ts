@@ -78,6 +78,18 @@ const vaultAPI = {
   gitSetRemote: (url: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC.GIT_SET_REMOTE, url),
 
+  githubDeviceCode: (): Promise<any> =>
+    ipcRenderer.invoke(IPC.GIT_GITHUB_DEVICE_CODE),
+
+  githubPollToken: (deviceCode: string): Promise<any> =>
+    ipcRenderer.invoke(IPC.GIT_GITHUB_POLL_TOKEN, deviceCode),
+
+  githubLogout: (): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke(IPC.GIT_GITHUB_LOGOUT),
+
+  githubStatus: (): Promise<{ connected: boolean; username: string }> =>
+    ipcRenderer.invoke(IPC.GIT_GITHUB_STATUS),
+
   onFileChanged: (callback: (event: VaultFileChangeEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, change: VaultFileChangeEvent) =>
       callback(change)

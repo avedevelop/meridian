@@ -52,4 +52,10 @@ export class AppSettings {
     this.data.windowBounds = bounds
     this.save()
   }
+
+  setGithubToken(token: string, username: string): void {
+    this.data.githubToken = token
+    this.data.githubUsername = username
+    this.save()
+  }
 }

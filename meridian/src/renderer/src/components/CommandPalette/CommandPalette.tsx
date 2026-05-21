@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { FileIcon } from '../Icons'
+import { useLinkStore } from '../../store/useLinkStore'
 
 interface FileItem {
   path: string
@@ -26,14 +27,21 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { search, searchResults } = useLinkStore()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (isOpen) {
       setQuery('')
       setActiveIndex(0)
+      search('')
       setTimeout(() => inputRef.current?.focus(), 0)
     }
-  }, [isOpen])
+  }, [isOpen, search])
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [])
 
   const isCommandMode = query.startsWith('>')
   const cleanQuery = isCommandMode ? query.slice(1).trim().toLowerCase() : query.toLowerCase()
@@ -56,14 +64,22 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
     if (isCommandMode) return []
     if (!query.trim()) {
       const recentSet = new Set(recentPaths)
-      return files.filter((f) => !recentSet.has(f.path)).slice(0, 8)
+      return files.filter((f) => !recentSet.has(f.path)).slice(0, 8).map((f) => ({ ...f, snippet: '' }))
     }
-    return files
-      .filter((f) => f.name.toLowerCase().replace(/\.md$/, '').includes(cleanQuery))
-      .slice(0, 10)
-  }, [isCommandMode, query, cleanQuery, files, recentPaths])
+    return searchResults.slice(0, 12)
+  }, [isCommandMode, query, searchResults, files, recentPaths])
 
   const items = isCommandMode ? filteredCommands : [...recentFiles, ...filteredFiles]
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setQuery(value)
+    setActiveIndex(0)
+    if (!value.startsWith('>') && value.trim()) {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => search(value), 150)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -101,7 +117,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
         <input
           ref={inputRef}
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setActiveIndex(0) }}
+          onChange={handleQueryChange}
           onKeyDown={handleKey}
           placeholder={isCommandMode ? 'Search commands...' : 'Search notes… (type > for commands)'}
           style={{
@@ -187,6 +203,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
               )}
               {filteredFiles.map((f, i) => {
                 const idx = recentFiles.length + i
+                const snippet = (f as typeof f & { snippet?: string }).snippet
                 return (
                   <div
                     key={f.path}
@@ -195,18 +212,30 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
                       onClose()
                     }}
                     style={{
-                      padding: '10px 16px',
+                      padding: snippet ? '8px 16px' : '10px 16px',
                       cursor: 'pointer',
-                      fontSize: 14,
-                      color: idx === activeIndex ? '#fff' : '#aaa',
                       background: idx === activeIndex ? '#2a2a3a' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10
                     }}
                   >
-                    <FileIcon size={14} color="#7c6af7" />
-                    <span>{f.name.replace(/\.md$/, '')}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <FileIcon size={14} color="#7c6af7" />
+                      <span style={{ fontSize: 14, color: idx === activeIndex ? '#fff' : '#aaa' }}>
+                        {f.name.replace(/\.md$/, '')}
+                      </span>
+                    </div>
+                    {snippet && (
+                      <div style={{
+                        fontSize: 11,
+                        color: idx === activeIndex ? 'rgba(255,255,255,0.55)' : '#555',
+                        marginTop: 3,
+                        marginLeft: 24,
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                      }}>
+                        {snippet}
+                      </div>
+                    )}
                   </div>
                 )
               })}
