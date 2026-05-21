@@ -2,6 +2,34 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { FileIcon } from '../Icons'
 
+function timeAgo(dateStr: string): string {
+  const now = new Date()
+  const then = new Date(dateStr)
+  if (isNaN(then.getTime())) return dateStr
+  const diffDays = Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) === 1 ? '' : 's'} ago`
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) === 1 ? '' : 's'} ago`
+  return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) === 1 ? '' : 's'} ago`
+}
+
+function autoCommitMessage(changes: { path: string; status: string }[]): string {
+  if (changes.length === 0) return ''
+  const names = changes
+    .slice(0, 3)
+    .map((c) => c.path.split('/').pop() ?? c.path)
+  const suffix = changes.length > 3 ? ` +${changes.length - 3} more` : ''
+  const action =
+    changes.every((c) => c.status === 'added' || c.status === 'untracked')
+      ? 'Added'
+      : changes.every((c) => c.status === 'deleted')
+      ? 'Deleted'
+      : 'Updated'
+  return `${action}: ${names.join(', ')}${suffix}`
+}
+
 export function GitPanel() {
   const openTab = useVaultStore((s) => s.openTab)
   
@@ -25,12 +53,17 @@ export function GitPanel() {
   const [commitMessage, setCommitMessage] = useState('')
   const [committing, setCommitting] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [syncConfirm, setSyncConfirm] = useState<{ isEmpty: boolean; localCommits: number } | null>(null)
+  const [checkingSync, setCheckingSync] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
 
   const [remoteUrl, setRemoteUrl] = useState('')
   const [settingRemote, setSettingRemote] = useState(false)
+
+  const [ghConnected, setGhConnected] = useState(false)
+  const [ghUsername, setGhUsername] = useState('')
 
   const [changesExpanded, setChangesExpanded] = useState(true)
   const [historyExpanded, setHistoryExpanded] = useState(true)
@@ -59,6 +92,10 @@ export function GitPanel() {
   }, [])
 
   useEffect(() => {
+    window.vault.githubStatus().then((s) => {
+      setGhConnected(s.connected)
+      setGhUsername(s.username)
+    }).catch(() => {})
     fetchStatus()
     fetchCommits()
     const interval = setInterval(() => {
@@ -74,6 +111,16 @@ export function GitPanel() {
       unsubscribe()
     }
   }, [fetchStatus, fetchCommits])
+
+  useEffect(() => {
+    if (!gitState?.changes || gitState.changes.length === 0) return
+    setCommitMessage((prev) => {
+      if (prev.trim() === '' || prev.startsWith('Updated:') || prev.startsWith('Added:') || prev.startsWith('Deleted:')) {
+        return autoCommitMessage(gitState.changes ?? [])
+      }
+      return prev
+    })
+  }, [gitState?.changes])
 
   const handleInit = async () => {
     setLoading(true)
@@ -112,24 +159,46 @@ export function GitPanel() {
     }
   }
 
-  const handleSync = async () => {
+  const handleSyncCheck = async () => {
+    setCheckingSync(true)
+    setError(null)
+    try {
+      const statusRes = await window.vault.gitStatus()
+      if (!statusRes.hasRemote) {
+        setInfoMessage('Configure a remote first to sync.')
+        setTimeout(() => setInfoMessage(null), 4000)
+        return
+      }
+      if (statusRes.clean) {
+        setInfoMessage('Nothing to commit — already up to date.')
+        setTimeout(() => setInfoMessage(null), 3000)
+        return
+      }
+      setSyncConfirm({ isEmpty: commits.length === 0, localCommits: statusRes.changesCount ?? 0 })
+    } catch (e: any) {
+      setError(e.message || String(e))
+    } finally {
+      setCheckingSync(false)
+    }
+  }
+
+  const handleSyncConfirmed = async () => {
+    setSyncConfirm(null)
     setSyncing(true)
     setError(null)
     setInfoMessage(null)
     try {
       const commitRes = await window.vault.gitCommit()
-      if (!commitRes.success) {
-        setError(commitRes.error ?? 'Auto-commit failed')
+      if (!commitRes.success && commitRes.message !== 'Nothing to commit') {
+        setError(commitRes.error ?? 'Commit failed')
         return
       }
       const syncRes = await window.vault.gitSync()
       if (!syncRes.success) {
         setError(syncRes.error ?? 'Sync failed')
       } else {
-        if (syncRes.noRemote) {
-          setInfoMessage('Committed locally! Configure a remote to sync with a host.')
-          setTimeout(() => setInfoMessage(null), 6000)
-        }
+        setInfoMessage('Synced successfully!')
+        setTimeout(() => setInfoMessage(null), 4000)
         await fetchStatus()
         await fetchCommits()
       }
@@ -245,33 +314,27 @@ export function GitPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', userSelect: 'none' }}>
       {/* Panel Title */}
-      <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>
-          Source Control
-        </h3>
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+          <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>
+            Source Control
+          </h3>
+          {ghConnected && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>@{ghUsername}</span>
+            </div>
+          )}
+        </div>
         <button
-          onClick={() => {
-            fetchStatus()
-            fetchCommits()
-          }}
-          title="Refresh Git Status"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            padding: 4,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 4
-          }}
+          onClick={() => { fetchStatus(); fetchCommits() }}
+          title="Refresh"
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', borderRadius: 4, flexShrink: 0 }}
           onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
           onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M23 4v6h-6" />
-            <path d="M1 20v-6h6" />
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </svg>
         </button>
@@ -322,7 +385,7 @@ export function GitPanel() {
       )}
 
       {/* Commit Input Field / Sync */}
-      <div style={{ padding: '0 16px 12px 16px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: '1px solid var(--border-color)' }}>
+      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: '1px solid var(--border-color)' }}>
         <textarea
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
@@ -365,9 +428,9 @@ export function GitPanel() {
             {committing ? 'Committing...' : 'Commit'}
           </button>
           <button
-            onClick={handleSync}
-            disabled={syncing}
-            title="Commit all files and push/pull to backup origin"
+            onClick={handleSyncCheck}
+            disabled={syncing || checkingSync}
+            title="Commit and sync with remote"
             style={{
               background: 'var(--bg-surface)',
               color: 'var(--text-primary)',
@@ -381,26 +444,63 @@ export function GitPanel() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 4,
-              opacity: syncing ? 0.6 : 1
+              opacity: syncing || checkingSync ? 0.6 : 1
             }}
-            onMouseEnter={(e) => { if(!syncing) e.currentTarget.style.background = 'var(--bg-secondary)' }}
-            onMouseLeave={(e) => { if(!syncing) e.currentTarget.style.background = 'var(--bg-surface)' }}
+            onMouseEnter={(e) => { if (!syncing && !checkingSync) e.currentTarget.style.background = 'var(--bg-secondary)' }}
+            onMouseLeave={(e) => { if (!syncing && !checkingSync) e.currentTarget.style.background = 'var(--bg-surface)' }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              style={{ animation: syncing ? 'spin 1.5s linear infinite' : 'none' }}
-            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+              style={{ animation: syncing ? 'spin 1.5s linear infinite' : 'none' }}>
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
             </svg>
-            <span>{syncing ? 'Syncing...' : 'Sync'}</span>
+            <span>{syncing ? 'Syncing…' : checkingSync ? 'Checking…' : 'Sync'}</span>
           </button>
         </div>
       </div>
+
+      {/* Sync confirmation dialog */}
+      {syncConfirm && (
+        <div style={{
+          margin: '8px 12px',
+          padding: '12px 14px',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 8,
+        }}>
+          <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 4 }}>
+            {syncConfirm.isEmpty
+              ? '📭 Remote repo is empty'
+              : `📝 ${syncConfirm.localCommits} file${syncConfirm.localCommits === 1 ? '' : 's'} changed`}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12 }}>
+            {syncConfirm.isEmpty
+              ? 'Will commit and push your notes to initialize the remote repo.'
+              : 'Will commit local changes and push to remote.'}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={handleSyncConfirmed}
+              style={{
+                flex: 1, padding: '6px 0', borderRadius: 6,
+                background: 'var(--accent-color)', color: '#fff',
+                border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              Commit &amp; Push
+            </button>
+            <button
+              onClick={() => setSyncConfirm(null)}
+              style={{
+                padding: '6px 12px', borderRadius: 6,
+                background: 'transparent', color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)', fontSize: 12, cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Notifications and errors */}
       {error && (
@@ -657,7 +757,7 @@ export function GitPanel() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-secondary)' }}>
                     <span>{commit.author}</span>
-                    <span>{commit.date}</span>
+                    <span>{timeAgo(commit.date)}</span>
                   </div>
                 </div>
               ))
