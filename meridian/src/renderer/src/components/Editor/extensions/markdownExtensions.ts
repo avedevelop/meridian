@@ -29,7 +29,6 @@ import { wikiLinkExtension } from './wikiLinkExtension'
 import { makeWikiLinkSource, makeWikiLinkTriggerListener } from './wikiLinkCompletion'
 import { imagePasteExtension } from './imagePaste'
 import { makeSlashSource } from './slashCommands'
-import { livePreviewExtension } from './livePreviewExtension'
 
 function getFontFamilyValue(font: string) {
   switch (font) {
@@ -113,8 +112,7 @@ export function createMarkdownExtensions(
   fontFamily = 'Georgia',
   fontWeight = '400',
   lineHeight = 1.8,
-  slashCommandsEnabled = false,
-  livePreviewEnabled = true
+  slashCommandsEnabled = false
 ) {
   return [
     oneDark,
@@ -146,7 +144,6 @@ export function createMarkdownExtensions(
       ...lintKeymap
     ]),
     markdown({ base: markdownLanguage, codeLanguages: languages }),
-    livePreviewEnabled ? livePreviewExtension : [],
     onLinkClick ? wikiLinkExtension(onLinkClick) : [],
     // Single autocompletion with all sources — avoids "Config merge conflict for field override"
     autocompletion({
