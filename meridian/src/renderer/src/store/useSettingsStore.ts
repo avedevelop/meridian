@@ -36,6 +36,41 @@ export interface SettingsState {
   theme: 'dark' | 'midnight' | 'indigo' | 'cyberpunk' | 'forest' | 'nord' | 'dracula' | 'obsidian'
   sidebarSide: 'left' | 'right'
 
+  // Editor new
+  typingMode: 'normal' | 'typewriter' | 'focus'
+  showInvisibles: boolean
+  defaultView: 'editor' | 'split' | 'preview'
+  codeBlockTheme: 'github-dark' | 'monokai' | 'one-dark' | 'solarized'
+  paragraphSpacing: number
+  spellCheck: boolean
+  spellCheckLanguage: 'en-US' | 'ru-RU' | 'de-DE' | 'fr-FR'
+  indentWithTabs: boolean
+
+  // Files new
+  attachmentFolder: string
+  dailyNoteDateFormat: 'YYYY-MM-DD' | 'DD-MM-YYYY' | 'MM-DD-YYYY' | 'DD.MM.YYYY'
+  confirmDelete: boolean
+  showHiddenFiles: boolean
+  excludedFolders: string
+  fileSortBy: 'name' | 'created' | 'modified'
+
+  // Appearance new
+  uiZoom: number
+  compactMode: boolean
+  showStatusBar: boolean
+  previewFontFamily: string
+  alwaysShowTabBar: boolean
+
+  // Export new
+  defaultExportFormat: 'html' | 'pdf'
+  pdfPageSize: 'A4' | 'Letter'
+  exportIncludeFrontmatter: boolean
+  exportCustomCSS: string
+
+  // Sync new
+  gitCommitTemplate: string
+  gitDefaultBranch: string
+
   // Plugins
   pluginsEnabled: {
     dailyNotes: boolean
@@ -94,6 +129,31 @@ const DEFAULTS: Omit<
   accentColor: 'purple',
   theme: 'dark',
   sidebarSide: 'left',
+  typingMode: 'normal' as const,
+  showInvisibles: false,
+  defaultView: 'split' as const,
+  codeBlockTheme: 'github-dark' as const,
+  paragraphSpacing: 0,
+  spellCheck: false,
+  spellCheckLanguage: 'en-US' as const,
+  indentWithTabs: false,
+  attachmentFolder: 'assets',
+  dailyNoteDateFormat: 'YYYY-MM-DD' as const,
+  confirmDelete: true,
+  showHiddenFiles: false,
+  excludedFolders: '',
+  fileSortBy: 'name' as const,
+  uiZoom: 100,
+  compactMode: false,
+  showStatusBar: true,
+  previewFontFamily: 'Georgia',
+  alwaysShowTabBar: true,
+  defaultExportFormat: 'html' as const,
+  pdfPageSize: 'A4' as const,
+  exportIncludeFrontmatter: false,
+  exportCustomCSS: '',
+  gitCommitTemplate: 'Updated {files}',
+  gitDefaultBranch: 'main',
   pluginsEnabled: {
     dailyNotes: true,
     wordCounter: true,
