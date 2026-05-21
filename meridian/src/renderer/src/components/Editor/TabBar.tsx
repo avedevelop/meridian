@@ -210,6 +210,7 @@ export function TabBar({ paneId }: TabBarProps) {
         borderBottom: `1px solid ${isActivePane ? 'var(--accent-color)' : 'var(--border-color)'}`,
         height: 36,
         flexShrink: 0,
+        width: '100%',
         cursor: 'default',
         transition: 'border-bottom-color 0.2s ease',
         userSelect: 'none'
