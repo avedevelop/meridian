@@ -72,7 +72,9 @@ export function createMeridianTheme(
         padding: '24px 32px',
         maxWidth: readableLineLength ? `${lineWidth}px` : 'none',
         margin: '0 auto',
-        backgroundColor: 'var(--bg-tertiary) !important'
+        backgroundColor: 'var(--bg-tertiary) !important',
+        userSelect: 'text',
+        WebkitUserSelect: 'text'
       },
       '.cm-gutters': {
         backgroundColor: 'var(--bg-tertiary) !important',
