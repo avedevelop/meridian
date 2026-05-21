@@ -283,6 +283,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const previewScrollRef = useRef<HTMLDivElement>(null)
+  const scrollSyncRef = useRef(false)
   const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number } | null>(null)
   const [splitRatio, setSplitRatio] = React.useState<number>(() => {
     try {
@@ -573,6 +575,42 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     }
   }, [activeTab?.content, isCanvasFile, isDrawingFile, isDiffFile])
 
+  // Scroll sync between editor and preview
+  useEffect(() => {
+    const view = viewRef.current
+    const preview = previewScrollRef.current
+    if (!view || !preview || isCanvasFile || isDrawingFile || isDiffFile) return
+
+    let rafId: number
+
+    const onEditorScroll = () => {
+      if (scrollSyncRef.current) return
+      const el = view.scrollDOM
+      const ratio = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight)
+      scrollSyncRef.current = true
+      preview.scrollTop = ratio * Math.max(1, preview.scrollHeight - preview.clientHeight)
+      rafId = requestAnimationFrame(() => { scrollSyncRef.current = false })
+    }
+
+    const onPreviewScroll = () => {
+      if (scrollSyncRef.current) return
+      const ratio = preview.scrollTop / Math.max(1, preview.scrollHeight - preview.clientHeight)
+      scrollSyncRef.current = true
+      view.scrollDOM.scrollTop = ratio * Math.max(1, view.scrollDOM.scrollHeight - view.scrollDOM.clientHeight)
+      rafId = requestAnimationFrame(() => { scrollSyncRef.current = false })
+    }
+
+    view.scrollDOM.addEventListener('scroll', onEditorScroll, { passive: true })
+    preview.addEventListener('scroll', onPreviewScroll, { passive: true })
+
+    return () => {
+      view.scrollDOM.removeEventListener('scroll', onEditorScroll)
+      preview.removeEventListener('scroll', onPreviewScroll)
+      cancelAnimationFrame(rafId)
+      scrollSyncRef.current = false
+    }
+  }, [activeTabPath, isCanvasFile, isDrawingFile, isDiffFile])
+
   // Show empty pane placeholder
   if (openTabs.length === 0) {
     return (
@@ -675,6 +713,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border-color)')}
               />
               <MarkdownPreview
+                ref={previewScrollRef}
                 content={activeTab.content}
                 onLinkClick={handleLinkClick}
                 fontSize={fontSize}

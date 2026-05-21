@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react'
+import React, { useMemo, useEffect, useRef, useCallback } from 'react'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
@@ -117,17 +117,24 @@ interface MarkdownPreviewProps {
   vaultPath?: string
 }
 
-export function MarkdownPreview({
-  content,
-  onLinkClick,
-  fontSize = 15,
-  lineWidth = 720,
-  readableLineLength = true,
-  vaultPath
-}: MarkdownPreviewProps) {
+export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewProps>(
+  function MarkdownPreview({
+    content,
+    onLinkClick,
+    fontSize = 15,
+    lineWidth = 720,
+    readableLineLength = true,
+    vaultPath
+  }: MarkdownPreviewProps, scrollRef) {
   const { fontFamily, fontWeight, lineHeight } = useSettingsStore()
   const { files } = useVaultStore()
-  const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  const setRef = useCallback((el: HTMLDivElement | null) => {
+    containerRef.current = el
+    if (typeof scrollRef === 'function') scrollRef(el)
+    else if (scrollRef) (scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+  }, [scrollRef])
 
   const fontFamilyValue = useMemo(() => {
     switch (fontFamily) {
@@ -286,7 +293,7 @@ export function MarkdownPreview({
 
   return (
     <div
-      ref={containerRef}
+      ref={setRef}
       className="markdown-preview"
       dangerouslySetInnerHTML={{ __html: html }}
       onClick={handleClick}
@@ -305,4 +312,4 @@ export function MarkdownPreview({
       }}
     />
   )
-}
+})
