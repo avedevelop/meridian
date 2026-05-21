@@ -199,3 +199,7 @@ body,
 .cm-live-block th, .cm-live-block td { border: 1px solid rgba(255,255,255,0.12); padding: 4px 8px; }
 .cm-live-block th { background: rgba(255,255,255,0.05); font-weight: 600; }
 .cm-live-block hr { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 8px 0; }
+
+button {
+  user-select: none;
+}
