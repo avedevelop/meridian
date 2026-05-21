@@ -262,6 +262,8 @@ function EditorContextMenu({ x, y, onClose, view, containerEl }: EditorContextMe
   )
 }
 
+const SPLIT_KEY = 'meridian-split-ratio'
+
 interface SinglePaneAreaProps {
   paneId: string
   isActive: boolean
@@ -282,6 +284,33 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const viewRef = useRef<EditorView | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number } | null>(null)
+  const [splitRatio, setSplitRatio] = React.useState<number>(() => {
+    try {
+      const v = localStorage.getItem(SPLIT_KEY)
+      const parsed = v ? parseFloat(v) : NaN
+      return !isNaN(parsed) ? Math.max(0.2, Math.min(0.8, parsed)) : 0.5
+    } catch {
+      return 0.5
+    }
+  })
+
+  const startSplitDrag = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const container = containerRef.current
+    if (!container) return
+    const onMove = (mv: MouseEvent) => {
+      const rect = container.getBoundingClientRect()
+      const newRatio = Math.max(0.2, Math.min(0.8, (mv.clientX - rect.left) / rect.width))
+      setSplitRatio(newRatio)
+      try { localStorage.setItem(SPLIT_KEY, String(newRatio)) } catch { /* ignore */ }
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [])
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -622,11 +651,28 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
           <div
             ref={editorRef}
             onContextMenu={handleContextMenu}
-            style={{ flex: 1, overflow: 'auto', height: '100%', background: 'var(--bg-tertiary)' }}
+            style={{
+              width: activeTab ? `${splitRatio * 100}%` : '100%',
+              flexShrink: 0,
+              overflow: 'auto',
+              height: '100%',
+              background: 'var(--bg-tertiary)'
+            }}
           />
           {activeTab && (
             <>
-              <div style={{ width: 1, background: 'var(--border-color)' }} />
+              <div
+                onMouseDown={startSplitDrag}
+                style={{
+                  width: 5,
+                  flexShrink: 0,
+                  cursor: 'col-resize',
+                  background: 'var(--border-color)',
+                  transition: 'background 0.15s'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-color)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border-color)')}
+              />
               <MarkdownPreview
                 content={activeTab.content}
                 onLinkClick={handleLinkClick}
