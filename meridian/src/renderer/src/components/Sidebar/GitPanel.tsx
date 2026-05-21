@@ -165,12 +165,12 @@ export function GitPanel() {
     try {
       const statusRes = await window.vault.gitStatus()
       if (!statusRes.hasRemote) {
-        setInfoMessage('Configure a remote first to sync.')
+        setInfoMessage('Connect a GitHub repo first to back up online.')
         setTimeout(() => setInfoMessage(null), 4000)
         return
       }
       if (statusRes.clean) {
-        setInfoMessage('Nothing to commit — already up to date.')
+        setInfoMessage('Everything is already backed up.')
         setTimeout(() => setInfoMessage(null), 3000)
         return
       }
@@ -197,7 +197,7 @@ export function GitPanel() {
       if (!syncRes.success) {
         setError(syncRes.error ?? 'Sync failed')
       } else {
-        setInfoMessage('Synced successfully!')
+        setInfoMessage('Backup complete!')
         setTimeout(() => setInfoMessage(null), 4000)
         await fetchStatus()
         await fetchCommits()
@@ -217,7 +217,7 @@ export function GitPanel() {
       const res = await window.vault.gitSetRemote(remoteUrl.trim())
       if (res.success) {
         setRemoteUrl('')
-        setInfoMessage('Remote configured! Click Sync to push.')
+        setInfoMessage('GitHub connected! Click Backup Now to upload.')
         setTimeout(() => setInfoMessage(null), 5000)
         await fetchStatus()
       } else {
@@ -255,19 +255,23 @@ export function GitPanel() {
     return (
       <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>
-          Source Control
+          Cloud Backup
         </h3>
         <div style={{
           padding: 12,
           background: 'var(--bg-secondary)',
           border: '1px dashed var(--border-color)',
           borderRadius: 8,
-          fontSize: 12,
+          fontSize: 13,
           color: 'var(--text-secondary)',
-          lineHeight: '1.5',
+          lineHeight: '1.6',
           textAlign: 'center'
         }}>
-          This folder is not a Git repository.
+          <div style={{ fontSize: 20, marginBottom: 8 }}>☁️</div>
+          <div style={{ fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>No backup set up</div>
+          <div style={{ fontSize: 12 }}>
+            Enable backup to keep a full history of your notes and sync them to GitHub.
+          </div>
         </div>
         <button
           onClick={handleInit}
@@ -286,7 +290,7 @@ export function GitPanel() {
           onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
           onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
         >
-          Initialize Repository
+          Enable Backup
         </button>
         {error && (
           <div style={{
@@ -317,7 +321,7 @@ export function GitPanel() {
       <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
           <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>
-            Source Control
+            Cloud Backup
           </h3>
           {ghConnected && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -344,7 +348,7 @@ export function GitPanel() {
       {gitState?.isRepo && !gitState.hasRemote && (
         <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
-            Connect to a remote to enable sync (GitHub, GitLab, etc.)
+            Paste your GitHub repository URL to enable online backup.
           </div>
           <input
             value={remoteUrl}
@@ -379,7 +383,7 @@ export function GitPanel() {
               opacity: settingRemote || !remoteUrl.trim() ? 0.6 : 1
             }}
           >
-            {settingRemote ? 'Connecting…' : 'Set Remote'}
+            {settingRemote ? 'Connecting…' : 'Connect Repository'}
           </button>
         </div>
       )}
@@ -390,7 +394,7 @@ export function GitPanel() {
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Commit message (Cmd+Enter to commit)"
+          placeholder="What changed? (optional — auto-filled)"
           style={{
             width: '100%',
             minHeight: 64,
@@ -425,7 +429,7 @@ export function GitPanel() {
               transition: 'opacity 0.2s'
             }}
           >
-            {committing ? 'Committing...' : 'Commit'}
+            {committing ? 'Saving…' : 'Save Snapshot'}
           </button>
           <button
             onClick={handleSyncCheck}
@@ -453,7 +457,7 @@ export function GitPanel() {
               style={{ animation: syncing ? 'spin 1.5s linear infinite' : 'none' }}>
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
             </svg>
-            <span>{syncing ? 'Syncing…' : checkingSync ? 'Checking…' : 'Sync'}</span>
+            <span>{syncing ? 'Backing up…' : checkingSync ? 'Checking…' : 'Backup Now'}</span>
           </button>
         </div>
       </div>
@@ -474,8 +478,8 @@ export function GitPanel() {
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12 }}>
             {syncConfirm.isEmpty
-              ? 'Will commit and push your notes to initialize the remote repo.'
-              : 'Will commit local changes and push to remote.'}
+              ? 'Your notes will be uploaded to GitHub for the first time.'
+              : 'Your changes will be saved and uploaded to GitHub.'}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
@@ -486,7 +490,7 @@ export function GitPanel() {
                 border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer'
               }}
             >
-              Commit &amp; Push
+              Save &amp; Upload
             </button>
             <button
               onClick={() => setSyncConfirm(null)}
@@ -559,7 +563,7 @@ export function GitPanel() {
               display: 'inline-block',
               fontSize: 8
             }}>▶</span>
-            <span>CHANGES</span>
+            <span>UNSAVED CHANGES</span>
           </div>
           <span style={{
             background: 'var(--bg-surface)',
@@ -574,7 +578,7 @@ export function GitPanel() {
           <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border-color)' }}>
             {changes.length === 0 ? (
               <div style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
-                No changes detected
+                Everything is saved
               </div>
             ) : (
               changes.map((change) => {
@@ -697,7 +701,7 @@ export function GitPanel() {
               display: 'inline-block',
               fontSize: 8
             }}>▶</span>
-            <span>COMMIT HISTORY</span>
+            <span>SNAPSHOT HISTORY</span>
           </div>
           <span style={{
             background: 'var(--bg-surface)',
