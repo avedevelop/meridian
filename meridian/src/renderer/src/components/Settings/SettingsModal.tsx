@@ -368,6 +368,56 @@ function TextInput({
   )
 }
 
+function TextAreaInput({
+  label,
+  description,
+  value,
+  placeholder,
+  onChange
+}: {
+  label: string
+  description?: string
+  value: string
+  placeholder: string
+  onChange: (s: string) => void
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        padding: '12px 16px',
+        background: '#161616',
+        borderRadius: 8,
+        border: '1px solid #252525'
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ color: '#eee', fontSize: 13, fontWeight: 500 }}>{label}</span>
+        {description && <span style={{ color: '#777', fontSize: 11 }}>{description}</span>}
+      </div>
+      <textarea
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        rows={5}
+        style={{
+          background: '#222',
+          border: '1px solid #3c3c3c',
+          borderRadius: 6,
+          color: '#eee',
+          fontSize: 12,
+          padding: '8px 12px',
+          outline: 'none',
+          fontFamily: 'monospace',
+          resize: 'vertical'
+        }}
+      />
+    </div>
+  )
+}
+
 function ColorPicker({
   label,
   description,
@@ -705,6 +755,143 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           />
         )
       },
+      {
+        id: 'typingMode',
+        label: 'Typing mode',
+        description: 'Normal: standard scroll. Typewriter: cursor stays centered. Focus: dim other paragraphs.',
+        category: 'editor',
+        render: (s) => (
+          <Dropdown
+            label="Typing mode"
+            description="Normal: standard scroll. Typewriter: cursor stays centered. Focus: dim other paragraphs."
+            value={s.typingMode}
+            options={[
+              { value: 'normal', label: 'Normal' },
+              { value: 'typewriter', label: 'Typewriter (cursor centered)' },
+              { value: 'focus', label: 'Focus (dim other lines)' }
+            ]}
+            onChange={(v) => s.updateSetting('typingMode', v as any)}
+          />
+        )
+      },
+      {
+        id: 'showInvisibles',
+        label: 'Show invisible characters',
+        description: 'Highlight tabs and special characters in the editor.',
+        category: 'editor',
+        render: (s) => (
+          <Toggle
+            label="Show invisible characters"
+            description="Highlight tabs and special characters in the editor."
+            checked={s.showInvisibles}
+            onChange={(v) => s.updateSetting('showInvisibles', v)}
+          />
+        )
+      },
+      {
+        id: 'defaultView',
+        label: 'Default view on file open',
+        description: 'Which pane layout to show when opening a note.',
+        category: 'editor',
+        render: (s) => (
+          <Dropdown
+            label="Default view on file open"
+            description="Which pane layout to show when opening a note."
+            value={s.defaultView}
+            options={[
+              { value: 'editor', label: 'Editor only' },
+              { value: 'split', label: 'Split (editor + preview)' },
+              { value: 'preview', label: 'Preview only' }
+            ]}
+            onChange={(v) => s.updateSetting('defaultView', v as any)}
+          />
+        )
+      },
+      {
+        id: 'codeBlockTheme',
+        label: 'Code block syntax theme',
+        description: 'Color theme applied to fenced code blocks in preview.',
+        category: 'editor',
+        render: (s) => (
+          <Dropdown
+            label="Code block syntax theme"
+            description="Color theme applied to fenced code blocks in preview."
+            value={s.codeBlockTheme}
+            options={[
+              { value: 'github-dark', label: 'GitHub Dark' },
+              { value: 'monokai', label: 'Monokai' },
+              { value: 'one-dark', label: 'One Dark' },
+              { value: 'solarized', label: 'Solarized Dark' }
+            ]}
+            onChange={(v) => s.updateSetting('codeBlockTheme', v as any)}
+          />
+        )
+      },
+      {
+        id: 'paragraphSpacing',
+        label: 'Paragraph spacing',
+        description: 'Extra vertical space added between paragraphs in the editor.',
+        category: 'editor',
+        render: (s) => (
+          <Slider
+            label="Paragraph spacing"
+            description="Extra vertical space between paragraphs (em units)."
+            value={s.paragraphSpacing}
+            min={0}
+            max={2}
+            unit="em"
+            onChange={(v) => s.updateSetting('paragraphSpacing', v)}
+          />
+        )
+      },
+      {
+        id: 'spellCheck',
+        label: 'Spell check',
+        description: 'Enable browser spell checking in the editor (underlines misspelled words).',
+        category: 'editor',
+        render: (s) => (
+          <Toggle
+            label="Spell check"
+            description="Enable browser spell checking in the editor."
+            checked={s.spellCheck}
+            onChange={(v) => s.updateSetting('spellCheck', v)}
+          />
+        )
+      },
+      {
+        id: 'spellCheckLanguage',
+        label: 'Spell check language',
+        description: 'Language used for spell checking.',
+        category: 'editor',
+        render: (s) => (
+          <Dropdown
+            label="Spell check language"
+            description="Language used for spell checking."
+            value={s.spellCheckLanguage}
+            options={[
+              { value: 'en-US', label: 'English (US)' },
+              { value: 'ru-RU', label: 'Russian' },
+              { value: 'de-DE', label: 'German' },
+              { value: 'fr-FR', label: 'French' }
+            ]}
+            onChange={(v) => s.updateSetting('spellCheckLanguage', v as any)}
+          />
+        )
+      },
+      {
+        id: 'indentWithTabs',
+        label: 'Indent with tabs',
+        description: 'Use tab characters instead of spaces for indentation.',
+        category: 'editor',
+        render: (s) => (
+          <Toggle
+            label="Indent with tabs"
+            description="Use tab characters instead of spaces for indentation."
+            checked={s.indentWithTabs}
+            onChange={(v) => s.updateSetting('indentWithTabs', v)}
+          />
+        )
+      },
 
       // AUTO-SAVE & FILES
       {
@@ -797,6 +984,103 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             value={s.newNotesFolder}
             placeholder="e.g. Daily or root"
             onChange={(v) => s.updateSetting('newNotesFolder', v)}
+          />
+        )
+      },
+      {
+        id: 'attachmentFolder',
+        label: 'Attachment folder',
+        description: 'Relative folder path inside the vault where pasted/dropped images are saved.',
+        category: 'files',
+        render: (s) => (
+          <TextInput
+            label="Attachment folder"
+            description="Relative folder path where images are saved when dropped into the editor."
+            value={s.attachmentFolder}
+            placeholder="assets"
+            onChange={(v) => s.updateSetting('attachmentFolder', v)}
+          />
+        )
+      },
+      {
+        id: 'dailyNoteDateFormat',
+        label: 'Daily note date format',
+        description: 'Date format used for daily note file names.',
+        category: 'files',
+        render: (s) => (
+          <Dropdown
+            label="Daily note date format"
+            description="Format of the date in the daily note filename."
+            value={s.dailyNoteDateFormat}
+            options={[
+              { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (2026-05-21)' },
+              { value: 'DD-MM-YYYY', label: 'DD-MM-YYYY (21-05-2026)' },
+              { value: 'MM-DD-YYYY', label: 'MM-DD-YYYY (05-21-2026)' },
+              { value: 'DD.MM.YYYY', label: 'DD.MM.YYYY (21.05.2026)' }
+            ]}
+            onChange={(v) => s.updateSetting('dailyNoteDateFormat', v as any)}
+          />
+        )
+      },
+      {
+        id: 'confirmDelete',
+        label: 'Confirm before deleting files',
+        description: 'Show a confirmation dialog before permanently deleting a file.',
+        category: 'files',
+        render: (s) => (
+          <Toggle
+            label="Confirm before deleting files"
+            description="Show a confirmation dialog before permanently deleting a file."
+            checked={s.confirmDelete}
+            onChange={(v) => s.updateSetting('confirmDelete', v)}
+          />
+        )
+      },
+      {
+        id: 'showHiddenFiles',
+        label: 'Show hidden files',
+        description: 'Display dot-files and dot-folders (e.g. .git, .obsidian) in the file tree.',
+        category: 'files',
+        render: (s) => (
+          <Toggle
+            label="Show hidden files"
+            description="Display dot-files and dot-folders in the file tree."
+            checked={s.showHiddenFiles}
+            onChange={(v) => s.updateSetting('showHiddenFiles', v)}
+          />
+        )
+      },
+      {
+        id: 'excludedFolders',
+        label: 'Excluded folders',
+        description: 'Comma-separated folder names to hide from file tree and search index.',
+        category: 'files',
+        render: (s) => (
+          <TextInput
+            label="Excluded folders"
+            description="Comma-separated folder names to hide from file tree and search."
+            value={s.excludedFolders}
+            placeholder="node_modules, .git, .obsidian"
+            onChange={(v) => s.updateSetting('excludedFolders', v)}
+          />
+        )
+      },
+      {
+        id: 'fileSortBy',
+        label: 'Sort files by',
+        description: 'Default sort order for files and folders in the sidebar.',
+        category: 'files',
+        render: (s) => (
+          <Dropdown
+            label="Sort files by"
+            description="Default sort order in the file tree sidebar."
+            value={s.fileSortBy}
+            options={[
+              { value: 'name', label: 'Name (A→Z)' },
+              { value: 'created', label: 'Date created (newest first)' },
+              { value: 'modified', label: 'Date modified (newest first)' }
+            ]}
+            onChange={(v) => s.updateSetting('fileSortBy', v as any)}
           />
         )
       },
