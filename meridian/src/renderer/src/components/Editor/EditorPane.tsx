@@ -283,6 +283,10 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number } | null>(null)
 
+  const lastPathRef = useRef<string | null>(null)
+  const selectionRef = useRef<{ anchor: number; head: number } | null>(null)
+  const scrollRef = useRef<number | null>(null)
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -315,8 +319,10 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     fontFamily,
     fontWeight,
     lineHeight,
-    pluginsEnabled
+    pluginsEnabled,
+    showPreviewPane
   } = useSettingsStore()
+  const defaultViewMode = useSettingsStore((s) => s.defaultViewMode)
 
   const isProgrammaticUpdate = useRef(false)
 
@@ -455,9 +461,14 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   useEffect(() => {
     if (!editorRef.current || isCanvasFile || isDrawingFile || isDiffFile) return
 
+    const initialSelection = (lastPathRef.current === activeTabPath && selectionRef.current)
+      ? { anchor: selectionRef.current.anchor, head: selectionRef.current.head }
+      : undefined
+
     const view = new EditorView({
       state: EditorState.create({
         doc: activeTab?.content ?? '',
+        selection: initialSelection,
         extensions: [
           createMarkdownExtensions(
             handleChange,
@@ -474,7 +485,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             fontFamily,
             fontWeight,
             lineHeight,
-            pluginsEnabled.slashCommands
+            pluginsEnabled.slashCommands,
+            defaultViewMode === 'live-preview'
           ),
           EditorView.updateListener.of((update) => {
             if (!update.selectionSet && !update.docChanged) return
@@ -501,7 +513,22 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     })
 
     viewRef.current = view
+
+    if (lastPathRef.current === activeTabPath && scrollRef.current !== null) {
+      view.scrollDOM.scrollTop = scrollRef.current
+    }
+
+    // Reset temporary selection and scroll states
+    selectionRef.current = null
+    scrollRef.current = null
+    lastPathRef.current = activeTabPath
+
     return () => {
+      if (viewRef.current) {
+        const sel = viewRef.current.state.selection.main
+        selectionRef.current = { anchor: sel.anchor, head: sel.head }
+        scrollRef.current = viewRef.current.scrollDOM.scrollTop
+      }
       view.destroy()
       viewRef.current = null
       if (isActive) {
@@ -525,7 +552,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     isCanvasFile,
     isDrawingFile,
     isDiffFile,
-    isActive
+    isActive,
+    defaultViewMode
   ])
 
   // Sync content programmatically
@@ -555,18 +583,20 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'var(--text-secondary)',
           background: 'var(--bg-tertiary)',
-          
           boxSizing: 'border-box'
         }}
       >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
-            <FileIcon size={48} color="var(--border-color)" />
+        <div style={{ textAlign: 'center', userSelect: 'none' }}>
+          <div style={{ marginBottom: 12, opacity: 0.2 }}>
+            <FileIcon size={40} color="var(--text-primary)" />
           </div>
-          <p>Pane is empty</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Open a file or split screen</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 6px', fontWeight: 500 }}>
+            No file open
+          </p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0, opacity: 0.6 }}>
+            Open a file from the sidebar or press ⌘K
+          </p>
         </div>
       </div>
     )
@@ -620,7 +650,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             onContextMenu={handleContextMenu}
             style={{ flex: 1, overflow: 'auto', height: '100%', background: 'var(--bg-tertiary)' }}
           />
-          {activeTab && (
+          {activeTab && showPreviewPane && (
             <>
               <div style={{ width: 1, background: 'var(--border-color)' }} />
               <MarkdownPreview

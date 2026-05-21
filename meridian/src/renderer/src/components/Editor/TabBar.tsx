@@ -485,6 +485,21 @@ export function TabBar({ paneId }: TabBarProps) {
             },
             { separator: true },
             {
+              label: 'Split Vertically',
+              onClick: () => {
+                setActiveTab(contextMenu.path, paneId)
+                splitPane(paneId, 'vertical')
+              }
+            },
+            {
+              label: 'Split Horizontally',
+              onClick: () => {
+                setActiveTab(contextMenu.path, paneId)
+                splitPane(paneId, 'horizontal')
+              }
+            },
+            { separator: true },
+            {
               label: 'Reveal in Finder',
               onClick: () => revealFile(contextMenu.path)
             },

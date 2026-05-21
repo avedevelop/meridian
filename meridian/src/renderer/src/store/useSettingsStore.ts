@@ -1,5 +1,12 @@
 import { create } from 'zustand'
 
+export interface ColorGroupRule {
+  id: string
+  type: 'wildcard' | 'tag' | 'pattern'
+  value: string
+  color: string
+}
+
 export interface SettingsState {
   // Existing Editor settings
   fontSize: number // editor + preview font size in px, range 13–22
@@ -15,6 +22,8 @@ export interface SettingsState {
   fontFamily: 'Georgia' | 'Inter' | 'Fira Code' | 'system-ui' | 'JetBrains Mono'
   fontWeight: '300' | '400' | '500' | '700'
   lineHeight: number // 1.2 to 2.4
+  defaultViewMode: 'source' | 'live-preview'
+  showPreviewPane: boolean
 
   // New Auto-Save Settings
   autoSaveTrigger: 'off' | 'afterDelay' | 'onFocusChange' | 'onWindowBlur'
@@ -35,6 +44,9 @@ export interface SettingsState {
   accentColor: 'purple' | 'blue' | 'green' | 'orange' | 'red'
   theme: 'dark' | 'midnight' | 'indigo' | 'cyberpunk' | 'forest' | 'nord' | 'dracula' | 'obsidian'
   sidebarSide: 'left' | 'right'
+
+  // Graph Color Groups
+  colorGroups: ColorGroupRule[]
 
   // Plugins
   pluginsEnabled: {
@@ -80,6 +92,8 @@ const DEFAULTS: Omit<
   fontFamily: 'Georgia',
   fontWeight: '400',
   lineHeight: 1.8,
+  defaultViewMode: 'source',
+  showPreviewPane: true,
   autoSaveTrigger: 'afterDelay',
   autoSaveDelay: 5,
   closeBehavior: 'ask',
@@ -92,6 +106,7 @@ const DEFAULTS: Omit<
   accentColor: 'purple',
   theme: 'dark',
   sidebarSide: 'left',
+  colorGroups: [],
   pluginsEnabled: {
     dailyNotes: true,
     wordCounter: true,

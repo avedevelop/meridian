@@ -473,6 +473,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     () => [
       // EDITOR
       {
+        id: 'defaultViewMode',
+        label: 'Default view mode',
+        description: 'Choose between Source mode (raw markdown) and Live Preview (rendered inline).',
+        category: 'editor',
+        render: (s) => (
+          <Dropdown
+            label="Default view mode"
+            description="Source mode shows raw markdown syntax. Live Preview hides markup and renders it inline."
+            value={s.defaultViewMode}
+            options={[
+              { value: 'source', label: 'Source Mode' },
+              { value: 'live-preview', label: 'Live Preview' }
+            ]}
+            onChange={(v) => {
+              s.updateSetting('defaultViewMode', v)
+              s.updateSetting('showPreviewPane', v === 'source')
+            }}
+          />
+        )
+      },
+      {
         id: 'fontSize',
         label: 'Font size',
         description: 'Adjust the text font size of both the markdown editor and preview text.',
@@ -1377,7 +1398,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                       borderRadius: 4
                                     }}
                                   >
-                                    v1.0.0
+                                    v{(window as any).appInfo?.version ?? '1.0.0'}
                                   </span>
                                 </div>
                                 <span style={{ color: '#777', fontSize: 11, lineHeight: '1.4' }}>
@@ -1611,7 +1632,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
                               Version:
                             </span>
-                            <span style={{ color: '#eee' }}>1.0.0 Stable Build</span>
+                            <span style={{ color: '#eee' }}>v{(window as any).appInfo?.version ?? '1.0.0'}</span>
                           </div>
                           <div style={{ display: 'flex' }}>
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>

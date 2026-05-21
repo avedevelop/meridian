@@ -4,7 +4,9 @@ import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import type { VaultFile } from '@shared/types'
-import { SearchIcon, SettingsIcon, LinkIcon } from '../Icons'
+import { HistoryTimelineBar } from './HistoryTimelineBar'
+import { GraphSidebar, GROUP_COLORS } from './GraphSidebar'
+import { useSettingsStore, ColorGroupRule } from '../../store/useSettingsStore'
 
 interface GNode extends d3.SimulationNodeDatum {
   id: string
@@ -37,14 +39,6 @@ function flattenFiles(files: VaultFile[]): VaultFile[] {
   return files.flatMap((f) => (f.children ? [f, ...flattenFiles(f.children)] : [f]))
 }
 
-const GROUP_COLORS = {
-  canvas: '#b4befe', // Lavender
-  project: '#f5c2e7', // Pink
-  daily: '#a6e3a1', // Green
-  connected: '#89b4fa', // Blue
-  orphan: '#5c5f77' // Gray
-}
-
 function getNodeGroup(
   id: string,
   name: string,
@@ -54,6 +48,74 @@ function getNodeGroup(
   if (name.match(/^\d{4}-\d{2}-\d{2}$/)) return 'daily'
   if (id.includes('/Projects/') || id.includes('\\Projects\\')) return 'project'
   return degree > 0 ? 'connected' : 'orphan'
+}
+
+function getNodeColor(
+  id: string,
+  name: string,
+  degree: number,
+  colorGroups: ColorGroupRule[]
+): string {
+  for (const rule of colorGroups) {
+    if (!rule.value.trim()) continue
+
+    if (rule.type === 'wildcard') {
+      const normPath = id.replace(/\\/g, '/');
+      const normWildcard = rule.value.replace(/\\/g, '/');
+      const escaped = normWildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      const regex = new RegExp(escaped.startsWith('/') ? `^${escaped}` : `${escaped}`, 'i');
+      if (regex.test(normPath)) {
+        return rule.color;
+      }
+    } else if (rule.type === 'tag') {
+      const tags = useLinkStore.getState().tagsForFile(id);
+      const cleanRuleTag = rule.value.replace(/^#/, '').toLowerCase().trim();
+      const matched = tags.some((t) => t.toLowerCase().trim() === cleanRuleTag);
+      if (matched) {
+        return rule.color;
+      }
+    } else if (rule.type === 'pattern') {
+      if (name.toLowerCase().includes(rule.value.toLowerCase().trim())) {
+        return rule.color;
+      }
+    }
+  }
+
+  return GROUP_COLORS[getNodeGroup(id, name, degree)];
+}
+
+function getNodeGlowId(
+  id: string,
+  name: string,
+  degree: number,
+  colorGroups: ColorGroupRule[]
+): string {
+  for (const rule of colorGroups) {
+    if (!rule.value.trim()) continue
+
+    if (rule.type === 'wildcard') {
+      const normPath = id.replace(/\\/g, '/');
+      const normWildcard = rule.value.replace(/\\/g, '/');
+      const escaped = normWildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      const regex = new RegExp(escaped.startsWith('/') ? `^${escaped}` : `${escaped}`, 'i');
+      if (regex.test(normPath)) {
+        return `glow-grad-rule-${rule.id}`;
+      }
+    } else if (rule.type === 'tag') {
+      const tags = useLinkStore.getState().tagsForFile(id);
+      const cleanRuleTag = rule.value.replace(/^#/, '').toLowerCase().trim();
+      const matched = tags.some((t) => t.toLowerCase().trim() === cleanRuleTag);
+      if (matched) {
+        return `glow-grad-rule-${rule.id}`;
+      }
+    } else if (rule.type === 'pattern') {
+      if (name.toLowerCase().includes(rule.value.toLowerCase().trim())) {
+        return `glow-grad-rule-${rule.id}`;
+      }
+    }
+  }
+
+  return `glow-grad-${getNodeGroup(id, name, degree)}`;
 }
 
 const nodeR = (d: GNode) => (d.degree > 0 ? 8 + Math.min(d.degree * 2, 12) : 6)
@@ -67,11 +129,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const chunksRef = useRef<Blob[]>([])
   const progressRef = useRef(1)
   const visibleNodesRef = useRef<Set<string>>(new Set())
+  const modeHandlerRef = useRef<(mode: 'live' | 'history') => void>(() => {})
 
   const files = useVaultStore((s) => s.files)
   const outlinks = useLinkStore((s) => s.outlinks)
   const indexVersion = useLinkStore((s) => s.indexVersion)
   const { openFile } = useVaultBridge()
+  const colorGroups = useSettingsStore((s) => s.colorGroups) || []
 
   const [viewMode, setViewMode] = useState<'live' | 'history'>('live')
   const [progress, setProgress] = useState(1)
@@ -294,6 +358,40 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     day: 'numeric'
   })
 
+  const historyTicks = useMemo(() => {
+    if (maxTime === minTime) return []
+    const span = maxTime - minTime
+    const MS_MONTH = 30 * 86400000
+    const MS_YEAR = 365 * 86400000
+    const count = 6
+    return Array.from({ length: count + 1 }, (_, i) => {
+      const frac = i / count
+      const ts = minTime + span * frac
+      const d = new Date(ts)
+      let label: string
+      if (span > MS_YEAR * 1.5) {
+        label = String(d.getFullYear())
+      } else if (span > MS_MONTH * 2) {
+        label = d.toLocaleDateString('en-US', { month: 'short' })
+      } else {
+        label = String(d.getDate())
+      }
+      return { frac, label }
+    }).filter((t, i, arr) => t.frac > 0.04 && t.frac < 0.96 && (i === 0 || t.label !== arr[i - 1].label))
+  }, [minTime, maxTime])
+
+  const activityBuckets = useMemo(() => {
+    const BUCKETS = 80
+    const counts = new Array<number>(BUCKETS).fill(0)
+    birthtimes.forEach((ts) => {
+      const frac = (ts - minTime) / (maxTime - minTime)
+      const idx = Math.min(Math.floor(frac * BUCKETS), BUCKETS - 1)
+      counts[idx]++
+    })
+    const maxCount = Math.max(...counts, 1)
+    return counts.map((c) => c / maxCount)
+  }, [birthtimes, minTime, maxTime])
+
   const applyFiltersAndVisibility = useCallback(() => {
     const state = d3Ref.current
     if (!state) return
@@ -461,8 +559,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         if (targetId === d.id) connectedNodes.add(sourceId)
       })
 
-      const hoverGroup = getNodeGroup(d.id, d.name, d.degree)
-      const hoverColor = GROUP_COLORS[hoverGroup]
+      const hoverColor = getNodeColor(d.id, d.name, d.degree, colorGroups)
 
       d3.select(gEl)
         .select('circle.glow-halo')
@@ -578,13 +675,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       viewMode,
       birthtimes,
       minTime,
-      maxTime
+      maxTime,
+      colorGroups
     ]
   )
 
   const handleMouseOut = useCallback(
     (gEl: SVGGElement, d: GNode) => {
-      const group = getNodeGroup(d.id, d.name, d.degree)
+      const customColor = getNodeColor(d.id, d.name, d.degree, colorGroups)
 
       d3.select(gEl)
         .select('circle.glow-halo')
@@ -598,8 +696,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .transition()
         .duration(150)
         .attr('r', nodeR(d))
-        .attr('fill', GROUP_COLORS[group])
-        .attr('stroke', GROUP_COLORS[group])
+        .attr('fill', customColor)
+        .attr('stroke', customColor)
         .attr('stroke-width', 1.5)
         .style('filter', null)
 
@@ -620,7 +718,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       setHoveredNode(null)
       setHoverPreviewContent('')
     },
-    [textSize, applyFiltersAndVisibility]
+    [textSize, applyFiltersAndVisibility, colorGroups]
   )
 
   const handleMouseOverRef = useRef(handleMouseOver)
@@ -814,6 +912,19 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
           .attr('stop-opacity', 0)
       })
 
+      // Soft glow radial gradients for color groups
+      colorGroups.forEach((rule) => {
+        const grad = defs
+          .append('radialGradient')
+          .attr('id', `glow-grad-rule-${rule.id}`)
+          .attr('cx', '50%')
+          .attr('cy', '50%')
+          .attr('r', '50%')
+
+        grad.append('stop').attr('offset', '0%').attr('stop-color', rule.color).attr('stop-opacity', 0.7)
+        grad.append('stop').attr('offset', '100%').attr('stop-color', rule.color).attr('stop-opacity', 0)
+      })
+
       // Grid background
       const pattern = defs
         .append('pattern')
@@ -883,7 +994,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .append('circle')
         .attr('class', 'glow-halo')
         .attr('r', (d) => nodeR(d) + 8)
-        .attr('fill', (d) => `url(#glow-grad-${getNodeGroup(d.id, d.name, d.degree)})`)
+        .attr('fill', (d) => `url(#${getNodeGlowId(d.id, d.name, d.degree, colorGroups)})`)
         .attr('opacity', 0)
         .style('pointer-events', 'none')
         .style('transform-origin', 'center')
@@ -893,8 +1004,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         .append('circle')
         .attr('class', 'vis')
         .attr('r', 0)
-        .attr('fill', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
-        .attr('stroke', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
+        .attr('fill', (d) => getNodeColor(d.id, d.name, d.degree, colorGroups))
+        .attr('stroke', (d) => getNodeColor(d.id, d.name, d.degree, colorGroups))
         .attr('stroke-width', 1.5)
 
       nodeG
@@ -971,7 +1082,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     indexVersion,
     disabledCategories,
     strictFilter,
-    strictFilter ? debouncedSearchQuery : ''
+    strictFilter ? debouncedSearchQuery : '',
+    colorGroups
   ])
 
   useEffect(() => {
@@ -991,6 +1103,28 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
   }, [isPlaying, playDuration])
+
+  useEffect(() => {
+    if (viewMode !== 'history') return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (progress >= 1) setProgress(0)
+        setIsPlaying((p) => !p)
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault()
+        setIsPlaying(false)
+        setProgress((p) => Math.min(p + 0.01, 1))
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault()
+        setIsPlaying(false)
+        setProgress((p) => Math.max(p - 0.01, 0))
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [viewMode, progress])
 
   const renderFrameToCanvas = useCallback(() => {
     const state = d3Ref.current
@@ -1061,19 +1195,23 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         mediaRecorderRef.current?.stop()
         setIsRecording(false)
       }
+      // Reset so all nodes are treated as newly visible and get respawn animation
+      visibleNodesRef.current = new Set()
     } else {
-      setProgress(0)
+      setProgress(1)
       setIsPlaying(false)
+      setIsSettingsOpen(false)
     }
     // Notify header about mode change
     window.dispatchEvent(new CustomEvent('graph:mode-changed', { detail: mode }))
   }
+  modeHandlerRef.current = handleToggleMode
 
   // Listen for mode changes from the Sidebar header
   useEffect(() => {
     const handler = (e: Event) => {
       const mode = (e as CustomEvent).detail as 'live' | 'history'
-      handleToggleMode(mode)
+      modeHandlerRef.current(mode)
     }
     window.addEventListener('graph:set-mode', handler)
     // Notify header about initial mode
@@ -1092,511 +1230,31 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         position: 'relative'
       }}
     >
-      {/* Sidebar Toggle Button (if sidebar is closed) */}
-      {!isSettingsOpen && (
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          style={{
-            position: 'absolute',
-            top: 12,
-            left: 12,
-            zIndex: 100,
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 8,
-            width: 36,
-            height: 36,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: 'var(--text-primary)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            transition: 'all 0.2s ease',
-            backdropFilter: 'blur(8px)'
-          }}
-          title="Open Graph Settings & Analytics"
-        >
-          <SettingsIcon size={16} />
-        </button>
-      )}
-
-      {/* Slide-out Glassmorphic Sidebar */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          bottom: 12,
-          left: 12,
-          width: 320,
-          zIndex: 100,
-          background: 'rgba(20, 20, 26, 0.78)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: 12,
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          transform: isSettingsOpen ? 'translateX(0)' : 'translateX(-340px)',
-          opacity: isSettingsOpen ? 1 : 0,
-          pointerEvents: isSettingsOpen ? 'auto' : 'none'
-        }}
-      >
-        {/* Sidebar Header */}
-        <div
-          style={{
-            padding: '14px 16px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'rgba(0, 0, 0, 0.15)'
-          }}
-        >
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-primary)', opacity: 0.85 }}>
-            GRAPH ANALYSIS
-          </span>
-          <button
-            onClick={() => setIsSettingsOpen(false)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontSize: 14,
-              padding: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'color 0.15s ease'
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Sidebar Tab Navigation */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', flexShrink: 0 }}>
-          <button
-            onClick={() => setActiveSidebarTab('filters')}
-            style={{
-              flex: 1,
-              padding: '10px 0',
-              border: 'none',
-              background: activeSidebarTab === 'filters' ? 'rgba(255,255,255,0.03)' : 'transparent',
-              color: activeSidebarTab === 'filters' ? 'var(--accent-color)' : 'var(--text-secondary)',
-              borderBottom: activeSidebarTab === 'filters' ? '2px solid var(--accent-color)' : '2px solid transparent',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            Filters & Forces
-          </button>
-          <button
-            onClick={() => setActiveSidebarTab('analytics')}
-            style={{
-              flex: 1,
-              padding: '10px 0',
-              border: 'none',
-              background: activeSidebarTab === 'analytics' ? 'rgba(255,255,255,0.03)' : 'transparent',
-              color: activeSidebarTab === 'analytics' ? 'var(--accent-color)' : 'var(--text-secondary)',
-              borderBottom: activeSidebarTab === 'analytics' ? '2px solid var(--accent-color)' : '2px solid transparent',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            Insights & Hubs
-          </button>
-        </div>
-
-        {/* Sidebar Scrollable Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {activeSidebarTab === 'filters' ? (
-            <>
-              {/* Search Box */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>SEARCH VAULT</span>
-                <div
-                  style={{
-                    background: 'rgba(0, 0, 0, 0.25)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
-                  }}
-                >
-                  <SearchIcon size={13} color="var(--text-secondary)" style={{ opacity: 0.6 }} />
-                  <input
-                    type="text"
-                    placeholder="Search note nodes..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      color: 'var(--text-primary)',
-                      fontSize: 12,
-                      width: '100%'
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        fontSize: 10
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    fontSize: 11,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    color: 'var(--text-secondary)',
-                    marginTop: 2
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={strictFilter}
-                    onChange={(e) => setStrictFilter(e.target.checked)}
-                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
-                  />
-                  Strict Physics Subgraphing
-                </label>
-              </div>
-
-              {/* Force Presets */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>PHYSICS PRESETS</span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={() => {
-                      setLinkDistance(70)
-                      setRepulsionStrength(-80)
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '6px 0',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      background: linkDistance === 70 && repulsionStrength === -80 ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                      color: 'var(--text-primary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    Default
-                  </button>
-                  <button
-                    onClick={() => {
-                      setLinkDistance(45)
-                      setRepulsionStrength(-220)
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '6px 0',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      background: linkDistance === 45 && repulsionStrength === -220 ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                      color: 'var(--text-primary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    Dense
-                  </button>
-                  <button
-                    onClick={() => {
-                      setLinkDistance(125)
-                      setRepulsionStrength(-40)
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '6px 0',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      background: linkDistance === 125 && repulsionStrength === -40 ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                      color: 'var(--text-primary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    Galaxy
-                  </button>
-                </div>
-              </div>
-
-              {/* Interactive Legend Filters */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>INTERACTIVE LEGEND</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[
-                    { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
-                    { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
-                    { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
-                    { key: 'connected', label: 'Connected Notes', color: GROUP_COLORS.connected },
-                    { key: 'orphan', label: 'Orphan Notes', color: GROUP_COLORS.orphan }
-                  ].map((cat) => {
-                    const isDisabled = disabledCategories.has(cat.key)
-                    return (
-                      <button
-                        key={cat.key}
-                        onClick={() => toggleCategory(cat.key)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '6px 10px',
-                          borderRadius: 6,
-                          background: isDisabled ? 'rgba(255,255,255,0.01)' : 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                          cursor: 'pointer',
-                          color: isDisabled ? 'var(--text-secondary)' : 'var(--text-primary)',
-                          opacity: isDisabled ? 0.45 : 1,
-                          textAlign: 'left',
-                          fontSize: 12,
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color }} />
-                          <span>{cat.label}</span>
-                        </div>
-                        <span style={{ fontSize: 10, color: isDisabled ? 'var(--text-secondary)' : 'var(--accent-color)', fontWeight: 600 }}>
-                          {isDisabled ? 'HIDDEN' : 'VISIBLE'}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Force Sliders */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>PHYSICS FORCES</span>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Link distance</span>
-                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{linkDistance}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={30}
-                    max={200}
-                    value={linkDistance}
-                    onChange={(e) => setLinkDistance(Number(e.target.value))}
-                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Repulsion force</span>
-                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{Math.abs(repulsionStrength)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={-300}
-                    max={-20}
-                    value={repulsionStrength}
-                    onChange={(e) => setRepulsionStrength(Number(e.target.value))}
-                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
-                  />
-                </div>
-              </div>
-
-              {/* Display Options */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>DISPLAY SETTINGS</span>
-
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    color: 'var(--text-primary)'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={showArrows}
-                    onChange={(e) => setShowArrows(e.target.checked)}
-                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
-                  />
-                  Link direction arrows
-                </label>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Text size</span>
-                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{textSize}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={8}
-                    max={20}
-                    value={textSize}
-                    onChange={(e) => setTextSize(Number(e.target.value))}
-                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Link thickness</span>
-                    <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{linkThickness}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    value={linkThickness}
-                    onChange={(e) => setLinkThickness(Number(e.target.value))}
-                    style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Network Stats Card */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>VAULT NETWORK METRICS</span>
-                <div
-                  style={{
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 10,
-                    padding: 14,
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: 12
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>TOTAL NOTES</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.totalNodes}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>TOTAL LINKS</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.totalLinks}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>ORPHAN NOTES</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.orphans}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>DENSITY</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.density}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Top Hubs List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>TOP HUBS (MOST CONNECTED)</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {graphStats.hubs.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', opacity: 0.6, padding: 8 }}>
-                      No connections in network yet.
-                    </div>
-                  ) : (
-                    graphStats.hubs.map((hub, index) => (
-                      <button
-                        key={hub.id}
-                        onClick={() => focusNode(hub.id)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px 12px',
-                          borderRadius: 8,
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.05)',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
-                          e.currentTarget.style.borderColor = 'var(--accent-color)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
-                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '80%' }}>
-                          <span style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: '50%',
-                            background: 'rgba(255,255,255,0.06)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 10,
-                            color: 'var(--text-secondary)'
-                          }}>
-                            {index + 1}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 500,
-                              color: 'var(--text-primary)',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {hub.name}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <LinkIcon size={11} color="var(--accent-color)" />
-                          <span style={{ fontSize: 11, color: 'var(--accent-color)', fontWeight: 600 }}>
-                            {hub.degree}
-                          </span>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      <GraphSidebar
+        isSettingsOpen={isSettingsOpen}
+        setIsSettingsOpen={setIsSettingsOpen}
+        activeSidebarTab={activeSidebarTab}
+        setActiveSidebarTab={setActiveSidebarTab}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        strictFilter={strictFilter}
+        setStrictFilter={setStrictFilter}
+        disabledCategories={disabledCategories}
+        toggleCategory={toggleCategory}
+        linkDistance={linkDistance}
+        setLinkDistance={setLinkDistance}
+        repulsionStrength={repulsionStrength}
+        setRepulsionStrength={setRepulsionStrength}
+        showArrows={showArrows}
+        setShowArrows={setShowArrows}
+        textSize={textSize}
+        setTextSize={setTextSize}
+        linkThickness={linkThickness}
+        setLinkThickness={setLinkThickness}
+        isPhysicsRunning={isPhysicsRunning}
+        graphStats={graphStats}
+        focusNode={focusNode}
+      />
 
       <div
         ref={containerRef}
@@ -1606,116 +1264,21 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       </div>
 
       {viewMode === 'history' && (
-        <div
-          style={{
-            height: 60,
-            background: 'rgba(20, 20, 25, 0.8)',
-            backdropFilter: 'blur(12px)',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '0 16px',
-            flexShrink: 0
-          }}
-        >
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
-            {formattedDate}
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={1000}
-            value={Math.round(progress * 1000)}
-            onChange={(e) => {
-              setProgress(Number(e.target.value) / 1000)
-              setIsPlaying(false)
-            }}
-            style={{ flex: 1, accentColor: 'var(--accent-color)', cursor: 'pointer', height: 4 }}
-          />
-          <button
-            onClick={() => {
-              if (progress >= 1) setProgress(0)
-              setIsPlaying((p) => !p)
-            }}
-            style={{
-              background: 'var(--accent-color)',
-              border: 'none',
-              borderRadius: 6,
-              color: '#fff',
-              padding: '5px 14px',
-              cursor: 'pointer',
-              fontSize: 15,
-              flexShrink: 0
-            }}
-          >
-            {isPlaying ? '⏸' : '▶'}
-          </button>
-          <select
-            value={playDuration}
-            onChange={(e) => setPlayDuration(Number(e.target.value))}
-            style={{
-              background: 'rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              color: 'var(--text-secondary)',
-              borderRadius: 4,
-              padding: '4px 6px',
-              fontSize: 12,
-              cursor: 'pointer'
-            }}
-          >
-            <option value={10000}>10s</option>
-            <option value={20000}>20s</option>
-            <option value={40000}>40s</option>
-            <option value={60000}>60s</option>
-          </select>
-          {isRecording ? (
-            <button
-              onClick={stopRecording}
-              style={{
-                background: '#c62828',
-                border: 'none',
-                borderRadius: 6,
-                color: '#fff',
-                padding: '5px 14px',
-                cursor: 'pointer',
-                fontSize: 13,
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: '#fff',
-                  display: 'inline-block'
-                }}
-              />
-              Stop
-            </button>
-          ) : (
-            <button
-              onClick={startRecording}
-              title="Record graph animation as WebM video"
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: 6,
-                color: 'var(--text-primary)',
-                padding: '5px 14px',
-                cursor: 'pointer',
-                fontSize: 13,
-                flexShrink: 0
-              }}
-            >
-              ⏺ Record
-            </button>
-          )}
-        </div>
+        <HistoryTimelineBar
+          progress={progress}
+          setProgress={setProgress}
+          isPlaying={isPlaying}
+          setIsPlaying={setIsPlaying}
+          playDuration={playDuration}
+          setPlayDuration={setPlayDuration}
+          isRecording={isRecording}
+          startRecording={startRecording}
+          stopRecording={stopRecording}
+          isSettingsOpen={isSettingsOpen}
+          formattedDate={formattedDate}
+          activityBuckets={activityBuckets}
+          historyTicks={historyTicks}
+        />
       )}
 
 
@@ -1724,7 +1287,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 80 : 24,
+          bottom: viewMode === 'history' ? 106 : 24,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'rgba(20, 20, 26, 0.85)',
@@ -1787,7 +1350,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: viewMode === 'history' ? 80 : 24,
+          bottom: viewMode === 'history' ? 106 : 24,
           right: 24,
           background: 'rgba(20, 20, 26, 0.85)',
           backdropFilter: 'blur(12px)',

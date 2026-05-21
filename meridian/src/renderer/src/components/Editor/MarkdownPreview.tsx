@@ -184,7 +184,7 @@ export function MarkdownPreview({
           `${imgTag} style="max-width:100%;height:auto;border-radius:4px"${pre}vault:///${src}${post}`
       )
     } catch {
-      return '<p>Preview error</p>'
+      return '<div style="padding:16px;color:#f87171;font-size:13px;display:flex;align-items:center;gap:8px">⚠ Preview rendering error — check your markdown syntax</div>'
     }
   }, [content, vaultPath, files])
 

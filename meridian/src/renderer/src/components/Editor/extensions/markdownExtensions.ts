@@ -1,4 +1,5 @@
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
+import { GFM } from '@lezer/markdown'
 import { languages } from '@codemirror/language-data'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { keymap, EditorView } from '@codemirror/view'
@@ -29,6 +30,7 @@ import { wikiLinkExtension } from './wikiLinkExtension'
 import { makeWikiLinkSource, makeWikiLinkTriggerListener } from './wikiLinkCompletion'
 import { imagePasteExtension } from './imagePaste'
 import { makeSlashSource } from './slashCommands'
+import { livePreviewExtension } from './livePreview'
 
 function getFontFamilyValue(font: string) {
   switch (font) {
@@ -112,8 +114,10 @@ export function createMarkdownExtensions(
   fontFamily = 'Georgia',
   fontWeight = '400',
   lineHeight = 1.8,
-  slashCommandsEnabled = false
+  slashCommandsEnabled = false,
+  livePreviewEnabled = false
 ) {
+  console.log('[createMarkdownExtensions] livePreviewEnabled:', livePreviewEnabled)
   return [
     oneDark,
     createMeridianTheme(fontSize, lineWidth, readableLineLength, fontFamily, fontWeight, lineHeight),
@@ -143,7 +147,7 @@ export function createMarkdownExtensions(
       ...completionKeymap,
       ...lintKeymap
     ]),
-    markdown({ base: markdownLanguage, codeLanguages: languages }),
+    markdown({ base: markdownLanguage, codeLanguages: languages, extensions: GFM }),
     onLinkClick ? wikiLinkExtension(onLinkClick) : [],
     // Single autocompletion with all sources — avoids "Config merge conflict for field override"
     autocompletion({
@@ -161,6 +165,7 @@ export function createMarkdownExtensions(
           if (update.docChanged) onChange(update.state.doc.toString())
         })
       : [],
-    onImagePaste ? imagePasteExtension(onImagePaste) : []
+    onImagePaste ? imagePasteExtension(onImagePaste) : [],
+    livePreviewEnabled ? livePreviewExtension() : []
   ]
 }

@@ -2,6 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/types'
 import type { VaultFileChangeEvent, VaultFile, VaultConfig, AppConfig } from '../shared/types'
 
+const appInfo = {
+  version: process.env.npm_package_version ?? '1.0.0'
+}
+
 const vaultAPI = {
   openDialog: (): Promise<VaultConfig | null> => ipcRenderer.invoke(IPC.VAULT_OPEN_DIALOG),
 
@@ -88,6 +92,7 @@ const settingsAPI = {
     ipcRenderer.invoke(IPC.PREFERENCES_SET, prefs)
 }
 
+contextBridge.exposeInMainWorld('appInfo', appInfo)
 contextBridge.exposeInMainWorld('vault', vaultAPI)
 contextBridge.exposeInMainWorld('settings', settingsAPI)
 contextBridge.exposeInMainWorld('menuAPI', {
