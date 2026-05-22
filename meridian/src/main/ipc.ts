@@ -247,7 +247,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     }
   })
 
-  ipcMain.handle(IPC.VAULT_EXPORT_HTML, async (_event, suggestedName: string, html: string) => {
+  ipcMain.handle(IPC.VAULT_EXPORT_HTML, async (_event, suggestedName: string, html: string, customCSS: string = '') => {
     const result = await dialog.showSaveDialog({
       title: 'Export Note as HTML',
       defaultPath: suggestedName,
@@ -255,12 +255,15 @@ export function registerIpcHandlers(settings: AppSettings): void {
       buttonLabel: 'Export'
     })
     if (result.canceled || !result.filePath) return null
+    const finalHtml = customCSS
+      ? html.replace('</head>', `<style>${customCSS}</style></head>`)
+      : html
     const { writeFile } = await import('fs/promises')
-    await writeFile(result.filePath, html, 'utf-8')
+    await writeFile(result.filePath, finalHtml, 'utf-8')
     return result.filePath
   })
 
-  ipcMain.handle(IPC.VAULT_EXPORT_PDF, async (_event, suggestedName: string, html: string) => {
+  ipcMain.handle(IPC.VAULT_EXPORT_PDF, async (_event, suggestedName: string, html: string, pageSize: 'A4' | 'Letter' = 'A4', customCSS: string = '') => {
     const { filePath } = await dialog.showSaveDialog({
       title: 'Export Note as PDF',
       defaultPath: suggestedName,
@@ -274,14 +277,18 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const { writeFile: wf, unlink } = await import('fs/promises')
     const tmpHtml = joinPath(tmpdir(), `meridian-pdf-${Date.now()}.html`)
 
+    const finalHtml = customCSS
+      ? html.replace('</head>', `<style>${customCSS}</style></head>`)
+      : html
+
     try {
-      await wf(tmpHtml, html, 'utf-8')
+      await wf(tmpHtml, finalHtml, 'utf-8')
       const { BrowserWindow: BW } = await import('electron')
       const win = new BW({ show: false, webPreferences: { javascript: false, sandbox: true } })
       await win.loadFile(tmpHtml)
       const pdfData = await win.webContents.printToPDF({
         printBackground: true,
-        pageSize: 'A4'
+        pageSize: pageSize
       })
       win.close()
       await wf(filePath, pdfData)

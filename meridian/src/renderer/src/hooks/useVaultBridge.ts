@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
 import { useLinkStore } from '../store/useLinkStore'
+import { useSettingsStore } from '../store/useSettingsStore'
 import type { VaultConfig, VaultFile, VaultFileChangeEvent } from '@shared/types'
 import { restoreSession } from './useSessionPersist'
 
@@ -37,8 +38,8 @@ declare global {
       openByPath: (path: string) => Promise<VaultConfig | null>
       onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
-      exportHtml: (suggestedName: string, html: string) => Promise<string | null>
-      exportPdf: (suggestedName: string, html: string) => Promise<string | null>
+      exportHtml: (suggestedName: string, html: string, customCSS?: string) => Promise<string | null>
+      exportPdf: (suggestedName: string, html: string, pageSize?: string, customCSS?: string) => Promise<string | null>
       saveVideo: (data: Uint8Array) => Promise<string | null>
       fetchUrlMetadata: (
         url: string
@@ -397,6 +398,8 @@ export function useVaultBridge() {
     if (!activeTab) return
 
     try {
+      const { exportCustomCSS, exportIncludeFrontmatter } = useSettingsStore.getState()
+
       const { unified } = await import('unified')
       const { default: remarkParse } = await import('remark-parse')
       const { default: remarkGfm } = await import('remark-gfm')
@@ -411,7 +414,12 @@ export function useVaultBridge() {
         .use(rehypeSanitize)
         .use(rehypeStringify)
 
-      const bodyHtml = String(processor.processSync(activeTab.content))
+      let mdContent = activeTab.content
+      if (!exportIncludeFrontmatter) {
+        mdContent = mdContent.replace(/^---[\s\S]*?---\n?/, '')
+      }
+
+      const bodyHtml = String(processor.processSync(mdContent))
       const title = activeTab.name.replace(/\.md$/i, '')
       const escapedTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -448,7 +456,7 @@ ${bodyHtml}
 </body>
 </html>`
 
-      const result = await window.vault.exportHtml(`${title}.html`, fullHtml)
+      const result = await window.vault.exportHtml(`${title}.html`, fullHtml, exportCustomCSS)
       if (result) console.log('[Bridge] exported to', result)
     } catch (e) {
       console.error('[Bridge] exportNote error', e)
@@ -463,6 +471,8 @@ ${bodyHtml}
     if (!activeTab) return
 
     try {
+      const { exportCustomCSS, pdfPageSize, exportIncludeFrontmatter } = useSettingsStore.getState()
+
       const { unified } = await import('unified')
       const { default: remarkParse } = await import('remark-parse')
       const { default: remarkGfm } = await import('remark-gfm')
@@ -477,7 +487,12 @@ ${bodyHtml}
         .use(rehypeSanitize)
         .use(rehypeStringify)
 
-      const bodyHtml = String(processor.processSync(activeTab.content))
+      let mdContent = activeTab.content
+      if (!exportIncludeFrontmatter) {
+        mdContent = mdContent.replace(/^---[\s\S]*?---\n?/, '')
+      }
+
+      const bodyHtml = String(processor.processSync(mdContent))
       const title = activeTab.name.replace(/\.md$/i, '')
       const escapedTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -507,7 +522,7 @@ ${bodyHtml}
 <body>${bodyHtml}</body>
 </html>`
 
-      const result = await window.vault.exportPdf(`${title}.pdf`, fullHtml)
+      const result = await window.vault.exportPdf(`${title}.pdf`, fullHtml, pdfPageSize, exportCustomCSS)
       if (result) console.log('[Bridge] PDF exported to', result)
     } catch (e) {
       console.error('[Bridge] exportPdf error', e)

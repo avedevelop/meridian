@@ -26,11 +26,11 @@ const vaultAPI = {
   writeBinary: (filePath: string, base64: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_WRITE_BINARY, filePath, base64),
 
-  exportHtml: (suggestedName: string, html: string): Promise<string | null> =>
-    ipcRenderer.invoke(IPC.VAULT_EXPORT_HTML, suggestedName, html),
+  exportHtml: (name: string, html: string, customCSS?: string): Promise<string | null> =>
+    ipcRenderer.invoke(IPC.VAULT_EXPORT_HTML, name, html, customCSS ?? ''),
 
-  exportPdf: (suggestedName: string, html: string): Promise<string | null> =>
-    ipcRenderer.invoke(IPC.VAULT_EXPORT_PDF, suggestedName, html),
+  exportPdf: (name: string, html: string, pageSize?: string, customCSS?: string): Promise<string | null> =>
+    ipcRenderer.invoke(IPC.VAULT_EXPORT_PDF, name, html, pageSize ?? 'A4', customCSS ?? ''),
 
   saveVideo: (data: Uint8Array): Promise<string | null> =>
     ipcRenderer.invoke(IPC.VAULT_SAVE_VIDEO, data),

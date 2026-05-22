@@ -115,6 +115,7 @@ export default function App() {
   const uiZoom = useSettingsStore((s) => s.uiZoom)
   const compactMode = useSettingsStore((s) => s.compactMode)
   const showStatusBar = useSettingsStore((s) => s.showStatusBar)
+  const defaultExportFormat = useSettingsStore((s) => s.defaultExportFormat)
 
   // Load preferences from disk on mount
   useEffect(() => {
@@ -269,9 +270,13 @@ export default function App() {
           e.preventDefault()
           openDailyNote()
         }
-        if (e.key === 'e') {
+        if (e.key === 'e' && !e.shiftKey) {
           e.preventDefault()
-          exportNote()
+          if (defaultExportFormat === 'pdf') {
+            exportPdf()
+          } else {
+            exportNote()
+          }
         }
         if (e.key === 'b') {
           // Let CodeMirror handle Cmd+B when the editor is focused
@@ -295,7 +300,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [openVault, openDailyNote, exportNote])
+  }, [openVault, openDailyNote, exportNote, exportPdf, defaultExportFormat])
 
   useEffect(() => {
     const handler = () => setSettingsOpen(true)
