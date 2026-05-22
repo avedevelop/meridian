@@ -61,10 +61,22 @@ npm run build
 ## Roadmap
 
 - [x] Phase 1 — Core: vault manager, CodeMirror editor, file tree, tabs
-- [ ] Phase 2 — Links: wiki-links, backlinks, graph view, search, command palette
-- [ ] Phase 3 — Polish: themes, daily notes, templates, outline
-- [ ] Phase 4 — Plugins: plugin API, manager UI, community plugins
-- [ ] Phase 5 — Canvas: infinite whiteboard, note cards, connections
+- [x] Phase 2 — Links: wiki-links, backlinks, graph view, search, command palette
+- [x] Phase 3 — Polish: themes, daily notes, templates, outline
+- [x] Phase 4 — Plugins: plugin API, manager UI, community plugins
+- [x] Phase 5 — Canvas: infinite whiteboard, note cards, connections
+
+---
+
+## Maintenance & Guardrails
+
+To preserve modularity and keep the codebase clean, we enforce component file-size limits. See [meridian/ARCHITECTURE.md](meridian/ARCHITECTURE.md) for full details.
+
+Run the file size checks with:
+```bash
+cd meridian
+npm run check-lines
+```
 
 ---
 
