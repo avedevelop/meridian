@@ -8,7 +8,7 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
-    "check-lines": "find src/renderer/src/components -name '*.tsx' -exec wc -l {} + | awk '$2 !~ /(total|SettingsContent|CanvasStage|SketchpadView|Sidebar|GraphSidebar|Layout|TabBar)/ && $1 > 500 { print \"Error: File \" $2 \" has \" $1 \" lines, exceeding the 500-line strict limit.\"; err = 1 } END { exit err }'",
+    "check-lines": "find src/renderer/src/components -name '*.tsx' -exec wc -l {} + | awk '$2 !~ /(total|SketchpadView|Sidebar|GraphSidebar|Layout|TabBar)/ && $1 > 500 { print \"Error: File \" $2 \" has \" $1 \" lines, exceeding the 500-line strict limit.\"; err = 1 } END { exit err }'",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
