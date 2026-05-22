@@ -360,6 +360,10 @@ export function registerIpcHandlers(settings: AppSettings): void {
     }
   })
 
+  ipcMain.handle(IPC.OPEN_PATH, async (_event, filePath: string) => {
+    await shell.openPath(filePath)
+  })
+
   ipcMain.handle(IPC.VAULT_OPEN_EXTERNAL, async (_event, url: string) => {
     try {
       const parsed = new URL(url)

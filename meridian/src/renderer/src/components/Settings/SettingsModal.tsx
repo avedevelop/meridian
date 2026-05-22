@@ -2183,7 +2183,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               const vault = window.vault as any
                               if (vault?.getConfigPath) {
                                 const p = await vault.getConfigPath()
-                                if (p) window.vault.openExternal('file://' + p)
+                                if (p) vault.openPath(p)
                               }
                             }}
                             style={{ padding: '10px 16px', background: '#161616', border: '1px solid #252525', borderRadius: 8, color: '#eee', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}

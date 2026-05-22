@@ -98,7 +98,8 @@ const vaultAPI = {
   },
 
   setSpellLanguage: (lang: string) => ipcRenderer.invoke(IPC.SPELL_SET_LANGUAGE, lang),
-  getConfigPath: () => ipcRenderer.invoke(IPC.GET_CONFIG_PATH)
+  getConfigPath: () => ipcRenderer.invoke(IPC.GET_CONFIG_PATH),
+  openPath: (filePath: string) => ipcRenderer.invoke(IPC.OPEN_PATH, filePath)
 }
 
 const settingsAPI = {
