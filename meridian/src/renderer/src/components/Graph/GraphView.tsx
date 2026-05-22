@@ -2,17 +2,15 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import * as d3 from 'd3'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultStore } from '../../store/useVaultStore'
-import { HistoryTimelineBar } from './HistoryTimelineBar'
-import { GraphSidebar, GROUP_COLORS } from './GraphSidebar'
+import { GraphSidebar } from './GraphSidebar'
 import type { GNode, GraphViewProps } from './graphTypes'
 import { flattenFiles, nodeR } from './graphLayout'
 import { useGraphTimeline } from './useGraphTimeline'
 import { useGraphSimulation } from './useGraphSimulation'
+import { useGraphRecording } from './useGraphRecording'
+import { GraphControls } from './GraphControls'
 
 export function GraphView({ onFileOpen }: GraphViewProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
   const modeHandlerRef = useRef<(mode: 'live' | 'history') => void>(() => {})
 
   const files = useVaultStore((s) => s.files)
@@ -20,7 +18,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const indexVersion = useLinkStore((s) => s.indexVersion)
 
   const [viewMode, setViewMode] = useState<'live' | 'history'>('live')
-  const [isRecording, setIsRecording] = useState(false)
 
   const {
     progress,
@@ -78,6 +75,21 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     minTime,
     maxTime,
     onFileOpen
+  })
+
+  const {
+    canvasRef,
+    isRecording,
+    startRecording,
+    stopRecording,
+    cancelRecording
+  } = useGraphRecording({
+    d3Ref,
+    containerRef,
+    progress,
+    isPlaying,
+    setIsPlaying,
+    setProgress
   })
 
   useEffect(() => {
@@ -226,75 +238,11 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     )
   }, [d3Ref, zoomBehaviorRef])
 
-  const renderFrameToCanvas = useCallback(() => {
-    const state = d3Ref.current
-    const canvas = canvasRef.current
-    if (!state || !canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const data = new XMLSerializer().serializeToString(state.svgEl)
-    const blob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const img = new Image()
-    img.onload = () => {
-      ctx.fillStyle = '#161616'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.drawImage(img, 0, 0)
-      URL.revokeObjectURL(url)
-    }
-    img.src = url
-  }, [])
-
-  useEffect(() => {
-    if (isRecording) renderFrameToCanvas()
-  }, [progress, isRecording, renderFrameToCanvas])
-
-  useEffect(() => {
-    if (isRecording && !isPlaying && progress >= 1) {
-      const t = setTimeout(() => mediaRecorderRef.current?.stop(), 600)
-      return () => clearTimeout(t)
-    }
-    return
-  }, [isRecording, isPlaying, progress])
-
-  const startRecording = useCallback(() => {
-    const el = containerRef.current
-    const canvas = canvasRef.current
-    if (!el || !canvas) return
-    canvas.width = el.clientWidth
-    canvas.height = el.clientHeight
-    const stream = canvas.captureStream(15)
-    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' })
-    chunksRef.current = []
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data)
-    }
-    recorder.onstop = async () => {
-      setIsRecording(false)
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' })
-      const buf = await blob.arrayBuffer()
-      await window.vault.saveVideo(new Uint8Array(buf))
-    }
-    recorder.start(200)
-    mediaRecorderRef.current = recorder
-    setIsRecording(true)
-    setProgress(0)
-    setIsPlaying(true)
-  }, [])
-
-  const stopRecording = useCallback(() => {
-    mediaRecorderRef.current?.stop()
-    setIsPlaying(false)
-  }, [])
-
   const handleToggleMode = (mode: 'live' | 'history') => {
     setViewMode(mode)
     if (mode === 'live') {
       setIsPlaying(false)
-      if (isRecording) {
-        mediaRecorderRef.current?.stop()
-        setIsRecording(false)
-      }
+      cancelRecording()
     } else {
       setProgress(1)
       setIsPlaying(false)
@@ -361,217 +309,29 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
 
-      {viewMode === 'history' && (
-        <HistoryTimelineBar
-          progress={progress}
-          setProgress={setProgress}
-          isPlaying={isPlaying}
-          setIsPlaying={setIsPlaying}
-          playDuration={playDuration}
-          setPlayDuration={setPlayDuration}
-          isRecording={isRecording}
-          startRecording={startRecording}
-          stopRecording={stopRecording}
-          isSettingsOpen={isSettingsOpen}
-          formattedDate={formattedDate}
-          activityBuckets={activityBuckets}
-          historyTicks={historyTicks}
-        />
-      )}
-
-
-
-      {/* Floating Legend / Quick Category Filter (Bottom-Center) */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: viewMode === 'history' ? 106 : 24,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(20, 20, 26, 0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: 8,
-          padding: '6px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          zIndex: 20,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.5, marginRight: 2 }}>
-          ⬡
-        </span>
-        {([
-          { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
-          { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
-          { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
-          { key: 'connected', label: 'Connected', color: GROUP_COLORS.connected },
-          { key: 'orphan', label: 'Orphans', color: GROUP_COLORS.orphan }
-        ] as const).map((cat) => {
-          const isDisabled = disabledCategories.has(cat.key)
-          return (
-            <button
-              key={cat.key}
-              onClick={() => toggleCategory(cat.key)}
-              style={{
-                background: isDisabled ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.08)',
-                border: 'none',
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '4px 10px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                opacity: isDisabled ? 0.4 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!isDisabled) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'
-              }}
-              onMouseLeave={(e) => {
-                if (!isDisabled) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-              }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color }} />
-              <span style={{ fontSize: 11, color: 'var(--text-primary)', textDecoration: isDisabled ? 'line-through' : 'none' }}>
-                {cat.label}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Floating Navigation & Physics Controls HUD (Bottom-Right) */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: viewMode === 'history' ? 106 : 24,
-          right: 24,
-          background: 'rgba(20, 20, 26, 0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: 8,
-          padding: '6px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          zIndex: 20,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)'
-        }}
-      >
-        <button
-          onClick={handleZoomIn}
-          title="Zoom In"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.15s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-            e.currentTarget.style.color = 'var(--accent-color)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'var(--text-secondary)'
-          }}
-        >
-          <span style={{ fontSize: 14, fontWeight: 'bold' }}>＋</span>
-        </button>
-        <button
-          onClick={handleZoomOut}
-          title="Zoom Out"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.15s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-            e.currentTarget.style.color = 'var(--accent-color)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'var(--text-secondary)'
-          }}
-        >
-          <span style={{ fontSize: 14, fontWeight: 'bold' }}>－</span>
-        </button>
-        <button
-          onClick={handleRecenter}
-          title="Recenter & Fit View"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.15s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-            e.currentTarget.style.color = 'var(--accent-color)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'var(--text-secondary)'
-          }}
-        >
-          <span style={{ fontSize: 14 }}>⊙</span>
-        </button>
-        
-        <div style={{ width: 1, height: 14, background: 'rgba(255, 255, 255, 0.12)' }} />
-
-        <button
-          onClick={handleTogglePhysics}
-          title={isPhysicsRunning ? "Pause Physics Simulation" : "Resume Physics Simulation"}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: isPhysicsRunning ? 'var(--accent-color)' : 'var(--text-secondary)',
-            cursor: 'pointer',
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.15s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-          }}
-        >
-          <span style={{ fontSize: 12 }}>{isPhysicsRunning ? '⏸' : '▶'}</span>
-        </button>
-      </div>
+      <GraphControls
+        viewMode={viewMode}
+        disabledCategories={disabledCategories}
+        toggleCategory={toggleCategory}
+        isPhysicsRunning={isPhysicsRunning}
+        handleTogglePhysics={handleTogglePhysics}
+        handleZoomIn={handleZoomIn}
+        handleZoomOut={handleZoomOut}
+        handleRecenter={handleRecenter}
+        progress={progress}
+        setProgress={setProgress}
+        isPlaying={isPlaying}
+        setIsPlaying={setIsPlaying}
+        playDuration={playDuration}
+        setPlayDuration={setPlayDuration}
+        isRecording={isRecording}
+        startRecording={startRecording}
+        stopRecording={stopRecording}
+        isSettingsOpen={isSettingsOpen}
+        formattedDate={formattedDate}
+        activityBuckets={activityBuckets}
+        historyTicks={historyTicks}
+      />
 
       {hoveredNode && (
         <div
