@@ -11,169 +11,29 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { TrashIcon, NoteConvertIcon, FrameIcon } from '../Icons'
 import { useTranslation } from 'react-i18next'
 
-/* ------------------------------------------------------------------ */
-/*  Data model                                                         */
-/* ------------------------------------------------------------------ */
-
-export interface CanvasNodeData {
-  id: string
-  type: 'text' | 'file' | 'frame'
-  x: number
-  y: number
-  width: number
-  height: number
-  text: string
-  file?: string
-  color?: string
-}
-
-export interface CanvasEdgeData {
-  id: string
-  fromNode: string
-  toNode: string
-  fromSide: 'top' | 'right' | 'bottom' | 'left'
-  toSide: 'top' | 'right' | 'bottom' | 'left'
-}
-
-export interface CanvasData {
-  nodes: CanvasNodeData[]
-  edges: CanvasEdgeData[]
-}
-
-/* ------------------------------------------------------------------ */
-/*  Props                                                              */
-/* ------------------------------------------------------------------ */
-
-interface CanvasViewProps {
-  filePath: string
-  content: string
-  onSave: (path: string, content: string) => void
-}
-
-/* ------------------------------------------------------------------ */
-/*  Constants                                                          */
-/* ------------------------------------------------------------------ */
-
-const BG = '#161616'
-const NODE_FILL = '#1e1e2e'
-const NODE_STROKE = '#3a3a5a'
-const NODE_SELECTED_STROKE = '#7c6af7'
-const EDGE_COLOR = '#7c6af7'
-const DOT_COLOR = '#2a2a2a'
-const DOT_SPACING = 30
-const DOT_RADIUS = 1
-const SCALE_BY = 1.05
-const MIN_SCALE = 0.1
-const MAX_SCALE = 5
-const SAVE_DEBOUNCE_MS = 500
-const DEFAULT_NODE_W = 200
-const DEFAULT_NODE_H = 80
-const FONT_FAMILY = 'Inter, -apple-system, sans-serif'
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-
-function parseCanvasData(raw: string): CanvasData {
-  try {
-    const parsed = JSON.parse(raw) as Partial<CanvasData>
-    return {
-      nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
-      edges: Array.isArray(parsed.edges) ? parsed.edges : []
-    }
-  } catch {
-    return { nodes: [], edges: [] }
-  }
-}
-
-function nodeCenter(n: CanvasNodeData): { x: number; y: number } {
-  return { x: n.x + n.width / 2, y: n.y + n.height / 2 }
-}
-
-function getContrastColor(hexColor: string | undefined): string {
-  if (!hexColor) return '#ccc' // default text color for dark node
-  const hex = hexColor.replace('#', '')
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000
-  return yiq >= 128 ? '#111' : '#ccc'
-}
-
-function isUrl(str: string): boolean {
-  try {
-    const trimmed = str.trim()
-    const url = new URL(trimmed)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
-function getEdgePoints(
-  from: CanvasNodeData,
-  to: CanvasNodeData,
-  style: 'straight' | 'curved' | 'orthogonal'
-): { points: number[]; bezier?: boolean } {
-  const fc = { x: from.x + from.width / 2, y: from.y + from.height / 2 }
-  const tc = { x: to.x + to.width / 2, y: to.y + to.height / 2 }
-
-  let p1 = { x: fc.x, y: fc.y }
-  let p2 = { x: tc.x, y: tc.y }
-
-  const dx = tc.x - fc.x
-  const dy = tc.y - fc.y
-
-  if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx > 0) {
-      p1 = { x: from.x + from.width, y: fc.y }
-      p2 = { x: to.x, y: tc.y }
-    } else {
-      p1 = { x: from.x, y: fc.y }
-      p2 = { x: to.x + to.width, y: tc.y }
-    }
-  } else {
-    if (dy > 0) {
-      p1 = { x: fc.x, y: from.y + from.height }
-      p2 = { x: tc.x, y: to.y }
-    } else {
-      p1 = { x: fc.x, y: from.y }
-      p2 = { x: tc.x, y: to.y + to.height }
-    }
-  }
-
-  if (style === 'curved') {
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    const offset = Math.min(100, dist * 0.4)
-    let cp1x = p1.x
-    let cp1y = p1.y
-    let cp2x = p2.x
-    let cp2y = p2.y
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-      cp1x += dx > 0 ? offset : -offset
-      cp2x += dx > 0 ? -offset : offset
-    } else {
-      cp1y += dy > 0 ? offset : -offset
-      cp2y += dy > 0 ? -offset : offset
-    }
-
-    return {
-      points: [p1.x, p1.y, cp1x, cp1y, cp2x, cp2y, p2.x, p2.y],
-      bezier: true
-    }
-  } else if (style === 'orthogonal') {
-    if (Math.abs(dx) > Math.abs(dy)) {
-      const midX = p1.x + dx / 2
-      return { points: [p1.x, p1.y, midX, p1.y, midX, p2.y, p2.x, p2.y] }
-    } else {
-      const midY = p1.y + dy / 2
-      return { points: [p1.x, p1.y, p1.x, midY, p2.x, midY, p2.x, p2.y] }
-    }
-  }
-
-  return { points: [p1.x, p1.y, p2.x, p2.y] }
-}
+import { CanvasNodeData, CanvasEdgeData, CanvasData, CanvasViewProps } from './canvasTypes'
+import {
+  BG,
+  NODE_FILL,
+  NODE_STROKE,
+  NODE_SELECTED_STROKE,
+  EDGE_COLOR,
+  DOT_COLOR,
+  DOT_SPACING,
+  DOT_RADIUS,
+  SCALE_BY,
+  MIN_SCALE,
+  MAX_SCALE,
+  SAVE_DEBOUNCE_MS,
+  DEFAULT_NODE_W,
+  DEFAULT_NODE_H,
+  FONT_FAMILY,
+  parseCanvasData,
+  nodeCenter,
+  getContrastColor,
+  isUrl,
+  getEdgePoints
+} from './canvasTools'
 
 /* ------------------------------------------------------------------ */
 /*  Dot-grid background                                                */
