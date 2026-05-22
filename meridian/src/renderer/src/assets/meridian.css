@@ -123,3 +123,10 @@ body,
 button {
   user-select: none;
 }
+
+[data-compact="true"] .cm-content {
+  line-height: 1.4;
+}
+[data-compact="true"] .cm-editor {
+  font-size: 12px;
+}

@@ -128,6 +128,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
   }: MarkdownPreviewProps, scrollRef) {
   const { fontFamily, fontWeight, lineHeight } = useSettingsStore()
   const codeBlockTheme = useSettingsStore((s) => s.codeBlockTheme)
+  const previewFontFamily = useSettingsStore((s) => s.previewFontFamily)
   const { files } = useVaultStore()
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -171,6 +172,21 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
         return 'Georgia, serif'
     }
   }, [fontFamily])
+
+  const previewFontFamilyValue = useMemo(() => {
+    switch (previewFontFamily) {
+      case 'Georgia':
+        return 'Georgia, serif'
+      case 'Inter':
+        return 'Inter, sans-serif'
+      case 'JetBrains Mono':
+        return '"JetBrains Mono", monospace'
+      case 'system-ui':
+        return 'system-ui, -apple-system, sans-serif'
+      default:
+        return 'Georgia, serif'
+    }
+  }, [previewFontFamily])
 
   const html = useMemo(() => {
     try {
@@ -324,7 +340,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
         fontSize,
         lineHeight: String(lineHeight),
         fontWeight: fontWeight,
-        fontFamily: fontFamilyValue,
+        fontFamily: previewFontFamilyValue,
         background: 'var(--bg-primary)',
         maxWidth: readableLineLength ? lineWidth : 'none',
         margin: '0 auto'

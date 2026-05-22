@@ -2,6 +2,7 @@ import { useState, useRef, useLayoutEffect } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { ContextMenu } from '../Sidebar/ContextMenu'
+import { useSettingsStore } from '../../store/useSettingsStore'
 
 interface TabBarProps {
   paneId: string
@@ -22,9 +23,14 @@ export function TabBar({ paneId }: TabBarProps) {
   } = useVaultStore()
   const { renameFile, deleteFile, revealFile } = useVaultBridge()
 
+  const alwaysShowTabBar = useSettingsStore((s) => s.alwaysShowTabBar)
+  const openTabsForPane = useVaultStore((s) => s.panes.find((p) => p.id === paneId)?.openTabs ?? [])
+
   const pane = panes.find((p) => p.id === paneId) || panes[0]
   const { openTabs, activeTabPath } = pane
   const isActivePane = activePaneId === paneId
+
+  if (!alwaysShowTabBar && openTabsForPane.length <= 1) return null
 
   const [contextMenu, setContextMenu] = useState<{
     x: number

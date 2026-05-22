@@ -112,6 +112,9 @@ export default function App() {
 
   const theme = useSettingsStore((s) => s.theme)
   const accentColor = useSettingsStore((s) => s.accentColor)
+  const uiZoom = useSettingsStore((s) => s.uiZoom)
+  const compactMode = useSettingsStore((s) => s.compactMode)
+  const showStatusBar = useSettingsStore((s) => s.showStatusBar)
 
   // Load preferences from disk on mount
   useEffect(() => {
@@ -122,6 +125,14 @@ export default function App() {
   useAutoSave()
   useGitSync()
   useSessionPersist()
+
+  useEffect(() => {
+    document.documentElement.style.zoom = `${uiZoom}%`
+  }, [uiZoom])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-compact', compactMode ? 'true' : 'false')
+  }, [compactMode])
 
   useEffect(() => {
     const root = document.documentElement
@@ -399,7 +410,7 @@ export default function App() {
         editor={<EditorArea />}
         rightPanel={<RightPanel />}
       />
-      <StatusBar />
+      {showStatusBar && <StatusBar />}
       <CommandPalette
         isOpen={paletteOpen}
         onClose={() => setPaletteOpen(false)}
