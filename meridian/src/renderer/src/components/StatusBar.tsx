@@ -1,9 +1,11 @@
 import { useMemo, useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../store/useVaultStore'
 import { useEditorStore } from '../store/useEditorStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 
 export function StatusBar() {
+  const { t } = useTranslation()
   const { openTabs, activeTabPath } = useVaultStore()
   const activeTab = openTabs.find((t) => t.path === activeTabPath)
   const cursorPos = useEditorStore((s) => s.cursorPos)
@@ -95,14 +97,14 @@ export function StatusBar() {
         userSelect: 'none'
       }}
     >
-      {showWordCounter && <span>{wordCount} words</span>}
+      {showWordCounter && <span>{t('statusBar.words', { count: wordCount })}</span>}
       {cursorPos && (
         <span>
-          Ln {cursorPos.line}, Col {cursorPos.col}
+          {t('statusBar.line', { line: cursorPos.line, col: cursorPos.col })}
         </span>
       )}
-      <span>Markdown</span>
-      {activeTab?.isDirty && <span style={{ color: 'var(--accent-color)' }}>Unsaved Changes</span>}
+      <span>{t('statusBar.markdown')}</span>
+      {activeTab?.isDirty && <span style={{ color: 'var(--accent-color)' }}>{t('statusBar.unsavedChanges')}</span>}
 
       {/* Git Backups Status bar Widget */}
       {gitBackupEnabled && gitState && (
@@ -115,22 +117,22 @@ export function StatusBar() {
           </svg>
           
           {!gitState.isRepo ? (
-            <span style={{ opacity: 0.6 }}>Git: Not a repo</span>
+            <span style={{ opacity: 0.6 }}>{t('statusBar.notRepo')}</span>
           ) : (
             <>
-              {syncState === 'syncing' && <span style={{ color: 'var(--accent-color)' }}>Syncing...</span>}
-              {syncState === 'success' && <span style={{ color: '#10b981' }}>Synced</span>}
+              {syncState === 'syncing' && <span style={{ color: 'var(--accent-color)' }}>{t('statusBar.syncing')}</span>}
+              {syncState === 'success' && <span style={{ color: '#10b981' }}>{t('statusBar.synced')}</span>}
               {syncState === 'error' && (
                 <span
-                  title={syncError ?? 'Error'}
+                  title={syncError ?? t('common.error')}
                   style={{ color: '#ef4444', cursor: 'help', textDecoration: 'underline' }}
                 >
-                  Sync error
+                  {t('statusBar.syncError')}
                 </span>
               )}
               {syncState === 'idle' && (
                 <span style={{ opacity: gitState.clean ? 0.5 : 0.9, color: gitState.clean ? 'inherit' : 'var(--accent-color)' }}>
-                  {gitState.clean ? 'Up-to-date' : `${gitState.changesCount} unsaved`}
+                  {gitState.clean ? t('statusBar.upToDate') : t('statusBar.unsaved', { count: gitState.changesCount })}
                 </span>
               )}
 

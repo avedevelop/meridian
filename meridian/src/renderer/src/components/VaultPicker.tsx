@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultBridge } from '../hooks/useVaultBridge'
 import type { VaultConfig } from '@shared/types'
 
@@ -6,6 +7,7 @@ const WELCOME_DEST = `${(window as any).__homeDir || ''}/Documents/Meridian Welc
 const WELCOME_REPO = 'https://github.com/bvsmma/meridian-welcome'
 
 export function VaultPicker() {
+  const { t } = useTranslation()
   const { openVault, openVaultByPath, createNewVault } = useVaultBridge()
   const [recents, setRecents] = useState<VaultConfig[]>([])
   const [downloading, setDownloading] = useState(false)
@@ -25,7 +27,7 @@ export function VaultPicker() {
       const dest = await (window.vault as any).downloadWelcomeVault(WELCOME_DEST)
       await openVaultByPath(dest)
     } catch (e: any) {
-      setDownloadError(e.message || 'Download failed')
+      setDownloadError(e.message || t('vaultPicker.downloadError'))
     } finally {
       setDownloading(false)
     }
@@ -47,8 +49,8 @@ export function VaultPicker() {
       }}
     >
       <div style={{ fontSize: 48 }}>📓</div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>Meridian</h1>
-      <p style={{ color: '#666', margin: 0 }}>A knowledge base that works the way you do.</p>
+      <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>{t('vaultPicker.title')}</h1>
+      <p style={{ color: '#666', margin: 0 }}>{t('vaultPicker.tagline')}</p>
 
       {/* Welcome vault — prominent on first start */}
       {isFirstStart && (
@@ -63,10 +65,10 @@ export function VaultPicker() {
           }}
         >
           <div style={{ fontSize: 13, color: '#7c6af7', fontWeight: 600, marginBottom: 6 }}>
-            New to Meridian?
+            {t('vaultPicker.welcomeHeading')}
           </div>
           <div style={{ fontSize: 13, color: '#888', marginBottom: 16, lineHeight: '1.5' }}>
-            Download the sample vault — a guided tour with docs, examples, graph view, and a canvas.
+            {t('vaultPicker.welcomeDesc')}
           </div>
           <button
             onClick={handleOpenWelcome}
@@ -84,7 +86,7 @@ export function VaultPicker() {
               transition: 'opacity 0.15s'
             }}
           >
-            {downloading ? 'Downloading…' : '✦ Open Sample Vault'}
+            {downloading ? t('common.downloading') : t('vaultPicker.openSampleVault')}
           </button>
           {downloadError && (
             <div style={{ marginTop: 10, fontSize: 12, color: '#f87171' }}>
@@ -93,7 +95,7 @@ export function VaultPicker() {
                 onClick={() => (window.vault as any).openExternal(WELCOME_REPO)}
                 style={{ textDecoration: 'underline', cursor: 'pointer' }}
               >
-                open on GitHub
+                {t('vaultPicker.openOnGitHub')}
               </span>
             </div>
           )}
@@ -116,7 +118,7 @@ export function VaultPicker() {
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,106,247,0.1)' }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
         >
-          New Vault
+          {t('vaultPicker.newVault')}
         </button>
         <button
           onClick={openVault}
@@ -133,7 +135,7 @@ export function VaultPicker() {
           onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
         >
-          Open Vault
+          {t('vaultPicker.openVault')}
         </button>
       </div>
 
@@ -150,7 +152,7 @@ export function VaultPicker() {
               textAlign: 'center'
             }}
           >
-            Recent
+            {t('vaultPicker.recent')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {recents.map((vault) => (
@@ -194,14 +196,14 @@ export function VaultPicker() {
               onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.color = '#888' }}
               onMouseLeave={(e) => { e.currentTarget.style.color = '#555' }}
             >
-              {downloading ? 'Downloading…' : 'Reset & open sample vault'}
+              {downloading ? t('common.downloading') : t('vaultPicker.resetSampleVault')}
             </button>
           </div>
         </div>
       )}
 
       <p style={{ color: '#444', fontSize: 13, marginTop: 4 }}>
-        A vault is a folder of Markdown files on your computer.
+        {t('vaultPicker.vaultHint')}
       </p>
     </div>
   )
