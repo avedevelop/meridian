@@ -116,3 +116,91 @@ export function getEdgePoints(
 
   return { points: [p1.x, p1.y, p2.x, p2.y] }
 }
+
+export function computeMindMapLayout(canvasData: CanvasData): Map<string, { x: number; y: number }> {
+  const { nodes, edges } = canvasData
+  const positions = new Map<string, { x: number; y: number }>()
+  if (nodes.length === 0) return positions
+
+  // Build adjacency list (directed: fromNode → toNode)
+  const children = new Map<string, string[]>()
+  const hasParent = new Set<string>()
+  nodes.forEach((n) => children.set(n.id, []))
+  edges.forEach((e) => {
+    children.get(e.fromNode)?.push(e.toNode)
+    hasParent.add(e.toNode)
+  })
+
+  // Find roots (nodes with no incoming edges)
+  const roots = nodes.filter((n) => !hasParent.has(n.id)).map((n) => n.id)
+  if (roots.length === 0) roots.push(nodes[0].id) // fallback: first node
+
+  const H_GAP = 80   // horizontal gap between nodes
+  const V_GAP = 60   // vertical gap between rows
+
+  // Compute subtree height (in rows) for a node, preventing infinite loops
+  const heightCache = new Map<string, number>()
+  function subtreeHeight(id: string, pathStack: Set<string> = new Set()): number {
+    if (pathStack.has(id)) return 1 // break cycle
+    if (heightCache.has(id)) return heightCache.get(id)!
+
+    const kids = children.get(id) ?? []
+    if (kids.length === 0) return 1
+
+    pathStack.add(id)
+    let sum = 0
+    for (const kid of kids) {
+      sum += subtreeHeight(kid, pathStack)
+    }
+    pathStack.delete(id)
+
+    const height = sum || 1
+    heightCache.set(id, height)
+    return height
+  }
+
+  // Place a subtree rooted at `id`, top-left corner at (x, startY)
+  // Returns the total height consumed
+  const placed = new Set<string>()
+  function place(id: string, x: number, startY: number, pathStack: Set<string> = new Set()): number {
+    if (placed.has(id) || pathStack.has(id)) return 0
+    placed.add(id)
+    pathStack.add(id)
+
+    const node = nodes.find((n) => n.id === id)
+    if (!node) {
+      pathStack.delete(id)
+      return 0
+    }
+
+    const kids = children.get(id) ?? []
+    const totalRows = Math.max(1, subtreeHeight(id))
+    const totalH = totalRows * (node.height + V_GAP) - V_GAP
+    const cy = startY + totalH / 2 - node.height / 2
+
+    positions.set(id, { x, y: cy })
+
+    let cursor = startY
+    kids.forEach((kid) => {
+      const kidNode = nodes.find((n) => n.id === kid)
+      if (!kidNode) return
+      const h = subtreeHeight(kid)
+      place(kid, x + node.width + H_GAP, cursor, pathStack)
+      cursor += h * (kidNode.height + V_GAP)
+    })
+
+    pathStack.delete(id)
+    return totalH
+  }
+
+  // Place each root tree, stacking vertically
+  const ROOT_X = 80
+  let cursor = 80
+  roots.forEach((root) => {
+    const h = place(root, ROOT_X, cursor)
+    const node = nodes.find((n) => n.id === root)
+    cursor += h + (node?.height ?? 120) + V_GAP
+  })
+
+  return positions
+}

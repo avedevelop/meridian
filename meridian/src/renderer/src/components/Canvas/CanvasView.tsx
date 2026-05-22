@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import type Konva from 'konva'
-import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
-import { useLinkStore } from '../../store/useLinkStore'
-import { TrashIcon, NoteConvertIcon } from '../Icons'
 import { useTranslation } from 'react-i18next'
 import { CanvasToolbar } from './CanvasToolbar'
 import { CanvasStage } from './CanvasStage'
+import { useCanvasKeys } from './useCanvasKeys'
 
 import { CanvasNodeData, CanvasData, CanvasViewProps } from './canvasTypes'
 import {
@@ -16,9 +14,9 @@ import {
   SAVE_DEBOUNCE_MS,
   DEFAULT_NODE_W,
   DEFAULT_NODE_H,
-  FONT_FAMILY,
   parseCanvasData,
-  isUrl
+  isUrl,
+  computeMindMapLayout
 } from './canvasTools'
 
 /* ------------------------------------------------------------------ */
@@ -27,8 +25,7 @@ import {
 
 export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const { t } = useTranslation()
-  const { openFile, refreshFiles } = useVaultBridge()
-  const vault = useVaultStore((s) => s.vault)
+  const { openFile } = useVaultBridge()
 
   /* --- Container sizing ------------------------------------------- */
   const containerRef = useRef<HTMLDivElement>(null)
@@ -199,76 +196,15 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const [editText, setEditText] = useState('')
   const [initialEditingHeight, setInitialEditingHeight] = useState<number>(0)
 
-  /* --- Space-bar panning / Shift for edge creation ---------------- */
-  const [spaceHeld, setSpaceHeld] = useState(false)
-  const [shiftHeld, setShiftHeld] = useState(false)
-
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !e.repeat) setSpaceHeld(true)
-      if (e.key === 'Shift' && !e.repeat) setShiftHeld(true)
-    }
-    const up = (e: KeyboardEvent) => {
-      if (e.code === 'Space') setSpaceHeld(false)
-      if (e.key === 'Shift') setShiftHeld(false)
-    }
-    const blur = () => {
-      setSpaceHeld(false)
-      setShiftHeld(false)
-    }
-    const mouseMove = (e: MouseEvent) => {
-      // Sync shift key state from physical hardware modifier keys on any mouse movement
-      if (e.shiftKey !== shiftHeld) {
-        setShiftHeld(e.shiftKey)
-      }
-    }
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    window.addEventListener('blur', blur)
-    window.addEventListener('mousemove', mouseMove)
-    return () => {
-      window.removeEventListener('keydown', down)
-      window.removeEventListener('keyup', up)
-      window.removeEventListener('blur', blur)
-      window.removeEventListener('mousemove', mouseMove)
-    }
-  }, [shiftHeld])
-
-
-
-  /* --- Delete selected node or edge ------------------------------- */
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (
-        (e.target as HTMLElement).tagName === 'INPUT' ||
-        (e.target as HTMLElement).tagName === 'TEXTAREA'
-      )
-        return
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return
-      if (editingNodeId) return
-
-      if (selectedEdgeId) {
-        mutateWithUndo((prev) => ({
-          ...prev,
-          edges: prev.edges.filter((ed) => ed.id !== selectedEdgeId)
-        }))
-        setSelectedEdgeId(null)
-        return
-      }
-
-      if (selectedNodeId) {
-        mutateWithUndo((prev) => ({
-          nodes: prev.nodes.filter((n) => n.id !== selectedNodeId),
-          edges: prev.edges.filter(
-            (ed) => ed.fromNode !== selectedNodeId && ed.toNode !== selectedNodeId
-          )
-        }))
-        setSelectedNodeId(null)
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [selectedNodeId, selectedEdgeId, editingNodeId, mutate])
+  /* --- Key handlers (space bar pan, shift modifier, delete edge/node) --- */
+  const { spaceHeld, shiftHeld } = useCanvasKeys({
+    selectedNodeId,
+    setSelectedNodeId,
+    selectedEdgeId,
+    setSelectedEdgeId,
+    editingNodeId,
+    mutateWithUndo
+  })
 
   /* --- Listen for external center requests (e.g. from TOC) --------- */
   useEffect(() => {
@@ -364,93 +300,11 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
   /* --- Mind Map auto-arrange -------------------------------------- */
   const autoArrangeMindMap = useCallback(() => {
-    const { nodes, edges } = canvasData
+    const { nodes } = canvasData
     if (nodes.length === 0) return
 
-    // Build adjacency list (directed: fromNode → toNode)
-    const children = new Map<string, string[]>()
-    const hasParent = new Set<string>()
-    nodes.forEach((n) => children.set(n.id, []))
-    edges.forEach((e) => {
-      children.get(e.fromNode)?.push(e.toNode)
-      hasParent.add(e.toNode)
-    })
-
-    // Find roots (nodes with no incoming edges)
-    const roots = nodes.filter((n) => !hasParent.has(n.id)).map((n) => n.id)
-    if (roots.length === 0) roots.push(nodes[0].id) // fallback: first node
-
-    const H_GAP = 80   // horizontal gap between nodes
-    const V_GAP = 60   // vertical gap between rows
-    const positions = new Map<string, { x: number; y: number }>()
-
-    // Compute subtree height (in rows) for a node, preventing infinite loops
-    const heightCache = new Map<string, number>()
-    function subtreeHeight(id: string, pathStack: Set<string> = new Set()): number {
-      if (pathStack.has(id)) return 1 // break cycle
-      if (heightCache.has(id)) return heightCache.get(id)!
-
-      const kids = children.get(id) ?? []
-      if (kids.length === 0) return 1
-
-      pathStack.add(id)
-      let sum = 0
-      for (const kid of kids) {
-        sum += subtreeHeight(kid, pathStack)
-      }
-      pathStack.delete(id)
-
-      const height = sum || 1
-      heightCache.set(id, height)
-      return height
-    }
-
-    // Place a subtree rooted at `id`, top-left corner at (x, startY)
-    // Returns the total height consumed
-    const placed = new Set<string>()
-    function place(id: string, x: number, startY: number, pathStack: Set<string> = new Set()): number {
-      if (placed.has(id) || pathStack.has(id)) return 0
-      placed.add(id)
-      pathStack.add(id)
-
-      const node = nodes.find((n) => n.id === id)
-      if (!node) {
-        pathStack.delete(id)
-        return 0
-      }
-
-      const kids = children.get(id) ?? []
-      const totalRows = Math.max(1, subtreeHeight(id))
-      const totalH = totalRows * (node.height + V_GAP) - V_GAP
-      const cy = startY + totalH / 2 - node.height / 2
-
-      positions.set(id, { x, y: cy })
-
-      let cursor = startY
-      kids.forEach((kid) => {
-        const kidNode = nodes.find((n) => n.id === kid)
-        if (!kidNode) return
-        const h = subtreeHeight(kid)
-        place(kid, x + node.width + H_GAP, cursor, pathStack)
-        cursor += h * (kidNode.height + V_GAP)
-      })
-
-      pathStack.delete(id)
-      return totalH
-    }
-
-    // Place each root tree, stacking vertically
-    const ROOT_X = 80
-    let cursor = 80
-    roots.forEach((root) => {
-      const h = place(root, ROOT_X, cursor)
-      const node = nodes.find((n) => n.id === root)
-      cursor += h + (node?.height ?? 120) + V_GAP
-    })
-
-    // Animate: update positions with smooth transition via requestAnimationFrame
+    const targetPositions = computeMindMapLayout(canvasData)
     const startPositions = new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }]))
-    const targetPositions = positions
 
     const startTime = performance.now()
     const duration = 500 // ms
@@ -491,7 +345,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       }
     }
     requestAnimationFrame(animate)
-  }, [canvasData, mutate, fitToContent])
+  }, [canvasData, mutateWithUndo, fitToContent])
 
 
   /* --- Drop handler for files from sidebar ------------------------ */
@@ -583,6 +437,9 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         setSelectedNodeId={setSelectedNodeId}
         selectedEdgeId={selectedEdgeId}
         setSelectedEdgeId={setSelectedEdgeId}
+        editingNodeId={editingNodeId}
+        editText={editText}
+        initialEditingHeight={initialEditingHeight}
         setEditingNodeId={setEditingNodeId}
         setEditText={setEditText}
         setInitialEditingHeight={setInitialEditingHeight}
@@ -590,271 +447,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         urlMetadata={urlMetadata}
         openFile={openFile}
       />
-
-      {/* Inline text editing overlay */}
-      {editingNodeId &&
-        (() => {
-          const node = canvasData.nodes.find((n) => n.id === editingNodeId)
-          if (!node) return null
-          const screenX = node.x * stageScale + stagePos.x
-          const screenY = node.y * stageScale + stagePos.y
-          const screenW = node.width * stageScale
-          const screenH = node.height * stageScale
-          return (
-            <textarea
-              autoFocus
-              value={editText}
-              onChange={(e) => {
-                setEditText(e.target.value)
-                const el = e.target
-                const oldH = el.style.height
-                el.style.height = '1px'
-                const intrinsicH = el.scrollHeight / stageScale
-                el.style.height = oldH
-
-                const targetH = Math.max(initialEditingHeight, intrinsicH)
-                if (targetH !== node.height) {
-                  setCanvasData((prev) => ({
-                    ...prev,
-                    nodes: prev.nodes.map((n) => (n.id === node.id ? { ...n, height: targetH } : n))
-                  }))
-                }
-              }}
-              onBlur={(e) => {
-                const el = e.target
-                const trimmedText = editText.trimEnd()
-                const oldVal = el.value
-                el.value = trimmedText
-                const oldH = el.style.height
-                el.style.height = '1px'
-                const trimmedH = el.scrollHeight / stageScale
-                el.style.height = oldH
-                el.value = oldVal
-
-                const finalH = Math.max(initialEditingHeight, trimmedH)
-
-                mutate((prev) => ({
-                  ...prev,
-                  nodes: prev.nodes.map((n) =>
-                    n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
-                  )
-                }))
-                setEditingNodeId(null)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  const el = e.currentTarget
-                  const trimmedText = editText.trimEnd()
-                  const oldVal = el.value
-                  el.value = trimmedText
-                  const oldH = el.style.height
-                  el.style.height = '1px'
-                  const trimmedH = el.scrollHeight / stageScale
-                  el.style.height = oldH
-                  el.value = oldVal
-
-                  const finalH = Math.max(initialEditingHeight, trimmedH)
-
-                  mutate((prev) => ({
-                    ...prev,
-                    nodes: prev.nodes.map((n) =>
-                      n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
-                    )
-                  }))
-                  setEditingNodeId(null)
-                }
-                e.stopPropagation()
-              }}
-              style={{
-                position: 'absolute',
-                left: screenX,
-                top: screenY,
-                width: screenW,
-                height: screenH,
-                background: '#1e1e2e',
-                border: '2px solid #7c6af7',
-                borderRadius: 8 * stageScale,
-                color: '#ccc',
-                fontFamily: FONT_FAMILY,
-                fontSize: 13 * stageScale,
-                padding: `${16 * stageScale}px ${20 * stageScale}px`,
-                resize: 'none',
-                outline: 'none',
-                zIndex: 1200,
-                boxSizing: 'border-box'
-              }}
-            />
-          )
-        })()}
-
-      {/* Floating Node Toolbar (Color Picker & Delete) */}
-      {selectedNodeId &&
-        !editingNodeId &&
-        !spaceHeld &&
-        !shiftHeld &&
-        (() => {
-          const node = canvasData.nodes.find((n) => n.id === selectedNodeId)
-          if (!node) return null
-
-          // Position slightly above the node
-          const screenX = node.x * stageScale + stagePos.x
-          const screenY = node.y * stageScale + stagePos.y
-          const toolbarHeight = 36
-          const gap = 8
-          const topPos = screenY - toolbarHeight - gap
-
-          // If the node is too close to the top of the container, place toolbar below it
-          const finalTop = topPos < 10 ? screenY + node.height * stageScale + gap : topPos
-
-          const colors = [
-            '#1e1e2e', // Default dark
-            '#7c6af7', // Purple
-            '#38bdf8', // Blue
-            '#34d399', // Green
-            '#facc15', // Yellow
-            '#f472b6', // Pink
-            '#f87171' // Red
-          ]
-
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                left: screenX,
-                top: finalTop,
-                height: toolbarHeight,
-                background: '#2a2a3a',
-                border: '1px solid #444',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 8px',
-                gap: 8,
-                zIndex: 1100,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-              }}
-              // Prevent clicks from reaching the canvas and deselecting
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {colors.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    mutate((prev) => ({
-                      ...prev,
-                      nodes: prev.nodes.map((n) =>
-                        n.id === node.id ? { ...n, color: c === '#1e1e2e' ? undefined : c } : n
-                      )
-                    }))
-                  }}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: c,
-                    border:
-                      node.color === c || (!node.color && c === '#1e1e2e')
-                        ? '2px solid #fff'
-                        : '2px solid transparent',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                  title={t('canvas.nodeToolbar.changeColor')}
-                />
-              ))}
-              {node.type === 'text' && !isUrl(node.text) && (
-                <>
-                  <button
-                    onClick={async () => {
-                      const name = prompt(t('canvas.nodeToolbar.enterFilename'), t('canvas.nodeToolbar.defaultFilename'))
-                      if (!name) return
-                      const fileName = name.endsWith('.md') ? name : `${name}.md`
-                      if (!vault) return
-                      try {
-                        const filePath = await window.vault.createFile(vault.path, fileName)
-                        await window.vault.writeFile(filePath, node.text)
-                        const relativePath = filePath
-                          .replace(vault.path + '/', '')
-                          .replace(vault.path, '')
-
-                        mutate((prev) => ({
-                          ...prev,
-                          nodes: prev.nodes.map((n) =>
-                            n.id === node.id
-                              ? {
-                                  ...n,
-                                  type: 'file',
-                                  file: relativePath,
-                                  text: fileName.replace(/\.md$/, '')
-                                }
-                              : n
-                          )
-                        }))
-
-                        useLinkStore.getState().indexFile(filePath, fileName, node.text, vault.path)
-                        await refreshFiles()
-                      } catch (err: any) {
-                        alert(t('canvas.nodeToolbar.failedToCreateFile', { message: err.message }))
-                      }
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#7c6af7',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 600
-                    }}
-                    title={t('canvas.nodeToolbar.createNoteFromText')}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = 'rgba(124, 106, 247, 0.1)')
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <NoteConvertIcon size={14} />
-                  </button>
-                  <div style={{ width: 1, height: 20, background: '#444' }} />
-                </>
-              )}
-              <button
-                onClick={() => {
-                  mutate((prev) => ({
-                    nodes: prev.nodes.filter((n) => n.id !== node.id),
-                    edges: prev.edges.filter(
-                      (ed) => ed.fromNode !== node.id && ed.toNode !== node.id
-                    )
-                  }))
-                  setSelectedNodeId(null)
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#f87171',
-                  cursor: 'pointer',
-                  fontSize: 16,
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title={t('canvas.nodeToolbar.deleteCard')}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)')
-                }
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <TrashIcon size={14} />
-              </button>
-            </div>
-          )
-        })()}
     </div>
   )
 }

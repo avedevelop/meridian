@@ -6,6 +6,10 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { useVaultStore } from '../../store/useVaultStore'
+import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { useLinkStore } from '../../store/useLinkStore'
+import { TrashIcon, NoteConvertIcon } from '../Icons'
 import { CanvasData, CanvasNodeData } from './canvasTypes'
 import { useCanvasDrawing } from './useCanvasDrawing'
 import {
@@ -74,8 +78,11 @@ interface CanvasStageProps {
   setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>
   selectedEdgeId: string | null
   setSelectedEdgeId: React.Dispatch<React.SetStateAction<string | null>>
+  editingNodeId: string | null
   setEditingNodeId: React.Dispatch<React.SetStateAction<string | null>>
+  editText: string
   setEditText: React.Dispatch<React.SetStateAction<string>>
+  initialEditingHeight: number
   setInitialEditingHeight: React.Dispatch<React.SetStateAction<number>>
   fileContents: Record<string, string>
   urlMetadata: Record<string, any>
@@ -99,8 +106,11 @@ export function CanvasStage({
   setSelectedNodeId,
   selectedEdgeId,
   setSelectedEdgeId,
+  editingNodeId,
   setEditingNodeId,
+  editText,
   setEditText,
+  initialEditingHeight,
   setInitialEditingHeight,
   fileContents,
   urlMetadata,
@@ -108,6 +118,8 @@ export function CanvasStage({
 }: CanvasStageProps) {
   const { t } = useTranslation()
   const connectionLineStyle = useSettingsStore((s) => s.connectionLineStyle) || 'curved'
+  const vault = useVaultStore((s) => s.vault)
+  const { refreshFiles } = useVaultBridge()
 
   const trRef = useRef<Konva.Transformer>(null)
   const nodeRefs = useRef<Record<string, Konva.Group | null>>({})
@@ -478,113 +490,380 @@ export function CanvasStage({
   }
 
   return (
-    <Stage
-      ref={stageRef}
-      width={size.width}
-      height={size.height}
-      x={stagePos.x}
-      y={stagePos.y}
-      scaleX={stageScale}
-      scaleY={stageScale}
-      draggable={!shiftHeld}
-      onWheel={handleWheel}
-      onDragEnd={handleDragEnd}
-      onDblClick={handleDblClick}
-      onClick={handleStageClick}
-      onMouseUp={handleStageMouseUp}
-      onMouseMove={handleStageMouseMove}
-      style={{ cursor: shiftHeld ? 'crosshair' : spaceHeld ? 'grab' : 'default' }}
-    >
-      {/* Background layer */}
-      <Layer listening={false}>
-        <Rect
-          x={-stagePos.x / stageScale}
-          y={-stagePos.y / stageScale}
-          width={size.width / stageScale}
-          height={size.height / stageScale}
-          fill={BG}
-          listening={false}
-        />
-        <DotGrid
-          stageX={stagePos.x}
-          stageY={stagePos.y}
-          stageScale={stageScale}
-          width={size.width}
-          height={size.height}
-        />
-      </Layer>
+    <>
+      <Stage
+        ref={stageRef}
+        width={size.width}
+        height={size.height}
+        x={stagePos.x}
+        y={stagePos.y}
+        scaleX={stageScale}
+        scaleY={stageScale}
+        draggable={!shiftHeld}
+        onWheel={handleWheel}
+        onDragEnd={handleDragEnd}
+        onDblClick={handleDblClick}
+        onClick={handleStageClick}
+        onMouseUp={handleStageMouseUp}
+        onMouseMove={handleStageMouseMove}
+        style={{ cursor: shiftHeld ? 'crosshair' : spaceHeld ? 'grab' : 'default' }}
+      >
+        {/* Background layer */}
+        <Layer listening={false}>
+          <Rect
+            x={-stagePos.x / stageScale}
+            y={-stagePos.y / stageScale}
+            width={size.width / stageScale}
+            height={size.height / stageScale}
+            fill={BG}
+            listening={false}
+          />
+          <DotGrid
+            stageX={stagePos.x}
+            stageY={stagePos.y}
+            stageScale={stageScale}
+            width={size.width}
+            height={size.height}
+          />
+        </Layer>
 
-      {/* Layer 2: Frames */}
-      <Layer>
-        {canvasData.nodes.filter((node) => node.type === 'frame').map((node) => renderNode(node))}
-      </Layer>
+        {/* Layer 2: Frames */}
+        <Layer>
+          {canvasData.nodes.filter((node) => node.type === 'frame').map((node) => renderNode(node))}
+        </Layer>
 
-      {/* Layer 3: Edges */}
-      <Layer>
-        {edgeLines.map((edge) => {
-          const isEdgeSelected = edge.id === selectedEdgeId
+        {/* Layer 3: Edges */}
+        <Layer>
+          {edgeLines.map((edge) => {
+            const isEdgeSelected = edge.id === selectedEdgeId
+            return (
+              <Line
+                key={edge.id}
+                points={edge.points}
+                bezier={edge.bezier}
+                stroke={isEdgeSelected ? '#a78bfa' : EDGE_COLOR}
+                strokeWidth={isEdgeSelected ? 3 : 2}
+                opacity={isEdgeSelected ? 1 : 0.6}
+                lineCap="round"
+                hitStrokeWidth={16}
+                onClick={() => {
+                  setSelectedEdgeId(edge.id)
+                  setSelectedNodeId(null)
+                }}
+              />
+            )
+          })}
+          {/* Temporary line while shift-dragging */}
+          {shiftDragOriginRef.current &&
+            tempLineEnd &&
+            (() => {
+              const originNode = canvasData.nodes.find((n) => n.id === shiftDragOriginRef.current)
+              if (!originNode) return null
+              const oc = nodeCenter(originNode)
+              return (
+                <Line
+                  points={[oc.x, oc.y, tempLineEnd.x, tempLineEnd.y]}
+                  stroke={EDGE_COLOR}
+                  strokeWidth={2}
+                  opacity={0.8}
+                  dash={[8, 4]}
+                  lineCap="round"
+                  listening={false}
+                />
+              )
+            })()}
+        </Layer>
+
+        {/* Layer 4: Cards & Transformer */}
+        <Layer>
+          {canvasData.nodes.filter((node) => node.type !== 'frame').map((node) => renderNode(node))}
+          <Transformer
+            ref={trRef}
+            boundBoxFunc={(oldBox, newBox) => {
+              const minH = Math.max(
+                60,
+                (selectedNodeId && nodeMinHeights.current[selectedNodeId]) || 60
+              )
+              if (newBox.width < 150 || newBox.height < minH) return oldBox
+              return newBox
+            }}
+            padding={4}
+            anchorSize={8}
+            anchorCornerRadius={4}
+            borderStroke="#7c6af7"
+            anchorStroke="#7c6af7"
+            anchorFill="#fff"
+            rotateEnabled={false}
+            keepRatio={false}
+            shiftBehavior="none"
+          />
+        </Layer>
+      </Stage>
+
+      {/* Inline text editing overlay */}
+      {editingNodeId &&
+        (() => {
+          const node = canvasData.nodes.find((n) => n.id === editingNodeId)
+          if (!node) return null
+          const screenX = node.x * stageScale + stagePos.x
+          const screenY = node.y * stageScale + stagePos.y
+          const screenW = node.width * stageScale
+          const screenH = node.height * stageScale
           return (
-            <Line
-              key={edge.id}
-              points={edge.points}
-              bezier={edge.bezier}
-              stroke={isEdgeSelected ? '#a78bfa' : EDGE_COLOR}
-              strokeWidth={isEdgeSelected ? 3 : 2}
-              opacity={isEdgeSelected ? 1 : 0.6}
-              lineCap="round"
-              hitStrokeWidth={16}
-              onClick={() => {
-                setSelectedEdgeId(edge.id)
-                setSelectedNodeId(null)
+            <textarea
+              autoFocus
+              value={editText}
+              onChange={(e) => {
+                setEditText(e.target.value)
+                const el = e.target
+                const oldH = el.style.height
+                el.style.height = '1px'
+                const intrinsicH = el.scrollHeight / stageScale
+                el.style.height = oldH
+
+                const targetH = Math.max(initialEditingHeight, intrinsicH)
+                if (targetH !== node.height) {
+                  setCanvasData((prev) => ({
+                    ...prev,
+                    nodes: prev.nodes.map((n) => (n.id === node.id ? { ...n, height: targetH } : n))
+                  }))
+                }
+              }}
+              onBlur={(e) => {
+                const el = e.target
+                const trimmedText = editText.trimEnd()
+                const oldVal = el.value
+                el.value = trimmedText
+                const oldH = el.style.height
+                el.style.height = '1px'
+                const trimmedH = el.scrollHeight / stageScale
+                el.style.height = oldH
+                el.value = oldVal
+
+                const finalH = Math.max(initialEditingHeight, trimmedH)
+
+                mutate((prev) => ({
+                  ...prev,
+                  nodes: prev.nodes.map((n) =>
+                    n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
+                  )
+                }))
+                setEditingNodeId(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  const el = e.currentTarget
+                  const trimmedText = editText.trimEnd()
+                  const oldVal = el.value
+                  el.value = trimmedText
+                  const oldH = el.style.height
+                  el.style.height = '1px'
+                  const trimmedH = el.scrollHeight / stageScale
+                  el.style.height = oldH
+                  el.value = oldVal
+
+                  const finalH = Math.max(initialEditingHeight, trimmedH)
+
+                  mutate((prev) => ({
+                    ...prev,
+                    nodes: prev.nodes.map((n) =>
+                      n.id === editingNodeId ? { ...n, text: trimmedText, height: finalH } : n
+                    )
+                  }))
+                  setEditingNodeId(null)
+                }
+                e.stopPropagation()
+              }}
+              style={{
+                position: 'absolute',
+                left: screenX,
+                top: screenY,
+                width: screenW,
+                height: screenH,
+                background: '#1e1e2e',
+                border: '2px solid #7c6af7',
+                borderRadius: 8 * stageScale,
+                color: '#ccc',
+                fontFamily: FONT_FAMILY,
+                fontSize: 13 * stageScale,
+                padding: `${16 * stageScale}px ${20 * stageScale}px`,
+                resize: 'none',
+                outline: 'none',
+                zIndex: 1200,
+                boxSizing: 'border-box'
               }}
             />
           )
-        })}
-        {/* Temporary line while shift-dragging */}
-        {shiftDragOriginRef.current &&
-          tempLineEnd &&
-          (() => {
-            const originNode = canvasData.nodes.find((n) => n.id === shiftDragOriginRef.current)
-            if (!originNode) return null
-            const oc = nodeCenter(originNode)
-            return (
-              <Line
-                points={[oc.x, oc.y, tempLineEnd.x, tempLineEnd.y]}
-                stroke={EDGE_COLOR}
-                strokeWidth={2}
-                opacity={0.8}
-                dash={[8, 4]}
-                lineCap="round"
-                listening={false}
-              />
-            )
-          })()}
-      </Layer>
+        })()}
 
-      {/* Layer 4: Cards & Transformer */}
-      <Layer>
-        {canvasData.nodes.filter((node) => node.type !== 'frame').map((node) => renderNode(node))}
-        <Transformer
-          ref={trRef}
-          boundBoxFunc={(oldBox, newBox) => {
-            const minH = Math.max(
-              60,
-              (selectedNodeId && nodeMinHeights.current[selectedNodeId]) || 60
-            )
-            if (newBox.width < 150 || newBox.height < minH) return oldBox
-            return newBox
-          }}
-          padding={4}
-          anchorSize={8}
-          anchorCornerRadius={4}
-          borderStroke="#7c6af7"
-          anchorStroke="#7c6af7"
-          anchorFill="#fff"
-          rotateEnabled={false}
-          keepRatio={false}
-          shiftBehavior="none"
-        />
-      </Layer>
-    </Stage>
+      {/* Floating Node Toolbar (Color Picker & Delete) */}
+      {selectedNodeId &&
+        !editingNodeId &&
+        !spaceHeld &&
+        !shiftHeld &&
+        (() => {
+          const node = canvasData.nodes.find((n) => n.id === selectedNodeId)
+          if (!node) return null
+
+          // Position slightly above the node
+          const screenX = node.x * stageScale + stagePos.x
+          const screenY = node.y * stageScale + stagePos.y
+          const toolbarHeight = 36
+          const gap = 8
+          const topPos = screenY - toolbarHeight - gap
+
+          // If the node is too close to the top of the container, place toolbar below it
+          const finalTop = topPos < 10 ? screenY + node.height * stageScale + gap : topPos
+
+          const colors = [
+            '#1e1e2e', // Default dark
+            '#7c6af7', // Purple
+            '#38bdf8', // Blue
+            '#34d399', // Green
+            '#facc15', // Yellow
+            '#f472b6', // Pink
+            '#f87171' // Red
+          ]
+
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                left: screenX,
+                top: finalTop,
+                height: toolbarHeight,
+                background: '#2a2a3a',
+                border: '1px solid #444',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 8px',
+                gap: 8,
+                zIndex: 1100,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}
+              // Prevent clicks from reaching the canvas and deselecting
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {colors.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    mutate((prev) => ({
+                      ...prev,
+                      nodes: prev.nodes.map((n) =>
+                        n.id === node.id ? { ...n, color: c === '#1e1e2e' ? undefined : c } : n
+                      )
+                    }))
+                  }}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: c,
+                    border:
+                      node.color === c || (!node.color && c === '#1e1e2e')
+                        ? '2px solid #fff'
+                         : '2px solid transparent',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                  title={t('canvas.nodeToolbar.changeColor')}
+                />
+              ))}
+              {node.type === 'text' && !isUrl(node.text) && (
+                <>
+                  <button
+                    onClick={async () => {
+                      const name = prompt(t('canvas.nodeToolbar.enterFilename'), t('canvas.nodeToolbar.defaultFilename'))
+                      if (!name) return
+                      const fileName = name.endsWith('.md') ? name : `${name}.md`
+                      if (!vault) return
+                      try {
+                        const filePath = await window.vault.createFile(vault.path, fileName)
+                        await window.vault.writeFile(filePath, node.text)
+                        const relativePath = filePath
+                          .replace(vault.path + '/', '')
+                          .replace(vault.path, '')
+
+                        mutate((prev) => ({
+                          ...prev,
+                          nodes: prev.nodes.map((n) =>
+                            n.id === node.id
+                              ? {
+                                  ...n,
+                                  type: 'file',
+                                  file: relativePath,
+                                  text: fileName.replace(/\.md$/, '')
+                                }
+                              : n
+                          )
+                        }))
+
+                        useLinkStore.getState().indexFile(filePath, fileName, node.text, vault.path)
+                        await refreshFiles()
+                      } catch (err: any) {
+                        alert(t('canvas.nodeToolbar.failedToCreateFile', { message: err.message }))
+                      }
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#7c6af7',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 600
+                    }}
+                    title={t('canvas.nodeToolbar.createNoteFromText')}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'rgba(124, 106, 247, 0.1)')
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <NoteConvertIcon size={14} />
+                  </button>
+                  <div style={{ width: 1, height: 20, background: '#444' }} />
+                </>
+              )}
+              <button
+                onClick={() => {
+                  mutate((prev) => ({
+                    nodes: prev.nodes.filter((n) => n.id !== node.id),
+                    edges: prev.edges.filter(
+                      (ed) => ed.fromNode !== node.id && ed.toNode !== node.id
+                    )
+                  }))
+                  setSelectedNodeId(null)
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#f87171',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title={t('canvas.nodeToolbar.deleteCard')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)')
+                }
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <TrashIcon size={14} />
+              </button>
+            </div>
+          )
+        })()}
+    </>
   )
 }
