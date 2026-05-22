@@ -56,6 +56,25 @@ npm run build
 
 > **macOS only.** Distributed as an unsigned `.dmg` — open via right-click → Open on first launch.
 
+### Dev не стартует?
+
+**Симптом:** `TypeError: Cannot read properties of undefined (reading 'registerSchemesAsPrivileged')`
+
+Некоторые среды (Cursor, VS Code integrated terminal) выставляют `ELECTRON_RUN_AS_NODE=1`, из-за чего Electron запускается как обычный Node-процесс.
+
+`npm run dev` уже содержит `env -u ELECTRON_RUN_AS_NODE`, но если ошибка всё же возникает:
+
+```bash
+unset ELECTRON_RUN_AS_NODE && npm run dev
+```
+
+Если порт 5173 занят предыдущим dev-процессом:
+
+```bash
+npm run dev:kill   # убивает процесс на :5173
+npm run dev
+```
+
 ---
 
 ## Roadmap
