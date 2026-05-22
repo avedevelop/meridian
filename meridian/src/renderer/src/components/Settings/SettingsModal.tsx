@@ -115,6 +115,14 @@ function getCategoryIcon(id: string, color: string) {
           <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M18 12h.01M7 16h10" />
         </svg>
       )
+    case 'export':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      )
     case 'about':
       return (
         <svg
@@ -486,6 +494,7 @@ type SettingCategory =
   | 'hotkeys'
   | 'plugins'
   | 'sync'
+  | 'export'
   | 'about'
 
 interface SettingDefinition {
@@ -1149,6 +1158,59 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           />
         )
       },
+      {
+        id: 'uiZoom', label: 'Interface zoom',
+        description: 'Scale the entire UI. Useful for high-DPI displays or accessibility.',
+        category: 'appearance',
+        render: (s) => (
+          <Slider label="Interface zoom" description="Scale the entire UI (80%–130%)."
+            value={s.uiZoom} min={80} max={130} unit="%"
+            onChange={(v) => s.updateSetting('uiZoom', Math.round(v / 5) * 5)} />
+        )
+      },
+      {
+        id: 'compactMode', label: 'Compact mode',
+        description: 'Reduce padding and spacing throughout the interface.',
+        category: 'appearance',
+        render: (s) => (
+          <Toggle label="Compact mode" description="Reduce padding and spacing throughout the interface."
+            checked={s.compactMode} onChange={(v) => s.updateSetting('compactMode', v)} />
+        )
+      },
+      {
+        id: 'showStatusBar', label: 'Show status bar',
+        description: 'Display the bottom status bar (word count, cursor position, git status).',
+        category: 'appearance',
+        render: (s) => (
+          <Toggle label="Show status bar" description="Display the bottom status bar with word count and cursor position."
+            checked={s.showStatusBar} onChange={(v) => s.updateSetting('showStatusBar', v)} />
+        )
+      },
+      {
+        id: 'previewFontFamily', label: 'Preview font family',
+        description: 'Font used in the markdown preview pane (separate from editor font).',
+        category: 'appearance',
+        render: (s) => (
+          <Dropdown label="Preview font family" description="Font used in the rendered markdown preview."
+            value={s.previewFontFamily}
+            options={[
+              { value: 'Georgia', label: 'Georgia (Serif)' },
+              { value: 'Inter', label: 'Inter (Sans)' },
+              { value: 'system-ui', label: 'System UI' },
+              { value: 'JetBrains Mono', label: 'JetBrains Mono' }
+            ]}
+            onChange={(v) => s.updateSetting('previewFontFamily', v as any)} />
+        )
+      },
+      {
+        id: 'alwaysShowTabBar', label: 'Always show tab bar',
+        description: 'Keep the tab bar visible even when only one tab is open.',
+        category: 'appearance',
+        render: (s) => (
+          <Toggle label="Always show tab bar" description="Keep the tab bar visible when only one tab is open."
+            checked={s.alwaysShowTabBar} onChange={(v) => s.updateSetting('alwaysShowTabBar', v)} />
+        )
+      },
 
       // CANVAS
       {
@@ -1221,7 +1283,72 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             onChange={(v) => s.updateSetting('defaultCardColor', v)}
           />
         )
-      }
+      },
+
+      // EXPORT
+      {
+        id: 'defaultExportFormat', label: 'Default export format',
+        description: 'Format triggered by the default export action (Cmd+E).',
+        category: 'export',
+        render: (s) => (
+          <Dropdown label="Default export format" description="Format triggered by the default export shortcut."
+            value={s.defaultExportFormat}
+            options={[{ value: 'html', label: 'HTML' }, { value: 'pdf', label: 'PDF' }]}
+            onChange={(v) => s.updateSetting('defaultExportFormat', v as any)} />
+        )
+      },
+      {
+        id: 'pdfPageSize', label: 'PDF page size',
+        description: 'Paper size used when exporting notes to PDF.',
+        category: 'export',
+        render: (s) => (
+          <Dropdown label="PDF page size" description="Paper size used when exporting to PDF."
+            value={s.pdfPageSize}
+            options={[{ value: 'A4', label: 'A4 (210×297mm)' }, { value: 'Letter', label: 'Letter (8.5×11in)' }]}
+            onChange={(v) => s.updateSetting('pdfPageSize', v as any)} />
+        )
+      },
+      {
+        id: 'exportIncludeFrontmatter', label: 'Include frontmatter in exports',
+        description: 'When enabled, YAML frontmatter is rendered in exported HTML/PDF.',
+        category: 'export',
+        render: (s) => (
+          <Toggle label="Include frontmatter in exports" description="Render YAML frontmatter block in exported HTML and PDF."
+            checked={s.exportIncludeFrontmatter} onChange={(v) => s.updateSetting('exportIncludeFrontmatter', v)} />
+        )
+      },
+      {
+        id: 'exportCustomCSS', label: 'Custom CSS for exports',
+        description: 'CSS injected into exported HTML and PDF files.',
+        category: 'export',
+        render: (s) => (
+          <TextAreaInput label="Custom CSS for exports" description="Injected into <style> tag in exported HTML and PDF."
+            value={s.exportCustomCSS} placeholder="body { font-family: Georgia; }"
+            onChange={(v) => s.updateSetting('exportCustomCSS', v)} />
+        )
+      },
+
+      // SYNC
+      {
+        id: 'gitCommitTemplate', label: 'Commit message template',
+        description: 'Template for auto-generated commit messages. Use {files} as placeholder.',
+        category: 'sync',
+        render: (s) => (
+          <TextInput label="Commit message template" description="Use {files} as placeholder. Example: 'Updated {files}'"
+            value={s.gitCommitTemplate} placeholder="Updated {files}"
+            onChange={(v) => s.updateSetting('gitCommitTemplate', v)} />
+        )
+      },
+      {
+        id: 'gitDefaultBranch', label: 'Default git branch',
+        description: 'Branch name used as fallback when pushing to remote.',
+        category: 'sync',
+        render: (s) => (
+          <TextInput label="Default git branch" description="Fallback branch name for git push/pull when local branch cannot be detected."
+            value={s.gitDefaultBranch} placeholder="main"
+            onChange={(v) => s.updateSetting('gitDefaultBranch', v)} />
+        )
+      },
     ],
     []
   )
@@ -1232,6 +1359,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     { id: 'appearance', label: 'Appearance' },
     { id: 'canvas', label: 'Canvas' },
     { id: 'plugins', label: 'Core Plugins' },
+    { id: 'export', label: 'Export' },
     { id: 'sync', label: 'Sync & GitHub' },
     { id: 'hotkeys', label: 'Hotkeys' },
     { id: 'about', label: 'About & Developer' }
@@ -1871,6 +1999,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                   )}
 
+                  {activeCategory === 'export' && (
+                    <div>
+                      <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', fontSize: 16, fontWeight: 600 }}>Export</h3>
+                      <p style={{ margin: '0 0 20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
+                        Configure PDF page size, frontmatter handling, and custom CSS for exported notes.
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {settingsDefinitions.filter((s) => s.category === 'export').map((s) => (
+                          <div key={s.id}>{s.render(store)}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {activeCategory === 'sync' && (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -2025,6 +2167,38 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               ave
                             </span>
                           </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 style={{ margin: '0 0 4px 0', color: '#fff', fontSize: 16, fontWeight: 600 }}>Actions</h3>
+                        <p style={{ margin: '0 0 16px 0', color: '#777', fontSize: 12 }}>App utilities and developer tools.</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <button
+                            onClick={() => handleOpenLink('https://github.com/bvsmma/meridian/releases')}
+                            style={{ padding: '10px 16px', background: '#161616', border: '1px solid #252525', borderRadius: 8, color: '#eee', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                          >Check for updates →</button>
+                          <button
+                            onClick={async () => {
+                              const vault = window.vault as any
+                              if (vault?.getConfigPath) {
+                                const p = await vault.getConfigPath()
+                                if (p) window.vault.openExternal('file://' + p)
+                              }
+                            }}
+                            style={{ padding: '10px 16px', background: '#161616', border: '1px solid #252525', borderRadius: 8, color: '#eee', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                          >Open config folder in Finder →</button>
+                          <button
+                            onClick={() => {
+                              const raw = localStorage.getItem('meridian-settings') ?? '{}'
+                              const blob = new Blob([raw], { type: 'application/json' })
+                              const url = URL.createObjectURL(blob)
+                              const a = document.createElement('a')
+                              a.href = url; a.download = 'meridian-settings.json'; a.click()
+                              URL.revokeObjectURL(url)
+                            }}
+                            style={{ padding: '10px 16px', background: '#161616', border: '1px solid #252525', borderRadius: 8, color: '#eee', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                          >Export settings as JSON →</button>
                         </div>
                       </div>
                     </div>
