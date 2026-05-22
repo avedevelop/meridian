@@ -1,19 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSketchpadState } from './useSketchpadState'
+import { SketchpadToolbar } from './SketchpadToolbar'
+import { ERASER_RADIUS } from './sketchpadUtils'
 
-export interface DrawingElement {
-  id: string
-  type: 'pencil' | 'rectangle' | 'circle' | 'line' | 'text'
-  points?: [number, number][]
-  x?: number
-  y?: number
-  w?: number
-  h?: number
-  text?: string
-  stroke: string
-  fill: string
-  strokeWidth: number
-}
+export type { DrawingElement } from './sketchpadUtils'
 
 interface SketchpadViewProps {
   filePath: string
@@ -23,325 +13,31 @@ interface SketchpadViewProps {
 
 export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps) {
   const { t } = useTranslation()
-  const [elements, setElements] = useState<DrawingElement[]>([])
-  const [tool, setTool] = useState<'pencil' | 'rectangle' | 'circle' | 'line' | 'text' | 'eraser'>('pencil')
-  const [strokeColor, setStrokeColor] = useState('#7c6af7') // Default purple accent
-  const [fillColor] = useState('transparent')
-  const [strokeWidth, setStrokeWidth] = useState(3)
-  const [textInput, setTextInput] = useState('')
-  const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null)
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
-
-  // Undo/Redo stacks
-  const [undoStack, setUndoStack] = useState<DrawingElement[][]>([])
-  const [redoStack, setRedoStack] = useState<DrawingElement[][]>([])
-
-  const svgRef = useRef<SVGSVGElement>(null)
-  const isDrawing = useRef(false)
-  const currentElementId = useRef<string | null>(null)
-  const eraserActiveRef = useRef(false) // separate flag for eraser drag
-
-  // Refs always holding the latest values — used in stable callbacks below
-  const undoStackRef = useRef(undoStack)
-  undoStackRef.current = undoStack
-  const redoStackRef = useRef(redoStack)
-  redoStackRef.current = redoStack
-  const elementsRef = useRef(elements)
-  elementsRef.current = elements
-  const filePathRef = useRef(filePath)
-  filePathRef.current = filePath
-  const onSaveRef = useRef(onSave)
-  onSaveRef.current = onSave
-
-  const loadedPathsRef = useRef<Record<string, string>>({})
-
-  // Load drawing only when the FILE changes or on initial asynchronous load
-  useEffect(() => {
-    const lastLoadedContent = loadedPathsRef.current[filePath]
-    const isNewFile = lastLoadedContent === undefined
-    const isInitialLoad = !lastLoadedContent && content.trim() !== ''
-
-    if (isNewFile || isInitialLoad) {
-      try {
-        if (content.trim()) {
-          const parsed = JSON.parse(content)
-          if (parsed.type === 'meridian-drawing' && Array.isArray(parsed.elements)) {
-            setElements(parsed.elements)
-            setUndoStack([])
-            setRedoStack([])
-            loadedPathsRef.current[filePath] = content
-            return
-          }
-        }
-      } catch {
-        // not valid drawing
-      }
-      setElements([])
-      setUndoStack([])
-      setRedoStack([])
-      loadedPathsRef.current[filePath] = content
-    }
-  }, [filePath, content])
-
-  // Stable save function via ref — never goes stale in callbacks
-  const saveDrawing = useCallback((newElements: DrawingElement[]) => {
-    onSaveRef.current(filePathRef.current, JSON.stringify({
-      type: 'meridian-drawing',
-      elements: newElements,
-    }, null, 2))
-  }, [])
-
-  const pushState = useCallback((oldElements: DrawingElement[]) => {
-    setUndoStack(prev => [...prev, oldElements])
-    setRedoStack([])
-  }, [])
-
-  // Stable undo/redo handlers using refs — safe to use in keydown with [] deps
-  const handleUndo = useCallback(() => {
-    if (undoStackRef.current.length === 0) return
-    const prev = undoStackRef.current[undoStackRef.current.length - 1]
-    setUndoStack(s => s.slice(0, -1))
-    setRedoStack(s => [...s, elementsRef.current])
-    setElements(prev)
-    saveDrawing(prev)
-  }, [saveDrawing])
-
-  const handleRedo = useCallback(() => {
-    if (redoStackRef.current.length === 0) return
-    const next = redoStackRef.current[redoStackRef.current.length - 1]
-    setRedoStack(s => s.slice(0, -1))
-    setUndoStack(s => [...s, elementsRef.current])
-    setElements(next)
-    saveDrawing(next)
-  }, [saveDrawing])
-
-  // Keep latest undo/redo in refs so keydown always calls current version
-  const handleUndoRef = useRef(handleUndo)
-  handleUndoRef.current = handleUndo
-  const handleRedoRef = useRef(handleRedo)
-  handleRedoRef.current = handleRedo
-
-  // ⌘Z / ⌘⇧Z — stable handler, accesses latest via refs
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.key !== 'z') return
-      e.preventDefault()
-      if (e.shiftKey) handleRedoRef.current()
-      else handleUndoRef.current()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
-  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (textPos) {
-      // Commit text
-      handleTextCommit()
-      return
-    }
-
-    if (!svgRef.current) return
-    const rect = svgRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-
-    if (tool === 'eraser') {
-      // Push undo once at stroke start; actual erasing happens in mousemove
-      pushState(elements)
-      eraserActiveRef.current = true
-      return
-    }
-
-    if (tool === 'text') {
-      setTextPos({ x, y })
-      setTextInput('')
-      return
-    }
-
-    isDrawing.current = true
-    pushState(elements)
-    const id = `el-${Date.now()}`
-    currentElementId.current = id
-
-    const newElement: DrawingElement = {
-      id,
-      type: tool,
-      stroke: strokeColor,
-      fill: fillColor,
-      strokeWidth,
-      // line uses w/h as x2/y2 — init at same point to avoid diagonal flash
-      ...(tool === 'pencil' ? { points: [[x, y]] } : { x, y, w: tool === 'line' ? x : 0, h: tool === 'line' ? y : 0 })
-    }
-
-    setElements((prev) => [...prev, newElement])
-  }
-
-  const ERASER_RADIUS = 18
-  const STEP = 3 // px between discretization points
-
-  // Convert any shape to a series of outline points for partial erase
-  const discretize = (el: DrawingElement): [number, number][] | null => {
-    if (el.type === 'pencil') return (el.points as [number, number][]) ?? null
-    if (el.type === 'line' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
-      const n = Math.max(2, Math.ceil(Math.hypot(el.w - el.x, el.h - el.y) / STEP))
-      return Array.from({ length: n + 1 }, (_, i) => [
-        el.x! + (el.w! - el.x!) * i / n, el.y! + (el.h! - el.y!) * i / n,
-      ] as [number, number])
-    }
-    if (el.type === 'rectangle' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
-      const x1 = el.x, y1 = el.y, x2 = el.x + el.w, y2 = el.y + el.h
-      const wn = Math.max(2, Math.ceil(Math.abs(el.w) / STEP))
-      const hn = Math.max(2, Math.ceil(Math.abs(el.h) / STEP))
-      const pts: [number, number][] = []
-      for (let i = 0; i <= wn; i++) pts.push([x1 + (x2 - x1) * i / wn, y1])
-      for (let i = 1; i <= hn; i++) pts.push([x2, y1 + (y2 - y1) * i / hn])
-      for (let i = wn - 1; i >= 0; i--) pts.push([x1 + (x2 - x1) * i / wn, y2])
-      for (let i = hn - 1; i > 0; i--) pts.push([x1, y1 + (y2 - y1) * i / hn])
-      return pts
-    }
-    if (el.type === 'circle' && el.x !== undefined && el.y !== undefined && el.w !== undefined) {
-      const n = Math.max(16, Math.ceil(2 * Math.PI * el.w / STEP))
-      return Array.from({ length: n }, (_, i) => {
-        const a = (2 * Math.PI * i) / n
-        return [el.x! + el.w! * Math.cos(a), el.y! + el.w! * Math.sin(a)] as [number, number]
-      })
-    }
-    return null
-  }
-
-  // Split point array at eraser position → contiguous segments outside the eraser
-  const splitSegments = (pts: [number, number][], x: number, y: number): [number, number][][] => {
-    const segs: [number, number][][] = []
-    let seg: [number, number][] = []
-    for (const pt of pts) {
-      if (Math.hypot(x - pt[0], y - pt[1]) < ERASER_RADIUS) {
-        if (seg.length >= 2) segs.push(seg)
-        seg = []
-      } else {
-        seg.push(pt)
-      }
-    }
-    if (seg.length >= 2) segs.push(seg)
-    return segs
-  }
-
-  // Apply eraser: ALL types get partially erased via discretize → split
-  const applyEraserAt = (elements: DrawingElement[], x: number, y: number): DrawingElement[] => {
-    const result: DrawingElement[] = []
-    for (const el of elements) {
-      if (el.type === 'text') {
-        // Text erased whole on contact
-        if (!(el.x !== undefined && el.y !== undefined && Math.abs(x - el.x) < 60 && Math.abs(y - el.y) < 20))
-          result.push(el)
-        continue
-      }
-      const pts = discretize(el)
-      if (!pts) { result.push(el); continue }
-      if (!pts.some(([px, py]) => Math.hypot(x - px, y - py) < ERASER_RADIUS)) {
-        result.push(el); continue
-      }
-      // Convert remaining segments to pencil strokes
-      splitSegments(pts, x, y).forEach((s, i) => result.push({
-        id: i === 0 ? el.id : `${el.id}-${i}-${Date.now()}`,
-        type: 'pencil',
-        points: s,
-        stroke: el.stroke,
-        fill: 'none',
-        strokeWidth: el.strokeWidth,
-      }))
-    }
-    return result
-  }
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return
-    const rect = svgRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-
-    if (tool === 'eraser') {
-      setMousePos({ x, y })
-      if (e.buttons === 1) {
-        setElements(prev => {
-          const next = applyEraserAt(prev, x, y)
-          if (next.length !== prev.length || next.some((el, i) => el !== prev[i])) saveDrawing(next)
-          return next
-        })
-      }
-      return
-    }
-
-    if (!isDrawing.current || !currentElementId.current) return
-
-    setElements((prev) =>
-      prev.map((el) => {
-        if (el.id !== currentElementId.current) return el
-
-        if (el.type === 'pencil' && el.points) {
-          return { ...el, points: [...el.points, [x, y]] }
-        }
-
-        if (el.x !== undefined && el.y !== undefined) {
-          if (el.type === 'rectangle' || el.type === 'circle') {
-            return {
-              ...el,
-              w: el.type === 'circle' ? Math.sqrt((x - el.x) ** 2 + (y - el.y) ** 2) : x - el.x,
-              h: y - el.y
-            }
-          }
-          if (el.type === 'line') {
-            return {
-              ...el,
-              w: x, // We abuse w and h for end x and y for simple line drawing
-              h: y
-            }
-          }
-        }
-
-        return el
-      })
-    )
-  }
-
-  const handleMouseUp = () => {
-    eraserActiveRef.current = false
-    if (isDrawing.current) {
-      isDrawing.current = false
-      currentElementId.current = null
-      saveDrawing(elementsRef.current)
-    }
-  }
-
-  const handleTextCommit = () => {
-    if (!textPos || !textInput.trim()) {
-      setTextPos(null)
-      return
-    }
-    pushState(elements)
-    const newElement: DrawingElement = {
-      id: `el-${Date.now()}`,
-      type: 'text',
-      x: textPos.x,
-      y: textPos.y,
-      text: textInput.trim(),
-      stroke: strokeColor,
-      fill: 'transparent',
-      strokeWidth: 16 // font size
-    }
-    const updated = [...elements, newElement]
-    setElements(updated)
-    saveDrawing(updated)
-    setTextPos(null)
-    setTextInput('')
-  }
-
-  const clearCanvas = () => {
-    if (window.confirm(t('sketchpad.clearConfirm'))) {
-      pushState(elements)
-      setElements([])
-      saveDrawing([])
-    }
-  }
+  const {
+    elements,
+    tool,
+    setTool,
+    strokeColor,
+    setStrokeColor,
+    strokeWidth,
+    setStrokeWidth,
+    textInput,
+    setTextInput,
+    textPos,
+    setTextPos,
+    mousePos,
+    setMousePos,
+    undoStack,
+    redoStack,
+    svgRef,
+    handleUndo,
+    handleRedo,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleTextCommit,
+    clearCanvas
+  } = useSketchpadState({ filePath, content, onSave })
 
   return (
     <div
@@ -354,132 +50,20 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
         overflow: 'hidden'
       }}
     >
-      {/* Floating Toolbar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '8px 16px',
-          background: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          zIndex: 10
-        }}
-      >
-        <div style={{ display: 'flex', gap: 4, background: 'var(--bg-primary)', padding: 2, borderRadius: 6, border: '1px solid var(--border-color)' }}>
-          {(['pencil', 'rectangle', 'circle', 'line', 'text', 'eraser'] as const).map((toolId) => (
-            <button
-              key={toolId}
-              onClick={() => {
-                setTool(toolId)
-                setTextPos(null)
-              }}
-              style={{
-                background: tool === toolId ? 'var(--accent-color)' : 'transparent',
-                color: tool === toolId ? '#fff' : 'var(--text-secondary)',
-                border: 'none',
-                padding: '6px 10px',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 500,
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {t(`sketchpad.tools.${toolId}`)}
-            </button>
-          ))}
-        </div>
-
-        {/* Color pickers */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('sketchpad.stroke')}</label>
-          {['#7c6af7', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#f3f4f6', '#9ca3af'].map((color) => (
-            <button
-              key={color}
-              onClick={() => setStrokeColor(color)}
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: '50%',
-                background: color,
-                border: strokeColor === color ? '2px solid #fff' : '1px solid var(--border-color)',
-                cursor: 'pointer',
-                padding: 0
-              }}
-            />
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('sketchpad.width')}</label>
-          <select
-            value={strokeWidth}
-            onChange={(e) => setStrokeWidth(Number(e.target.value))}
-            style={{
-              background: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 4,
-              padding: '2px 4px',
-              fontSize: 11,
-              cursor: 'pointer'
-            }}
-          >
-            <option value="1">{t('sketchpad.widthThin')}</option>
-            <option value="3">{t('sketchpad.widthMedium')}</option>
-            <option value="6">{t('sketchpad.widthThick')}</option>
-          </select>
-        </div>
-
-        {/* Undo/Redo & Clear */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-          <button
-            onClick={handleUndo}
-            disabled={undoStack.length === 0}
-            style={{
-              background: 'var(--bg-primary)',
-              color: undoStack.length === 0 ? 'var(--border-color)' : 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              padding: '4px 8px',
-              borderRadius: 4,
-              cursor: undoStack.length === 0 ? 'default' : 'pointer',
-              fontSize: 11
-            }}
-          >
-            {t('common.undo')}
-          </button>
-          <button
-            onClick={handleRedo}
-            disabled={redoStack.length === 0}
-            style={{
-              background: 'var(--bg-primary)',
-              color: redoStack.length === 0 ? 'var(--border-color)' : 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              padding: '4px 8px',
-              borderRadius: 4,
-              cursor: redoStack.length === 0 ? 'default' : 'pointer',
-              fontSize: 11
-            }}
-          >
-            {t('common.redo')}
-          </button>
-          <button
-            onClick={clearCanvas}
-            style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              color: '#ef4444',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              padding: '4px 8px',
-              borderRadius: 4,
-              cursor: 'pointer',
-              fontSize: 11
-            }}
-          >
-            {t('common.clear')}
-          </button>
-        </div>
-      </div>
+      <SketchpadToolbar
+        tool={tool}
+        setTool={setTool}
+        strokeColor={strokeColor}
+        setStrokeColor={setStrokeColor}
+        strokeWidth={strokeWidth}
+        setStrokeWidth={setStrokeWidth}
+        undoStack={undoStack}
+        redoStack={redoStack}
+        handleUndo={handleUndo}
+        handleRedo={handleRedo}
+        clearCanvas={clearCanvas}
+        setTextPos={setTextPos}
+      />
 
       {/* SVG Canvas Area */}
       <svg
@@ -487,7 +71,10 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={() => { handleMouseUp(); setMousePos(null) }}
+        onMouseLeave={() => {
+          handleMouseUp()
+          setMousePos(null)
+        }}
         style={{
           flex: 1,
           width: '100%',
@@ -499,7 +86,12 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
       >
         {elements.map((el) => {
           if (el.type === 'pencil' && el.points && el.points.length > 0) {
-            const d = `M ${el.points[0][0]} ${el.points[0][1]} ` + el.points.slice(1).map((p) => `L ${p[0]} ${p[1]}`).join(' ')
+            const d =
+              `M ${el.points[0][0]} ${el.points[0][1]} ` +
+              el.points
+                .slice(1)
+                .map((p) => `L ${p[0]} ${p[1]}`)
+                .join(' ')
             return (
               <path
                 key={el.id}
@@ -513,7 +105,13 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
             )
           }
 
-          if (el.type === 'rectangle' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
+          if (
+            el.type === 'rectangle' &&
+            el.x !== undefined &&
+            el.y !== undefined &&
+            el.w !== undefined &&
+            el.h !== undefined
+          ) {
             return (
               <rect
                 key={el.id}
@@ -528,7 +126,12 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
             )
           }
 
-          if (el.type === 'circle' && el.x !== undefined && el.y !== undefined && el.w !== undefined) {
+          if (
+            el.type === 'circle' &&
+            el.x !== undefined &&
+            el.y !== undefined &&
+            el.w !== undefined
+          ) {
             return (
               <circle
                 key={el.id}
@@ -542,7 +145,13 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
             )
           }
 
-          if (el.type === 'line' && el.x !== undefined && el.y !== undefined && el.w !== undefined && el.h !== undefined) {
+          if (
+            el.type === 'line' &&
+            el.x !== undefined &&
+            el.y !== undefined &&
+            el.w !== undefined &&
+            el.h !== undefined
+          ) {
             return (
               <line
                 key={el.id}
