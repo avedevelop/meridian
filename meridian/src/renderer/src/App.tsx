@@ -60,6 +60,7 @@ import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
 import { useSettingsStore } from './store/useSettingsStore'
+import { initI18n, i18n } from './i18n/index'
 
 import { useAutoSave } from './hooks/useAutoSave'
 import { useGitSync } from './hooks/useGitSync'
@@ -116,11 +117,20 @@ export default function App() {
   const compactMode = useSettingsStore((s) => s.compactMode)
   const showStatusBar = useSettingsStore((s) => s.showStatusBar)
   const defaultExportFormat = useSettingsStore((s) => s.defaultExportFormat)
+  const language = useSettingsStore((s) => s.language)
 
   // Load preferences from disk on mount
   useEffect(() => {
     useSettingsStore.getState().loadFromDisk()
   }, [])
+
+  useEffect(() => {
+    initI18n(language)
+  }, [])
+
+  useEffect(() => {
+    if (i18n.isInitialized) i18n.changeLanguage(language)
+  }, [language])
 
   useVaultFileWatcher()
   useAutoSave()

@@ -70,6 +70,7 @@ export interface SettingsState {
   // Sync
   gitCommitTemplate: string
   gitDefaultBranch: string
+  language: string // ISO 639-1, e.g. 'en', 'ru'
 
   // Plugins
   pluginsEnabled: {
@@ -154,6 +155,7 @@ const DEFAULTS: Omit<
   exportCustomCSS: '',
   gitCommitTemplate: 'Updated {files}',
   gitDefaultBranch: 'main',
+  language: 'en',
   pluginsEnabled: {
     dailyNotes: true,
     wordCounter: true,
