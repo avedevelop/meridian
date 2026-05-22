@@ -455,7 +455,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     }
   })
 
-  ipcMain.handle(IPC.GIT_SYNC, async () => {
+  ipcMain.handle(IPC.GIT_SYNC, async (_event, defaultBranch: string = 'main') => {
     if (!vaultManager) throw new Error('No vault open')
     const cwd = vaultManager.vaultPath
     const { execFile } = await import('child_process')
@@ -469,7 +469,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
 
       if (hasRemote) {
         const { stdout: branchOut } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd })
-        const branch = branchOut.trim() || 'main'
+        const branch = branchOut.trim() || defaultBranch
         const { githubToken } = settings.get()
 
         // Get remote URL and temporarily embed token for auth

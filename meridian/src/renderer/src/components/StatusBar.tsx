@@ -10,6 +10,7 @@ export function StatusBar() {
   const showWordCounter = useSettingsStore((s) => s.pluginsEnabled.wordCounter)
   const gitBackupEnabled = useSettingsStore((s) => s.pluginsEnabled.gitBackup)
   const autoBackupInterval = useSettingsStore((s) => s.autoBackupInterval)
+  const gitDefaultBranch = useSettingsStore((s) => s.gitDefaultBranch)
 
   const [gitState, setGitState] = useState<{ isRepo: boolean; clean?: boolean; changesCount?: number } | null>(null)
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle')
@@ -40,7 +41,7 @@ export function StatusBar() {
         setSyncError(commitRes.error ?? 'Commit failed')
         return
       }
-      const syncRes = await window.vault.gitSync()
+      const syncRes = await window.vault.gitSync(gitDefaultBranch)
       if (!syncRes.success) {
         setSyncState('error')
         setSyncError(syncRes.error ?? 'Sync failed')

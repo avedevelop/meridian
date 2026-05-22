@@ -16,19 +16,12 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) === 1 ? '' : 's'} ago`
 }
 
-function autoCommitMessage(changes: { path: string; status: string }[]): string {
+function applyCommitTemplate(template: string, changes: { path: string; status: string }[]): string {
   if (changes.length === 0) return ''
-  const names = changes
-    .slice(0, 3)
-    .map((c) => c.path.split('/').pop() ?? c.path)
+  const names = changes.slice(0, 3).map((c) => c.path.split('/').pop() ?? c.path)
   const suffix = changes.length > 3 ? ` +${changes.length - 3} more` : ''
-  const action =
-    changes.every((c) => c.status === 'added' || c.status === 'untracked')
-      ? 'Added'
-      : changes.every((c) => c.status === 'deleted')
-      ? 'Deleted'
-      : 'Updated'
-  return `${action}: ${names.join(', ')}${suffix}`
+  const files = names.join(', ') + suffix
+  return template.replace('{files}', files)
 }
 
 interface SetupWizardProps {
@@ -180,6 +173,8 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
 export function GitPanel() {
   const openTab = useVaultStore((s) => s.openTab)
   const { autoBackupInterval, updateSetting } = useSettingsStore()
+  const gitCommitTemplate = useSettingsStore((s) => s.gitCommitTemplate)
+  const gitDefaultBranch = useSettingsStore((s) => s.gitDefaultBranch)
   
   const [loading, setLoading] = useState(true)
   const [gitState, setGitState] = useState<{
@@ -261,11 +256,11 @@ export function GitPanel() {
     if (!gitState?.changes || gitState.changes.length === 0) return
     setCommitMessage((prev) => {
       if (prev.trim() === '' || prev.startsWith('Updated:') || prev.startsWith('Added:') || prev.startsWith('Deleted:')) {
-        return autoCommitMessage(gitState.changes ?? [])
+        return applyCommitTemplate(gitCommitTemplate, gitState.changes ?? [])
       }
       return prev
     })
-  }, [gitState?.changes])
+  }, [gitState?.changes, gitCommitTemplate])
 
   const handleInit = async () => {
     setLoading(true)
@@ -338,7 +333,7 @@ export function GitPanel() {
         setError(commitRes.error ?? 'Commit failed')
         return
       }
-      const syncRes = await window.vault.gitSync()
+      const syncRes = await window.vault.gitSync(gitDefaultBranch)
       if (!syncRes.success) {
         setError(syncRes.error ?? 'Sync failed')
       } else {

@@ -53,7 +53,9 @@ declare global {
         changes?: { path: string; status: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown' }[]
       }>
       gitCommit: (message?: string) => Promise<{ success: boolean; error?: string; message?: string }>
-      gitSync: () => Promise<{ success: boolean; error?: string; noRemote?: boolean }>
+      gitSync: (defaultBranch?: string) => Promise<{ success: boolean; error?: string; noRemote?: boolean }>
+      getConfigPath: () => Promise<string>
+      setSpellLanguage: (lang: string) => Promise<void>
       gitInit: () => Promise<{ success: boolean; error?: string }>
       gitLog: () => Promise<{
         success: boolean

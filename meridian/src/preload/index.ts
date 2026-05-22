@@ -63,8 +63,8 @@ const vaultAPI = {
   gitCommit: (message?: string): Promise<{ success: boolean; error?: string; message?: string }> =>
     ipcRenderer.invoke(IPC.GIT_COMMIT, message),
 
-  gitSync: (): Promise<{ success: boolean; error?: string; noRemote?: boolean }> =>
-    ipcRenderer.invoke(IPC.GIT_SYNC),
+  gitSync: (defaultBranch?: string): Promise<{ success: boolean; error?: string; noRemote?: boolean }> =>
+    ipcRenderer.invoke(IPC.GIT_SYNC, defaultBranch ?? 'main'),
 
   gitInit: (): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC.GIT_INIT),

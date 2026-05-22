@@ -6,6 +6,7 @@ const COMMIT_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
 export function useGitSync() {
   const gitBackup = useSettingsStore(s => s.pluginsEnabled.gitBackup)
+  const gitDefaultBranch = useSettingsStore(s => s.gitDefaultBranch)
   const vault = useVaultStore(s => s.vault)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isSyncingRef = useRef(false)
@@ -17,13 +18,13 @@ export function useGitSync() {
       const status = await window.vault.gitStatus()
       if (!status.isRepo || status.clean) return
       const result = await window.vault.gitCommit()
-      if (result.success) await window.vault.gitSync()
+      if (result.success) await window.vault.gitSync(gitDefaultBranch)
     } catch {
       // silent — StatusBar shows errors from its own polling
     } finally {
       isSyncingRef.current = false
     }
-  }, [vault])
+  }, [vault, gitDefaultBranch])
 
   // Periodic autocommit every 5 minutes
   useEffect(() => {
