@@ -95,7 +95,10 @@ const vaultAPI = {
       callback(change)
     ipcRenderer.on(IPC.FILE_CHANGED, handler)
     return () => ipcRenderer.removeListener(IPC.FILE_CHANGED, handler)
-  }
+  },
+
+  setSpellLanguage: (lang: string) => ipcRenderer.invoke(IPC.SPELL_SET_LANGUAGE, lang),
+  getConfigPath: () => ipcRenderer.invoke(IPC.GET_CONFIG_PATH)
 }
 
 const settingsAPI = {

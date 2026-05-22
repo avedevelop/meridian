@@ -127,6 +127,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
     vaultPath
   }: MarkdownPreviewProps, scrollRef) {
   const { fontFamily, fontWeight, lineHeight } = useSettingsStore()
+  const codeBlockTheme = useSettingsStore((s) => s.codeBlockTheme)
   const { files } = useVaultStore()
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -135,6 +136,24 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
     if (typeof scrollRef === 'function') scrollRef(el)
     else if (scrollRef) (scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el
   }, [scrollRef])
+
+  // Dynamic code block syntax highlight theme
+  useEffect(() => {
+    const themeUrls: Record<string, string> = {
+      'github-dark': 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css',
+      'monokai': 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/monokai.min.css',
+      'one-dark': 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css',
+      'solarized': 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/solarized-dark.min.css'
+    }
+    let link = document.getElementById('hljs-theme') as HTMLLinkElement | null
+    if (!link) {
+      link = document.createElement('link')
+      link.id = 'hljs-theme'
+      link.rel = 'stylesheet'
+      document.head.appendChild(link)
+    }
+    link.href = themeUrls[codeBlockTheme] ?? themeUrls['github-dark']
+  }, [codeBlockTheme])
 
   const fontFamilyValue = useMemo(() => {
     switch (fontFamily) {

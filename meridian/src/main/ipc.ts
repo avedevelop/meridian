@@ -644,6 +644,15 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const { githubToken, githubUsername } = settings.get()
     return { connected: !!githubToken, username: githubUsername ?? '' }
   })
+
+  ipcMain.handle(IPC.SPELL_SET_LANGUAGE, async (event, lang: string) => {
+    event.sender.session.setSpellCheckerLanguages([lang])
+  })
+
+  ipcMain.handle(IPC.GET_CONFIG_PATH, async () => {
+    const { app } = await import('electron')
+    return app.getPath('userData')
+  })
 }
 
 export function getVaultManager(): VaultManager | null {

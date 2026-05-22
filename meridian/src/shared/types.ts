@@ -64,5 +64,7 @@ export const IPC = {
   GIT_GITHUB_LOGOUT: 'git:github-logout',
   GIT_GITHUB_STATUS: 'git:github-status',
   PREFERENCES_GET: 'preferences:get',
-  PREFERENCES_SET: 'preferences:set'
+  PREFERENCES_SET: 'preferences:set',
+  SPELL_SET_LANGUAGE: 'spell:set-language',
+  GET_CONFIG_PATH: 'config:get-path'
 } as const

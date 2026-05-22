@@ -355,6 +355,8 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const indentWithTabs = useSettingsStore((s) => s.indentWithTabs)
   const tabSize = useSettingsStore((s) => s.tabSize)
   const typingMode = useSettingsStore((s) => s.typingMode)
+  const spellCheck = useSettingsStore((s) => s.spellCheck)
+  const spellCheckLanguage = useSettingsStore((s) => s.spellCheckLanguage)
 
   const [editorMode, setEditorMode] = React.useState<'editor' | 'preview' | 'split'>(defaultView)
 
@@ -695,6 +697,17 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
       })
     }
   }, [typingMode])
+
+  // Spell check: toggle spellcheck attribute and set language via IPC
+  useEffect(() => {
+    const content = viewRef.current?.dom.querySelector('.cm-content') as HTMLElement | null
+    if (content) {
+      content.setAttribute('spellcheck', spellCheck ? 'true' : 'false')
+    }
+    if (spellCheck) {
+      ;(window.vault as any)?.setSpellLanguage?.(spellCheckLanguage)?.catch?.(() => {})
+    }
+  }, [spellCheck, spellCheckLanguage])
 
   // Show empty pane placeholder
   if (openTabs.length === 0) {
