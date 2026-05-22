@@ -12,7 +12,8 @@
       },
       "runtimeArgs": ["--sourcemap"],
       "env": {
-        "REMOTE_DEBUGGING_PORT": "9222"
+        "REMOTE_DEBUGGING_PORT": "9222",
+        "ELECTRON_RUN_AS_NODE": ""
       }
     },
     {

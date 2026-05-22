@@ -7,9 +7,28 @@ Obsidian-alternative note-taking app built with Electron 39 + React 18 + TypeScr
 ## Запуск
 
 ```bash
+cd meridian
 npm install
 npm run dev
 ```
+
+> **Dev не стартует?**
+>
+> Если видишь `TypeError: Cannot read properties of undefined (reading 'registerSchemesAsPrivileged')` —
+> среда (Cursor, VS Code) выставляет `ELECTRON_RUN_AS_NODE=1`, из-за чего Electron запускается как обычный Node.
+>
+> Скрипт `npm run dev` уже содержит `env -u ELECTRON_RUN_AS_NODE`, но если ошибка всё равно возникает:
+>
+> ```bash
+> unset ELECTRON_RUN_AS_NODE && npm run dev
+> ```
+>
+> Если порт 5173 занят прошлым процессом:
+>
+> ```bash
+> npm run dev:kill   # убивает процесс на :5173
+> npm run dev
+> ```
 
 ---
 
