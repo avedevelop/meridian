@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { VaultFile } from '@shared/types'
 import { ContextMenu } from './ContextMenu'
 import { FileIcon } from './FileIcon'
@@ -41,6 +42,7 @@ export function FileTree({
   depth = 0,
   activePath
 }: FileTreeProps) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -295,24 +297,24 @@ export function FileTree({
             contextMenu.file.isDirectory
               ? [
                   {
-                    label: 'New Note',
+                    label: t('common.newNote'),
                     onClick: () =>
                       onCreateFile?.(contextMenu.file.path, uniqueFileName(contextMenu.file.path, 'Untitled', 'md', files))
                   },
                   {
-                    label: 'New Folder',
+                    label: t('common.newFolder'),
                     onClick: () => onNewFolder?.(contextMenu.file.path)
                   },
                   { separator: true as const },
                   {
-                    label: 'Rename',
+                    label: t('common.rename'),
                     onClick: () => {
                       setEditing(contextMenu.file.path)
                       setEditValue(contextMenu.file.name)
                     }
                   },
                   {
-                    label: 'Delete',
+                    label: t('common.delete'),
                     danger: true,
                     onClick: () => {
                       onDelete?.(contextMenu.file.path)
@@ -320,17 +322,17 @@ export function FileTree({
                   },
                   { separator: true as const },
                   {
-                    label: 'Reveal in Finder',
+                    label: t('common.reveal'),
                     onClick: () => onReveal?.(contextMenu.file.path)
                   },
                   {
-                    label: 'Copy Path',
+                    label: t('common.copyPath'),
                     onClick: () => {
                       navigator.clipboard.writeText(contextMenu.file.path).catch(console.error)
                     }
                   },
                   {
-                    label: 'Copy Relative Path',
+                    label: t('common.copyRelativePath'),
                     onClick: () => {
                       navigator.clipboard
                         .writeText(contextMenu.file.relativePath)
@@ -340,7 +342,7 @@ export function FileTree({
                 ]
               : [
                   {
-                    label: 'New Note Here',
+                    label: t('common.newNoteHere'),
                     onClick: () => {
                       const dir = contextMenu.file.path.split('/').slice(0, -1).join('/')
                       onCreateFile?.(dir, uniqueFileName(dir, 'Untitled', 'md', files))
@@ -348,14 +350,14 @@ export function FileTree({
                   },
                   { separator: true as const },
                   {
-                    label: 'Rename',
+                    label: t('common.rename'),
                     onClick: () => {
                       setEditing(contextMenu.file.path)
                       setEditValue(contextMenu.file.name)
                     }
                   },
                   {
-                    label: 'Delete',
+                    label: t('common.delete'),
                     danger: true,
                     onClick: () => {
                       onDelete?.(contextMenu.file.path)
@@ -363,17 +365,17 @@ export function FileTree({
                   },
                   { separator: true as const },
                   {
-                    label: 'Reveal in Finder',
+                    label: t('common.reveal'),
                     onClick: () => onReveal?.(contextMenu.file.path)
                   },
                   {
-                    label: 'Copy Path',
+                    label: t('common.copyPath'),
                     onClick: () => {
                       navigator.clipboard.writeText(contextMenu.file.path).catch(console.error)
                     }
                   },
                   {
-                    label: 'Copy Relative Path',
+                    label: t('common.copyRelativePath'),
                     onClick: () => {
                       navigator.clipboard
                         .writeText(contextMenu.file.relativePath)

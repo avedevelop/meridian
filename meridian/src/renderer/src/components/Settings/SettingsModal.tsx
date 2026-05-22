@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSettingsStore, SettingsState } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
 
@@ -510,6 +511,7 @@ interface SettingDefinition {
 // ----------------------------------------------------
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { t } = useTranslation()
   const store = useSettingsStore()
   const vault = useVaultStore((s) => s.vault)
   const [activeCategory, setActiveCategory] = useState<SettingCategory>('editor')
@@ -535,7 +537,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setGhError(null)
     try {
       const res = await window.vault.githubDeviceCode()
-      if (!res.success) { setGhError(res.error ?? 'Failed'); setGhConnecting(false); return }
+      if (!res.success) { setGhError(res.error ?? t('github.error')); setGhConnecting(false); return }
       setGhUserCode(res.user_code ?? '')
       await window.vault.openExternal(res.verification_uri ?? 'https://github.com/login/device')
       const interval = res.interval ?? 5
@@ -549,7 +551,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           await new Promise(x => setTimeout(x, interval * 1000))
           return poll()
         }
-        setGhError(r.error ?? 'Auth failed'); setGhConnecting(false)
+        setGhError(r.error ?? t('github.error')); setGhConnecting(false)
       }
       await poll()
     } catch (e: any) { setGhError(e.message); setGhConnecting(false) }
@@ -585,13 +587,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // EDITOR
       {
         id: 'fontSize',
-        label: 'Font size',
-        description: 'Adjust the text font size of both the markdown editor and preview text.',
+        label: t('settings.editor.fontSize'),
+        description: t('settings.editor.fontSizeDesc'),
         category: 'editor',
         render: (s) => (
           <Slider
-            label="Font size"
-            description="Adjust the text font size of both the editor and preview."
+            label={t('settings.editor.fontSize')}
+            description={t('settings.editor.fontSizeDesc')}
             value={s.fontSize}
             min={13}
             max={22}
@@ -602,13 +604,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'lineWidth',
-        label: 'Line width',
-        description: 'Set the maximum content column width for the writing area.',
+        label: t('settings.editor.lineWidth'),
+        description: t('settings.editor.lineWidthDesc'),
         category: 'editor',
         render: (s) => (
           <Slider
-            label="Line width"
-            description="Set the maximum content column width for the writing area."
+            label={t('settings.editor.lineWidth')}
+            description={t('settings.editor.lineWidthDesc')}
             value={s.lineWidth}
             min={600}
             max={960}
@@ -619,13 +621,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'readableLineLength',
-        label: 'Readable line length',
-        description: 'Limit the width of the editor/preview area to a readable size.',
+        label: t('settings.editor.readableLineLength'),
+        description: t('settings.editor.readableLineLengthDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Readable line length"
-            description="Limit the width of the editor/preview area to a readable size."
+            label={t('settings.editor.readableLineLength')}
+            description={t('settings.editor.readableLineLengthDesc')}
             checked={s.readableLineLength}
             onChange={(v) => s.updateSetting('readableLineLength', v)}
           />
@@ -633,20 +635,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'fontFamily',
-        label: 'Font family',
-        description: 'Set the font family family face used inside the editor workspace.',
+        label: t('settings.editor.fontFamily'),
+        description: t('settings.editor.fontFamilyDesc'),
         category: 'editor',
         render: (s) => (
           <Dropdown
-            label="Font family"
-            description="Select typography styles for composing notes."
+            label={t('settings.editor.fontFamily')}
+            description={t('settings.editor.fontFamilyDesc')}
             value={s.fontFamily}
             options={[
-              { value: 'Georgia', label: 'Georgia (Elegant Serif)' },
-              { value: 'Inter', label: 'Inter (Modern Sans)' },
-              { value: 'Fira Code', label: 'Fira Code (Code Monospace)' },
-              { value: 'JetBrains Mono', label: 'JetBrains Mono' },
-              { value: 'system-ui', label: 'System UI Default' }
+              { value: 'Georgia', label: t('settings.editor.fontFamily.georgia') },
+              { value: 'Inter', label: t('settings.editor.fontFamily.inter') },
+              { value: 'Fira Code', label: t('settings.editor.fontFamily.firaCode') },
+              { value: 'JetBrains Mono', label: t('settings.editor.fontFamily.jetbrainsMono') },
+              { value: 'system-ui', label: t('settings.editor.fontFamily.system') }
             ]}
             onChange={(v) => s.updateSetting('fontFamily', v)}
           />
@@ -654,19 +656,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'fontWeight',
-        label: 'Font weight',
-        description: 'Define the font thickness weight in the editor.',
+        label: t('settings.editor.fontWeight'),
+        description: t('settings.editor.fontWeightDesc'),
         category: 'editor',
         render: (s) => (
           <Dropdown
-            label="Font weight"
-            description="Thickness level of active text characters."
+            label={t('settings.editor.fontWeight')}
+            description={t('settings.editor.fontWeightDesc')}
             value={s.fontWeight}
             options={[
-              { value: '300', label: 'Light (300)' },
-              { value: '400', label: 'Regular (400)' },
-              { value: '500', label: 'Medium (500)' },
-              { value: '700', label: 'Bold (700)' }
+              { value: '300', label: t('settings.editor.fontWeight.light') },
+              { value: '400', label: t('settings.editor.fontWeight.regular') },
+              { value: '500', label: t('settings.editor.fontWeight.medium') },
+              { value: '700', label: t('settings.editor.fontWeight.bold') }
             ]}
             onChange={(v) => s.updateSetting('fontWeight', v)}
           />
@@ -674,13 +676,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'lineHeight',
-        label: 'Line height spacing',
-        description: 'Configure vertical line heights spacing of editor texts.',
+        label: t('settings.editor.lineHeight'),
+        description: t('settings.editor.lineHeightDesc'),
         category: 'editor',
         render: (s) => (
           <Slider
-            label="Line height spacing"
-            description="Scale vertical spacing height factor."
+            label={t('settings.editor.lineHeight')}
+            description={t('settings.editor.lineHeightDesc')}
             value={s.lineHeight}
             min={1.2}
             max={2.4}
@@ -691,13 +693,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'lineWrapping',
-        label: 'Line wrapping',
-        description: 'Wrap long text lines automatically at the column boundaries.',
+        label: t('settings.editor.lineWrapping'),
+        description: t('settings.editor.lineWrappingDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Line wrapping"
-            description="Wrap long text lines automatically at the column boundaries."
+            label={t('settings.editor.lineWrapping')}
+            description={t('settings.editor.lineWrappingDesc')}
             checked={s.lineWrapping}
             onChange={(v) => s.updateSetting('lineWrapping', v)}
           />
@@ -705,13 +707,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'lineNumbers',
-        label: 'Show line numbers',
-        description: 'Display vertical line numbers in the gutter of the markdown editor.',
+        label: t('settings.editor.lineNumbers'),
+        description: t('settings.editor.lineNumbersDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Show line numbers"
-            description="Display vertical line numbers in the gutter."
+            label={t('settings.editor.lineNumbers')}
+            description={t('settings.editor.lineNumbersDesc')}
             checked={s.lineNumbers}
             onChange={(v) => s.updateSetting('lineNumbers', v)}
           />
@@ -719,18 +721,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'tabSize',
-        label: 'Tab size',
-        description: 'Set the number of spaces to insert when pressing the Tab key.',
+        label: t('settings.editor.tabSize'),
+        description: t('settings.editor.tabSizeDesc'),
         category: 'editor',
         render: (s) => (
           <Dropdown
-            label="Tab size"
-            description="Choose the number of spaces used for indentation."
+            label={t('settings.editor.tabSize')}
+            description={t('settings.editor.tabSizeDesc')}
             value={s.tabSize}
             options={[
-              { value: 2, label: '2 spaces' },
-              { value: 4, label: '4 spaces' },
-              { value: 8, label: '8 spaces' }
+              { value: 2, label: t('settings.editor.tabSize.2spaces') },
+              { value: 4, label: t('settings.editor.tabSize.4spaces') },
+              { value: 8, label: t('settings.editor.tabSize.8spaces') }
             ]}
             onChange={(v) => s.updateSetting('tabSize', v)}
           />
@@ -738,13 +740,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'bracketMatching',
-        label: 'Bracket matching',
-        description: 'Highlight matching brackets when placing the cursor near one.',
+        label: t('settings.editor.bracketMatching'),
+        description: t('settings.editor.bracketMatchingDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Bracket matching"
-            description="Highlight matching parentheses, brackets, and braces."
+            label={t('settings.editor.bracketMatching')}
+            description={t('settings.editor.bracketMatchingDesc')}
             checked={s.bracketMatching}
             onChange={(v) => s.updateSetting('bracketMatching', v)}
           />
@@ -752,13 +754,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'closeBrackets',
-        label: 'Auto close brackets',
-        description: 'Automatically insert closing brackets, parentheses, and quotes.',
+        label: t('settings.editor.closeBrackets'),
+        description: t('settings.editor.closeBracketsDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Auto close brackets"
-            description="Automatically insert closing parentheses and brackets."
+            label={t('settings.editor.closeBrackets')}
+            description={t('settings.editor.closeBracketsDesc')}
             checked={s.closeBrackets}
             onChange={(v) => s.updateSetting('closeBrackets', v)}
           />
@@ -766,18 +768,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'typingMode',
-        label: 'Typing mode',
-        description: 'Normal: standard scroll. Typewriter: cursor stays centered. Focus: dim other paragraphs.',
+        label: t('settings.editor.typingMode'),
+        description: t('settings.editor.typingModeDesc'),
         category: 'editor',
         render: (s) => (
           <Dropdown
-            label="Typing mode"
-            description="Normal: standard scroll. Typewriter: cursor stays centered. Focus: dim other paragraphs."
+            label={t('settings.editor.typingMode')}
+            description={t('settings.editor.typingModeDesc')}
             value={s.typingMode}
             options={[
-              { value: 'normal', label: 'Normal' },
-              { value: 'typewriter', label: 'Typewriter (cursor centered)' },
-              { value: 'focus', label: 'Focus (dim other lines)' }
+              { value: 'normal', label: t('settings.editor.typingMode.normal') },
+              { value: 'typewriter', label: t('settings.editor.typingMode.typewriter') },
+              { value: 'focus', label: t('settings.editor.typingMode.focus') }
             ]}
             onChange={(v) => s.updateSetting('typingMode', v as any)}
           />
@@ -785,13 +787,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'showInvisibles',
-        label: 'Show invisible characters',
-        description: 'Highlight tabs and special characters in the editor.',
+        label: t('settings.editor.showInvisibles'),
+        description: t('settings.editor.showInvisiblesDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Show invisible characters"
-            description="Highlight tabs and special characters in the editor."
+            label={t('settings.editor.showInvisibles')}
+            description={t('settings.editor.showInvisiblesDesc')}
             checked={s.showInvisibles}
             onChange={(v) => s.updateSetting('showInvisibles', v)}
           />
@@ -799,18 +801,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'defaultView',
-        label: 'Default view on file open',
-        description: 'Which pane layout to show when opening a note.',
+        label: t('settings.editor.defaultView'),
+        description: t('settings.editor.defaultViewDesc'),
         category: 'editor',
         render: (s) => (
           <Dropdown
-            label="Default view on file open"
-            description="Which pane layout to show when opening a note."
+            label={t('settings.editor.defaultView')}
+            description={t('settings.editor.defaultViewDesc')}
             value={s.defaultView}
             options={[
-              { value: 'editor', label: 'Editor only' },
-              { value: 'split', label: 'Split (editor + preview)' },
-              { value: 'preview', label: 'Preview only' }
+              { value: 'editor', label: t('settings.editor.defaultView.editor') },
+              { value: 'split', label: t('settings.editor.defaultView.split') },
+              { value: 'preview', label: t('settings.editor.defaultView.preview') }
             ]}
             onChange={(v) => s.updateSetting('defaultView', v as any)}
           />
@@ -818,13 +820,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'codeBlockTheme',
-        label: 'Code block syntax theme',
-        description: 'Color theme applied to fenced code blocks in preview.',
+        label: t('settings.editor.codeBlockTheme'),
+        description: t('settings.editor.codeBlockThemeDesc'),
         category: 'editor',
         render: (s) => (
           <Dropdown
-            label="Code block syntax theme"
-            description="Color theme applied to fenced code blocks in preview."
+            label={t('settings.editor.codeBlockTheme')}
+            description={t('settings.editor.codeBlockThemeDesc')}
             value={s.codeBlockTheme}
             options={[
               { value: 'github-dark', label: 'GitHub Dark' },
@@ -838,13 +840,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'paragraphSpacing',
-        label: 'Paragraph spacing',
-        description: 'Extra vertical space added between paragraphs in the editor.',
+        label: t('settings.editor.paragraphSpacing'),
+        description: t('settings.editor.paragraphSpacingDesc'),
         category: 'editor',
         render: (s) => (
           <Slider
-            label="Paragraph spacing"
-            description="Extra vertical space between paragraphs (em units)."
+            label={t('settings.editor.paragraphSpacing')}
+            description={t('settings.editor.paragraphSpacingDesc')}
             value={s.paragraphSpacing}
             min={0}
             max={2}
@@ -855,13 +857,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'spellCheck',
-        label: 'Spell check',
-        description: 'Enable browser spell checking in the editor (underlines misspelled words).',
+        label: t('settings.editor.spellCheck'),
+        description: t('settings.editor.spellCheckDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Spell check"
-            description="Enable browser spell checking in the editor."
+            label={t('settings.editor.spellCheck')}
+            description={t('settings.editor.spellCheckDesc')}
             checked={s.spellCheck}
             onChange={(v) => s.updateSetting('spellCheck', v)}
           />
@@ -869,19 +871,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'spellCheckLanguage',
-        label: 'Spell check language',
-        description: 'Language used for spell checking.',
+        label: t('settings.editor.spellCheckLanguage'),
+        description: t('settings.editor.spellCheckLanguageDesc'),
         category: 'editor',
         render: (s) => (
           <Dropdown
-            label="Spell check language"
-            description="Language used for spell checking."
+            label={t('settings.editor.spellCheckLanguage')}
+            description={t('settings.editor.spellCheckLanguageDesc')}
             value={s.spellCheckLanguage}
             options={[
-              { value: 'en-US', label: 'English (US)' },
-              { value: 'ru-RU', label: 'Russian' },
-              { value: 'de-DE', label: 'German' },
-              { value: 'fr-FR', label: 'French' }
+              { value: 'en-US', label: t('settings.editor.spellCheckLanguage.en-US') },
+              { value: 'ru-RU', label: t('settings.editor.spellCheckLanguage.ru-RU') },
+              { value: 'de-DE', label: t('settings.editor.spellCheckLanguage.de-DE') },
+              { value: 'fr-FR', label: t('settings.editor.spellCheckLanguage.fr-FR') }
             ]}
             onChange={(v) => s.updateSetting('spellCheckLanguage', v as any)}
           />
@@ -889,13 +891,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'indentWithTabs',
-        label: 'Indent with tabs',
-        description: 'Use tab characters instead of spaces for indentation.',
+        label: t('settings.editor.indentWithTabs'),
+        description: t('settings.editor.indentWithTabsDesc'),
         category: 'editor',
         render: (s) => (
           <Toggle
-            label="Indent with tabs"
-            description="Use tab characters instead of spaces for indentation."
+            label={t('settings.editor.indentWithTabs')}
+            description={t('settings.editor.indentWithTabsDesc')}
             checked={s.indentWithTabs}
             onChange={(v) => s.updateSetting('indentWithTabs', v)}
           />
@@ -905,19 +907,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // AUTO-SAVE & FILES
       {
         id: 'autoSaveTrigger',
-        label: 'Auto-save trigger policy',
-        description: 'Define when modified notes should automatically write changes to disk.',
+        label: t('settings.files.autoSaveTrigger'),
+        description: t('settings.files.autoSaveTriggerDesc'),
         category: 'files',
         render: (s) => (
           <Dropdown
-            label="Auto-save trigger policy"
-            description="Trigger saving after a delay, on focus change, or window blur."
+            label={t('settings.files.autoSaveTrigger')}
+            description={t('settings.files.autoSaveTriggerDesc')}
             value={s.autoSaveTrigger}
             options={[
-              { value: 'off', label: 'Off (Manual save ⌘S only)' },
-              { value: 'afterDelay', label: 'After Inactivity Delay' },
-              { value: 'onFocusChange', label: 'On Editor Focus Change' },
-              { value: 'onWindowBlur', label: 'On Window Lost Focus (Alt-Tab)' }
+              { value: 'off', label: t('settings.files.autoSaveTrigger.off') },
+              { value: 'afterDelay', label: t('settings.files.autoSaveTrigger.afterDelay') },
+              { value: 'onFocusChange', label: t('settings.files.autoSaveTrigger.onFocusChange') },
+              { value: 'onWindowBlur', label: t('settings.files.autoSaveTrigger.onWindowBlur') }
             ]}
             onChange={(v) => s.updateSetting('autoSaveTrigger', v as any)}
           />
@@ -925,20 +927,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'autoSaveDelay',
-        label: 'Auto-save inactivity delay',
-        description:
-          'Set duration in seconds to wait before writing changes to disk (for delay policy).',
+        label: t('settings.files.autoSaveDelay'),
+        description: t('settings.files.autoSaveDelayDesc'),
         category: 'files',
         render: (s) => (
           <Dropdown
-            label="Auto-save inactivity delay"
-            description="Time in seconds of editor inactivity before auto-saving."
+            label={t('settings.files.autoSaveDelay')}
+            description={t('settings.files.autoSaveDelayDesc')}
             value={s.autoSaveDelay}
             options={[
-              { value: 1, label: '1 second' },
-              { value: 5, label: '5 seconds' },
-              { value: 10, label: '10 seconds' },
-              { value: 30, label: '30 seconds' }
+              { value: 1, label: t('settings.files.autoSaveDelay.1second') },
+              { value: 5, label: t('settings.files.autoSaveDelay.5seconds') },
+              { value: 10, label: t('settings.files.autoSaveDelay.10seconds') },
+              { value: 30, label: t('settings.files.autoSaveDelay.30seconds') }
             ]}
             onChange={(v) => s.updateSetting('autoSaveDelay', v)}
           />
@@ -946,18 +947,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'closeBehavior',
-        label: 'App exit behavior with unsaved files',
-        description: 'Choose policy on close if files contain unsaved changes.',
+        label: t('settings.files.closeBehavior'),
+        description: t('settings.files.closeBehaviorDesc'),
         category: 'files',
         render: (s) => (
           <Dropdown
-            label="App exit behavior"
-            description="Save, discard, or ask confirmation prompt on app exit."
+            label={t('settings.files.closeBehavior')}
+            description={t('settings.files.closeBehaviorDesc')}
             value={s.closeBehavior}
             options={[
-              { value: 'ask', label: 'Ask Confirmation (Recommended)' },
-              { value: 'save', label: 'Save Automatically' },
-              { value: 'discard', label: 'Discard Unsaved Changes' }
+              { value: 'ask', label: t('settings.files.closeBehavior.ask') },
+              { value: 'save', label: t('settings.files.closeBehavior.save') },
+              { value: 'discard', label: t('settings.files.closeBehavior.discard') }
             ]}
             onChange={(v) => s.updateSetting('closeBehavior', v as any)}
           />
@@ -965,17 +966,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'linkFormat',
-        label: 'Note link format style',
-        description: 'Set the format used when creating internal links or dropping notes.',
+        label: t('settings.files.linkFormat'),
+        description: t('settings.files.linkFormatDesc'),
         category: 'files',
         render: (s) => (
           <Dropdown
-            label="Note link format style"
-            description="Choose link style when dropping or autocompleting connections."
+            label={t('settings.files.linkFormat')}
+            description={t('settings.files.linkFormatDesc')}
             value={s.linkFormat}
             options={[
-              { value: 'wiki', label: 'Wiki-Links [[Note Name]]' },
-              { value: 'markdown', label: 'Markdown Links [Note](path.md)' }
+              { value: 'wiki', label: t('settings.files.linkFormat.wiki') },
+              { value: 'markdown', label: t('settings.files.linkFormat.markdown') }
             ]}
             onChange={(v) => s.updateSetting('linkFormat', v)}
           />
@@ -983,28 +984,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'newNotesFolder',
-        label: 'Default folder path for new notes',
-        description: 'Specify the relative path folder where newly created notes will be placed.',
+        label: t('settings.files.newNotesFolder'),
+        description: t('settings.files.newNotesFolderDesc'),
         category: 'files',
         render: (s) => (
           <TextInput
-            label="Default folder path for new notes"
-            description="Folder inside the vault where new notes are created by default."
+            label={t('settings.files.newNotesFolder')}
+            description={t('settings.files.newNotesFolderDesc')}
             value={s.newNotesFolder}
-            placeholder="e.g. Daily or root"
+            placeholder={t('settings.files.newNotesFolderPlaceholder')}
             onChange={(v) => s.updateSetting('newNotesFolder', v)}
           />
         )
       },
       {
         id: 'attachmentFolder',
-        label: 'Attachment folder',
-        description: 'Relative folder path inside the vault where pasted/dropped images are saved.',
+        label: t('settings.files.attachmentFolder'),
+        description: t('settings.files.attachmentFolderDesc'),
         category: 'files',
         render: (s) => (
           <TextInput
-            label="Attachment folder"
-            description="Relative folder path where images are saved when dropped into the editor."
+            label={t('settings.files.attachmentFolder')}
+            description={t('settings.files.attachmentFolderDesc')}
             value={s.attachmentFolder}
             placeholder="assets"
             onChange={(v) => s.updateSetting('attachmentFolder', v)}
@@ -1013,19 +1014,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'dailyNoteDateFormat',
-        label: 'Daily note date format',
-        description: 'Date format used for daily note file names.',
+        label: t('settings.files.dailyNoteDateFormat'),
+        description: t('settings.files.dailyNoteDateFormatDesc'),
         category: 'files',
         render: (s) => (
           <Dropdown
-            label="Daily note date format"
-            description="Format of the date in the daily note filename."
+            label={t('settings.files.dailyNoteDateFormat')}
+            description={t('settings.files.dailyNoteDateFormatDesc')}
             value={s.dailyNoteDateFormat}
             options={[
-              { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (2026-05-21)' },
-              { value: 'DD-MM-YYYY', label: 'DD-MM-YYYY (21-05-2026)' },
-              { value: 'MM-DD-YYYY', label: 'MM-DD-YYYY (05-21-2026)' },
-              { value: 'DD.MM.YYYY', label: 'DD.MM.YYYY (21.05.2026)' }
+              { value: 'YYYY-MM-DD', label: t('settings.files.dailyNoteDateFormat.YYYY-MM-DD') },
+              { value: 'DD-MM-YYYY', label: t('settings.files.dailyNoteDateFormat.DD-MM-YYYY') },
+              { value: 'MM-DD-YYYY', label: t('settings.files.dailyNoteDateFormat.MM-DD-YYYY') },
+              { value: 'DD.MM.YYYY', label: t('settings.files.dailyNoteDateFormat.DD.MM.YYYY') }
             ]}
             onChange={(v) => s.updateSetting('dailyNoteDateFormat', v as any)}
           />
@@ -1033,13 +1034,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'confirmDelete',
-        label: 'Confirm before deleting files',
-        description: 'Show a confirmation dialog before permanently deleting a file.',
+        label: t('settings.files.confirmDelete'),
+        description: t('settings.files.confirmDeleteDesc'),
         category: 'files',
         render: (s) => (
           <Toggle
-            label="Confirm before deleting files"
-            description="Show a confirmation dialog before permanently deleting a file."
+            label={t('settings.files.confirmDelete')}
+            description={t('settings.files.confirmDeleteDesc')}
             checked={s.confirmDelete}
             onChange={(v) => s.updateSetting('confirmDelete', v)}
           />
@@ -1047,13 +1048,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'showHiddenFiles',
-        label: 'Show hidden files',
-        description: 'Display dot-files and dot-folders (e.g. .git, .obsidian) in the file tree.',
+        label: t('settings.files.showHiddenFiles'),
+        description: t('settings.files.showHiddenFilesDesc'),
         category: 'files',
         render: (s) => (
           <Toggle
-            label="Show hidden files"
-            description="Display dot-files and dot-folders in the file tree."
+            label={t('settings.files.showHiddenFiles')}
+            description={t('settings.files.showHiddenFilesDesc')}
             checked={s.showHiddenFiles}
             onChange={(v) => s.updateSetting('showHiddenFiles', v)}
           />
@@ -1061,13 +1062,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'excludedFolders',
-        label: 'Excluded folders',
-        description: 'Comma-separated folder names to hide from file tree and search index.',
+        label: t('settings.files.excludedFolders'),
+        description: t('settings.files.excludedFoldersDesc'),
         category: 'files',
         render: (s) => (
           <TextInput
-            label="Excluded folders"
-            description="Comma-separated folder names to hide from file tree and search."
+            label={t('settings.files.excludedFolders')}
+            description={t('settings.files.excludedFoldersDesc')}
             value={s.excludedFolders}
             placeholder="node_modules, .git, .obsidian"
             onChange={(v) => s.updateSetting('excludedFolders', v)}
@@ -1076,18 +1077,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'fileSortBy',
-        label: 'Sort files by',
-        description: 'Default sort order for files and folders in the sidebar.',
+        label: t('settings.files.fileSortBy'),
+        description: t('settings.files.fileSortByDesc'),
         category: 'files',
         render: (s) => (
           <Dropdown
-            label="Sort files by"
-            description="Default sort order in the file tree sidebar."
+            label={t('settings.files.fileSortBy')}
+            description={t('settings.files.fileSortByDesc')}
             value={s.fileSortBy}
             options={[
-              { value: 'name', label: 'Name (A→Z)' },
-              { value: 'created', label: 'Date created (newest first)' },
-              { value: 'modified', label: 'Date modified (newest first)' }
+              { value: 'name', label: t('settings.files.fileSortBy.name') },
+              { value: 'created', label: t('settings.files.fileSortBy.created') },
+              { value: 'modified', label: t('settings.files.fileSortBy.modified') }
             ]}
             onChange={(v) => s.updateSetting('fileSortBy', v as any)}
           />
@@ -1097,20 +1098,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // APPEARANCE
       {
         id: 'accentColor',
-        label: 'Accent color theme',
-        description: 'Change the highlight/brand color theme of the user interface.',
+        label: t('settings.appearance.accentColor'),
+        description: t('settings.appearance.accentColorDesc'),
         category: 'appearance',
         render: (s) => (
           <ColorPicker
-            label="Accent color theme"
-            description="Select a color scheme used for links, active states, and buttons."
+            label={t('settings.appearance.accentColor')}
+            description={t('settings.appearance.accentColorDesc')}
             value={s.accentColor}
             options={[
-              { color: 'purple', name: 'Purple (#7c6af7)' },
-              { color: 'blue', name: 'Blue (#2196f3)' },
-              { color: 'green', name: 'Green (#4caf50)' },
-              { color: 'orange', name: 'Orange (#ff9800)' },
-              { color: 'red', name: 'Red (#f44336)' }
+              { color: 'purple', name: t('settings.appearance.accentColor.purple') },
+              { color: 'blue', name: t('settings.appearance.accentColor.blue') },
+              { color: 'green', name: t('settings.appearance.accentColor.green') },
+              { color: 'orange', name: t('settings.appearance.accentColor.orange') },
+              { color: 'red', name: t('settings.appearance.accentColor.red') }
             ]}
             onChange={(v) => s.updateSetting('accentColor', v as any)}
           />
@@ -1118,96 +1119,114 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'theme',
-        label: 'Workspace theme variant',
-        description: 'Choose the background and visual theme of the editor workspace.',
+        label: t('settings.appearance.theme'),
+        description: t('settings.appearance.themeDesc'),
         category: 'appearance',
         render: (s) => (
           <Dropdown
-            label="Workspace theme variant"
-            description="Select visual styling for background and sidebars."
+            label={t('settings.appearance.theme')}
+            description={t('settings.appearance.themeDesc')}
             value={s.theme}
             options={[
-              { value: 'dark', label: 'Deep Charcoal (Standard)' },
-              { value: 'midnight', label: 'Pitch Midnight Black' },
-              { value: 'indigo', label: 'Indigo Space Dark' },
-              { value: 'cyberpunk', label: 'Cyberpunk Neon Dark' },
-              { value: 'forest', label: 'Forest Moss Green' },
-              { value: 'nord', label: 'Nordic Frost Blue' },
-              { value: 'dracula', label: 'Dracula Purple Dark' },
-              { value: 'obsidian', label: 'Obsidian Pitch Contrast' }
+              { value: 'dark', label: t('settings.appearance.theme.dark') },
+              { value: 'midnight', label: t('settings.appearance.theme.midnight') },
+              { value: 'indigo', label: t('settings.appearance.theme.indigo') },
+              { value: 'cyberpunk', label: t('settings.appearance.theme.cyberpunk') },
+              { value: 'forest', label: t('settings.appearance.theme.forest') },
+              { value: 'nord', label: t('settings.appearance.theme.nord') },
+              { value: 'dracula', label: t('settings.appearance.theme.dracula') },
+              { value: 'obsidian', label: t('settings.appearance.theme.obsidian') }
             ]}
             onChange={(v) => s.updateSetting('theme', v as any)}
           />
         )
       },
       {
-        id: 'sidebarSide',
-        label: 'Primary sidebar position',
-        description: 'Place the workspace navigation panel on the left or right side.',
+        id: 'language',
+        label: t('settings.appearance.language'),
+        description: t('settings.appearance.languageDesc'),
         category: 'appearance',
         render: (s) => (
           <Dropdown
-            label="Primary sidebar position"
-            description="Set whether the File tree explorer sits on the left or right."
+            label={t('settings.appearance.language')}
+            description={t('settings.appearance.languageDesc')}
+            value={s.language}
+            options={[
+              { value: 'en', label: 'English' },
+              { value: 'ru', label: 'Русский (Russian)' }
+            ]}
+            onChange={(v) => s.updateSetting('language', v)}
+          />
+        )
+      },
+      {
+        id: 'sidebarSide',
+        label: t('settings.appearance.sidebarSide'),
+        description: t('settings.appearance.sidebarSideDesc'),
+        category: 'appearance',
+        render: (s) => (
+          <Dropdown
+            label={t('settings.appearance.sidebarSide')}
+            description={t('settings.appearance.sidebarSideDesc')}
             value={s.sidebarSide}
             options={[
-              { value: 'left', label: 'Left Sidebar' },
-              { value: 'right', label: 'Right Sidebar' }
+              { value: 'left', label: t('settings.appearance.sidebarSide.left') },
+              { value: 'right', label: t('settings.appearance.sidebarSide.right') }
             ]}
             onChange={(v) => s.updateSetting('sidebarSide', v)}
           />
         )
       },
       {
-        id: 'uiZoom', label: 'Interface zoom',
-        description: 'Scale the entire UI. Useful for high-DPI displays or accessibility.',
+        id: 'uiZoom', label: t('settings.appearance.uiZoom'),
+        description: t('settings.appearance.uiZoomDesc'),
         category: 'appearance',
         render: (s) => (
-          <Slider label="Interface zoom" description="Scale the entire UI (80%–130%)."
+          <Slider label={t('settings.appearance.uiZoom')} description={t('settings.appearance.uiZoomDesc')}
             value={s.uiZoom} min={80} max={130} unit="%"
             onChange={(v) => s.updateSetting('uiZoom', Math.round(v / 5) * 5)} />
         )
       },
       {
-        id: 'compactMode', label: 'Compact mode',
-        description: 'Reduce padding and spacing throughout the interface.',
+        id: 'compactMode', label: t('settings.appearance.compactMode'),
+        description: t('settings.appearance.compactModeDesc'),
         category: 'appearance',
         render: (s) => (
-          <Toggle label="Compact mode" description="Reduce padding and spacing throughout the interface."
+          <Toggle label={t('settings.appearance.compactMode')} description={t('settings.appearance.compactModeDesc')}
             checked={s.compactMode} onChange={(v) => s.updateSetting('compactMode', v)} />
         )
       },
       {
-        id: 'showStatusBar', label: 'Show status bar',
-        description: 'Display the bottom status bar (word count, cursor position, git status).',
+        id: 'showStatusBar', label: t('settings.appearance.showStatusBar'),
+        description: t('settings.appearance.showStatusBarDesc'),
         category: 'appearance',
         render: (s) => (
-          <Toggle label="Show status bar" description="Display the bottom status bar with word count and cursor position."
+          <Toggle label={t('settings.appearance.showStatusBar')} description={t('settings.appearance.showStatusBarDesc')}
             checked={s.showStatusBar} onChange={(v) => s.updateSetting('showStatusBar', v)} />
         )
       },
       {
-        id: 'previewFontFamily', label: 'Preview font family',
-        description: 'Font used in the markdown preview pane (separate from editor font).',
+        id: 'previewFontFamily', label: t('settings.appearance.previewFontFamily'),
+        description: t('settings.appearance.previewFontFamilyDesc'),
         category: 'appearance',
         render: (s) => (
-          <Dropdown label="Preview font family" description="Font used in the rendered markdown preview."
+          <Dropdown label={t('settings.appearance.previewFontFamily')} description={t('settings.appearance.previewFontFamilyDesc')}
             value={s.previewFontFamily}
             options={[
-              { value: 'Georgia', label: 'Georgia (Serif)' },
-              { value: 'Inter', label: 'Inter (Sans)' },
-              { value: 'system-ui', label: 'System UI' },
-              { value: 'JetBrains Mono', label: 'JetBrains Mono' }
+              { value: 'Georgia', label: t('settings.appearance.previewFontFamily.georgia') },
+              { value: 'Inter', label: t('settings.appearance.previewFontFamily.inter') },
+              { value: 'system-ui', label: t('settings.appearance.previewFontFamily.system') },
+              { value: 'JetBrains Mono', label: t('settings.appearance.previewFontFamily.jetbrainsMono') }
             ]}
             onChange={(v) => s.updateSetting('previewFontFamily', v as any)} />
         )
       },
       {
-        id: 'alwaysShowTabBar', label: 'Always show tab bar',
-        description: 'Keep the tab bar visible even when only one tab is open.',
+        id: 'alwaysShowTabBar', label: t('settings.appearance.alwaysShowTabBar'),
+        description: t('settings.appearance.alwaysShowTabBarDesc'),
         category: 'appearance',
         render: (s) => (
-          <Toggle label="Always show tab bar" description="Keep the tab bar visible when only one tab is open."
+          <Toggle label={t('settings.appearance.alwaysShowTabBar')} description={t('settings.appearance.alwaysShowTabBarDesc')}
             checked={s.alwaysShowTabBar} onChange={(v) => s.updateSetting('alwaysShowTabBar', v)} />
         )
       },
@@ -1215,13 +1234,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // CANVAS
       {
         id: 'snapToGrid',
-        label: 'Snap cards to grid',
-        description: 'Enable snapping canvas cards and items to grid coordinates on drag.',
+        label: t('settings.canvas.snapToGrid'),
+        description: t('settings.canvas.snapToGridDesc'),
         category: 'canvas',
         render: (s) => (
           <Toggle
-            label="Snap cards to grid"
-            description="Align notes and groups to grid coordinates when moving them."
+            label={t('settings.canvas.snapToGrid')}
+            description={t('settings.canvas.snapToGridDesc')}
             checked={s.snapToGrid}
             onChange={(v) => s.updateSetting('snapToGrid', v)}
           />
@@ -1229,13 +1248,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'gridSize',
-        label: 'Grid spacing cell size',
-        description: 'Set the size of grid cells in pixels for alignment snapping.',
+        label: t('settings.canvas.gridSize'),
+        description: t('settings.canvas.gridSizeDesc'),
         category: 'canvas',
         render: (s) => (
           <Slider
-            label="Grid spacing cell size"
-            description="Set snapping alignment step distance in pixels."
+            label={t('settings.canvas.gridSize')}
+            description={t('settings.canvas.gridSizeDesc')}
             value={s.gridSize}
             min={5}
             max={30}
@@ -1246,18 +1265,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'connectionLineStyle',
-        label: 'Connection line connection style',
-        description: 'Set rendering style for lines drawn between linked canvas items.',
+        label: t('settings.canvas.connectionLineStyle'),
+        description: t('settings.canvas.connectionLineStyleDesc'),
         category: 'canvas',
         render: (s) => (
           <Dropdown
-            label="Connection line style"
-            description="Choose aesthetic style of link path lines on canvas."
+            label={t('settings.canvas.connectionLineStyle')}
+            description={t('settings.canvas.connectionLineStyleDesc')}
             value={s.connectionLineStyle}
             options={[
-              { value: 'curved', label: 'Curved Bezier Lines' },
-              { value: 'straight', label: 'Straight Lines' },
-              { value: 'orthogonal', label: 'Orthogonal Right-angle Lines' }
+              { value: 'curved', label: t('settings.canvas.connectionLineStyle.curved') },
+              { value: 'straight', label: t('settings.canvas.connectionLineStyle.straight') },
+              { value: 'orthogonal', label: t('settings.canvas.connectionLineStyle.orthogonal') }
             ]}
             onChange={(v) => s.updateSetting('connectionLineStyle', v)}
           />
@@ -1265,20 +1284,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       },
       {
         id: 'defaultCardColor',
-        label: 'Default card background color',
-        description: 'Set default tint color for newly created canvas notes.',
+        label: t('settings.canvas.defaultCardColor'),
+        description: t('settings.canvas.defaultCardColorDesc'),
         category: 'canvas',
         render: (s) => (
           <ColorPicker
-            label="Default card background color"
-            description="Color applied to new card nodes when dropped onto spatial workspace."
+            label={t('settings.canvas.defaultCardColor')}
+            description={t('settings.canvas.defaultCardColorDesc')}
             value={s.defaultCardColor}
             options={[
-              { color: '#7c6af7', name: 'Meridian Purple' },
-              { color: '#e0c068', name: 'Sand Yellow' },
-              { color: '#68c098', name: 'Sage Green' },
-              { color: '#6898c0', name: 'Sky Blue' },
-              { color: '#c06868', name: 'Clay Red' }
+              { color: '#7c6af7', name: t('settings.canvas.defaultCardColor.purple') },
+              { color: '#e0c068', name: t('settings.canvas.defaultCardColor.yellow') },
+              { color: '#68c098', name: t('settings.canvas.defaultCardColor.green') },
+              { color: '#6898c0', name: t('settings.canvas.defaultCardColor.blue') },
+              { color: '#c06868', name: t('settings.canvas.defaultCardColor.red') }
             ]}
             onChange={(v) => s.updateSetting('defaultCardColor', v)}
           />
@@ -1287,42 +1306,45 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       // EXPORT
       {
-        id: 'defaultExportFormat', label: 'Default export format',
-        description: 'Format triggered by the default export action (Cmd+E).',
+        id: 'defaultExportFormat', label: t('settings.export.defaultExportFormat'),
+        description: t('settings.export.defaultExportFormatDesc'),
         category: 'export',
         render: (s) => (
-          <Dropdown label="Default export format" description="Format triggered by the default export shortcut."
+          <Dropdown label={t('settings.export.defaultExportFormat')} description={t('settings.export.defaultExportFormatDesc')}
             value={s.defaultExportFormat}
             options={[{ value: 'html', label: 'HTML' }, { value: 'pdf', label: 'PDF' }]}
             onChange={(v) => s.updateSetting('defaultExportFormat', v as any)} />
         )
       },
       {
-        id: 'pdfPageSize', label: 'PDF page size',
-        description: 'Paper size used when exporting notes to PDF.',
+        id: 'pdfPageSize', label: t('settings.export.pdfPageSize'),
+        description: t('settings.export.pdfPageSizeDesc'),
         category: 'export',
         render: (s) => (
-          <Dropdown label="PDF page size" description="Paper size used when exporting to PDF."
+          <Dropdown label={t('settings.export.pdfPageSize')} description={t('settings.export.pdfPageSizeDesc')}
             value={s.pdfPageSize}
-            options={[{ value: 'A4', label: 'A4 (210×297mm)' }, { value: 'Letter', label: 'Letter (8.5×11in)' }]}
+            options={[
+              { value: 'A4', label: t('settings.export.pdfPageSize.A4') },
+              { value: 'Letter', label: t('settings.export.pdfPageSize.Letter') }
+            ]}
             onChange={(v) => s.updateSetting('pdfPageSize', v as any)} />
         )
       },
       {
-        id: 'exportIncludeFrontmatter', label: 'Include frontmatter in exports',
-        description: 'When enabled, YAML frontmatter is rendered in exported HTML/PDF.',
+        id: 'exportIncludeFrontmatter', label: t('settings.export.exportIncludeFrontmatter'),
+        description: t('settings.export.exportIncludeFrontmatterDesc'),
         category: 'export',
         render: (s) => (
-          <Toggle label="Include frontmatter in exports" description="Render YAML frontmatter block in exported HTML and PDF."
+          <Toggle label={t('settings.export.exportIncludeFrontmatter')} description={t('settings.export.exportIncludeFrontmatterDesc')}
             checked={s.exportIncludeFrontmatter} onChange={(v) => s.updateSetting('exportIncludeFrontmatter', v)} />
         )
       },
       {
-        id: 'exportCustomCSS', label: 'Custom CSS for exports',
-        description: 'CSS injected into exported HTML and PDF files.',
+        id: 'exportCustomCSS', label: t('settings.export.exportCustomCSS'),
+        description: t('settings.export.exportCustomCSSDesc'),
         category: 'export',
         render: (s) => (
-          <TextAreaInput label="Custom CSS for exports" description="Injected into <style> tag in exported HTML and PDF."
+          <TextAreaInput label={t('settings.export.exportCustomCSS')} description={t('settings.export.exportCustomCSSDesc')}
             value={s.exportCustomCSS} placeholder="body { font-family: Georgia; }"
             onChange={(v) => s.updateSetting('exportCustomCSS', v)} />
         )
@@ -1330,40 +1352,40 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       // SYNC
       {
-        id: 'gitCommitTemplate', label: 'Commit message template',
-        description: 'Template for auto-generated commit messages. Use {files} as placeholder.',
+        id: 'gitCommitTemplate', label: t('settings.sync.gitCommitTemplate'),
+        description: t('settings.sync.gitCommitTemplateDesc'),
         category: 'sync',
         render: (s) => (
-          <TextInput label="Commit message template" description="Use {files} as placeholder. Example: 'Updated {files}'"
+          <TextInput label={t('settings.sync.gitCommitTemplate')} description={t('settings.sync.gitCommitTemplateDesc')}
             value={s.gitCommitTemplate} placeholder="Updated {files}"
             onChange={(v) => s.updateSetting('gitCommitTemplate', v)} />
         )
       },
       {
-        id: 'gitDefaultBranch', label: 'Default git branch',
-        description: 'Branch name used as fallback when pushing to remote.',
+        id: 'gitDefaultBranch', label: t('settings.sync.gitDefaultBranch'),
+        description: t('settings.sync.gitDefaultBranchDesc'),
         category: 'sync',
         render: (s) => (
-          <TextInput label="Default git branch" description="Fallback branch name for git push/pull when local branch cannot be detected."
+          <TextInput label={t('settings.sync.gitDefaultBranch')} description={t('settings.sync.gitDefaultBranchDesc')}
             value={s.gitDefaultBranch} placeholder="main"
             onChange={(v) => s.updateSetting('gitDefaultBranch', v)} />
         )
       },
     ],
-    []
+    [t]
   )
 
-  const categoriesList = [
-    { id: 'editor', label: 'Editor' },
-    { id: 'files', label: 'Files & Saving' },
-    { id: 'appearance', label: 'Appearance' },
-    { id: 'canvas', label: 'Canvas' },
-    { id: 'plugins', label: 'Core Plugins' },
-    { id: 'export', label: 'Export' },
-    { id: 'sync', label: 'Sync & GitHub' },
-    { id: 'hotkeys', label: 'Hotkeys' },
-    { id: 'about', label: 'About & Developer' }
-  ] as const
+  const categoriesList: { id: SettingCategory; label: string }[] = [
+    { id: 'editor', label: t('settings.nav.editor') },
+    { id: 'files', label: t('settings.nav.files') },
+    { id: 'appearance', label: t('settings.nav.appearance') },
+    { id: 'canvas', label: t('settings.nav.canvas') },
+    { id: 'plugins', label: t('settings.nav.plugins') },
+    { id: 'export', label: t('settings.nav.export') },
+    { id: 'sync', label: t('settings.nav.sync') },
+    { id: 'hotkeys', label: t('settings.nav.hotkeys') },
+    { id: 'about', label: t('settings.nav.about') }
+  ]
 
   // Filtered settings based on search query
   const filteredSettings = useMemo(() => {
@@ -1489,7 +1511,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           }}
         >
           <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, letterSpacing: '0.02em' }}>
-            System Settings
+            {t('settings.title')}
           </span>
           <button
             onClick={onClose}
@@ -1529,7 +1551,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div style={{ padding: '0 8px 12px 8px' }}>
               <input
                 type="text"
-                placeholder="Search settings..."
+                placeholder={t('settings.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -1607,7 +1629,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div style={{ padding: '8px 8px 0 8px', borderTop: '1px solid var(--border-color)' }}>
               <button
                 onClick={() => {
-                  if (confirm('Are you sure you want to reset all settings to defaults?')) {
+                  if (confirm(t('settings.resetConfirm'))) {
                     store.resetToDefault()
                   }
                 }}
@@ -1631,7 +1653,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   e.currentTarget.style.color = 'var(--text-secondary)'
                 }}
               >
-                Reset Defaults
+                {t('settings.resetDefaults')}
               </button>
             </div>
           </div>
@@ -1652,10 +1674,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {searchQuery ? (
                 <div>
                   <div style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
-                    Search Results
+                    {t('settings.searchResults')}
                   </div>
                   <div style={{ color: 'var(--text-secondary)', fontSize: 11, marginBottom: 20 }}>
-                    Showing results matching "{searchQuery}"
+                    {t('settings.searchResultsFor', { query: searchQuery })}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1671,7 +1693,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               marginBottom: 4
                             }}
                           >
-                            {item.category}
+                            {t('settings.nav.' + item.category)}
                           </div>
                           {item.render(store)}
                         </div>
@@ -1685,7 +1707,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           fontSize: 13
                         }}
                       >
-                        No settings found matching your query
+                        {t('settings.noResults')}
                       </div>
                     )}
                   </div>
@@ -1703,11 +1725,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           fontWeight: 600
                         }}
                       >
-                        Editor
+                        {t('settings.editor.title')}
                       </h3>
                       <p style={{ margin: '0 0 20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
-                        Customize your markdown writing environment, tab options, and editor
-                        indicators.
+                        {t('settings.editor.description')}
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {settingsDefinitions
@@ -1729,10 +1750,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           fontWeight: 600
                         }}
                       >
-                        Files & Auto-Saving
+                        {t('settings.files.title')}
                       </h3>
                       <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
-                        Configure internal links generation, auto-save triggers, and folder paths.
+                        {t('settings.files.description')}
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {settingsDefinitions
@@ -1754,10 +1775,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           fontWeight: 600
                         }}
                       >
-                        Appearance
+                        {t('settings.appearance.title')}
                       </h3>
                       <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
-                        Style your workspace layout, accent coloring, and overall window elements.
+                        {t('settings.appearance.description')}
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {settingsDefinitions
@@ -1779,11 +1800,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           fontWeight: 600
                         }}
                       >
-                        Canvas
+                        {t('settings.canvas.title')}
                       </h3>
                       <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
-                        Adjust behaviors, snappings, lines, and cards customization on Spatial
-                        Canvas.
+                        {t('settings.canvas.description')}
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {settingsDefinitions
@@ -1805,11 +1825,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           fontWeight: 600
                         }}
                       >
-                        Core Plugins
+                        {t('settings.plugins.title')}
                       </h3>
                       <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
-                        Extend Meridian functionality by enabling or disabling modular community
-                        plugins.
+                        {t('settings.plugins.description')}
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {pluginsList.map((p) => {
@@ -1837,7 +1856,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <span style={{ color: '#eee', fontSize: 13, fontWeight: 600 }}>
-                                    {p.name}
+                                    {t('settings.plugins.' + p.id + '.name')}
                                   </span>
                                   <span
                                     style={{
@@ -1852,7 +1871,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                   </span>
                                 </div>
                                 <span style={{ color: '#777', fontSize: 11, lineHeight: '1.4' }}>
-                                  {p.desc}
+                                  {t('settings.plugins.' + p.id + '.desc')}
                                 </span>
                                 <div
                                   style={{
@@ -1863,7 +1882,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                     marginTop: 4
                                   }}
                                 >
-                                  <span>by</span>
+                                  <span>{t('settings.plugins.by')}</span>
                                   <span
                                     onClick={() => handleOpenLink('https://github.com/bvsmma')}
                                     style={{
@@ -1919,10 +1938,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           fontWeight: 600
                         }}
                       >
-                        Keyboard Shortcuts
+                        {t('settings.hotkeys.title')}
                       </h3>
                       <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
-                        Review keybindings and shortcuts used to control the app navigation.
+                        {t('settings.hotkeys.description')}
                       </p>
                       <div
                         style={{
@@ -1936,21 +1955,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         }}
                       >
                         {[
-                          { group: 'General' },
-                          { action: 'Command Palette', keys: ['⌘', 'K'] },
-                          { action: 'Settings', keys: ['⌘', ','] },
-                          { action: 'Open Vault', keys: ['⌘', 'O'] },
-                          { group: 'Files' },
-                          { action: 'New Note', keys: ['⌘', 'N'] },
-                          { action: 'New Daily Note', keys: ['⌘', 'D'] },
-                          { action: 'Save', keys: ['⌘', 'S'] },
-                          { action: 'Export to HTML', keys: ['⌘', 'E'] },
-                          { action: 'Close Tab', keys: ['⌘', 'W'] },
-                          { group: 'View' },
-                          { action: 'Graph View', keys: ['⌘', '⇧', 'G'] },
-                          { group: 'Sketchpad' },
-                          { action: 'Undo stroke', keys: ['⌘', 'Z'] },
-                          { action: 'Redo stroke', keys: ['⌘', '⇧', 'Z'] },
+                          { group: 'general' },
+                          { actionId: 'commandPalette', keys: ['⌘', 'K'] },
+                          { actionId: 'settings', keys: ['⌘', ','] },
+                          { actionId: 'openVault', keys: ['⌘', 'O'] },
+                          { group: 'files' },
+                          { actionId: 'newNote', keys: ['⌘', 'N'] },
+                          { actionId: 'newDailyNote', keys: ['⌘', 'D'] },
+                          { actionId: 'save', keys: ['⌘', 'S'] },
+                          { actionId: 'exportHtml', keys: ['⌘', 'E'] },
+                          { actionId: 'closeTab', keys: ['⌘', 'W'] },
+                          { group: 'view' },
+                          { actionId: 'graphView', keys: ['⌘', '⇧', 'G'] },
+                          { group: 'sketchpad' },
+                          { actionId: 'undoStroke', keys: ['⌘', 'Z'] },
+                          { actionId: 'redoStroke', keys: ['⌘', '⇧', 'Z'] },
                         ].map((hk, idx) => {
                           if ('group' in hk) {
                             return (
@@ -1964,13 +1983,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 textTransform: 'uppercase',
                                 borderTop: idx > 0 ? '1px solid #252525' : 'none',
                               }}>
-                                {hk.group}
+                                {t('settings.hotkeys.group.' + hk.group)}
                               </div>
                             )
                           }
                           return (
                             <div
-                              key={hk.action}
+                              key={hk.actionId}
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1979,7 +1998,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 background: '#161616',
                               }}
                             >
-                              <span style={{ color: '#ddd', fontSize: 13 }}>{hk.action}</span>
+                              <span style={{ color: '#ddd', fontSize: 13 }}>{t('settings.hotkeys.action.' + hk.actionId)}</span>
                               <div style={{ display: 'flex', gap: 4 }}>
                                 {hk.keys.map((k, i) => (
                                   <kbd key={i} style={{
@@ -2001,9 +2020,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                   {activeCategory === 'export' && (
                     <div>
-                      <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', fontSize: 16, fontWeight: 600 }}>Export</h3>
+                      <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', fontSize: 16, fontWeight: 600 }}>{t('settings.export.title')}</h3>
                       <p style={{ margin: '0 0 20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
-                        Configure PDF page size, frontmatter handling, and custom CSS for exported notes.
+                        {t('settings.export.description')}
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {settingsDefinitions.filter((s) => s.category === 'export').map((s) => (
@@ -2017,15 +2036,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-                        <h3 style={{ margin: 0, color: '#fff', fontSize: 16, fontWeight: 600 }}>Sync & GitHub</h3>
+                        <h3 style={{ margin: 0, color: '#fff', fontSize: 16, fontWeight: 600 }}>{t('settings.sync.title')}</h3>
                       </div>
                       <p style={{ margin: '0 0 24px 0', color: '#777', fontSize: 12 }}>
-                        Connect your GitHub account to sync vaults with private repositories.
+                        {t('settings.sync.description')}
                       </p>
                       <div style={{ background: '#161616', border: '1px solid #252525', borderRadius: 10, padding: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 4 }}>GitHub Account</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{t('github.account')}</div>
                         <div style={{ fontSize: 12, color: '#777', marginBottom: 16 }}>
-                          Used to authenticate git push/pull with private GitHub repositories.
+                          {t('github.accountDesc')}
                         </div>
                         {ghConnected ? (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#0d1117', borderRadius: 8, border: '1px solid #30363d' }}>
@@ -2033,25 +2052,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <svg width="20" height="20" viewBox="0 0 24 24" fill="#4ade80"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
                               <div>
                                 <div style={{ fontSize: 13, color: '#fff', fontWeight: 500 }}>@{ghUsername}</div>
-                                <div style={{ fontSize: 11, color: '#4ade80' }}>Connected</div>
+                                <div style={{ fontSize: 11, color: '#4ade80' }}>{t('github.connected')}</div>
                               </div>
                             </div>
                             <button onClick={handleGhLogout} style={{ padding: '6px 14px', borderRadius: 6, background: 'transparent', border: '1px solid #3a3a3a', color: '#aaa', fontSize: 12, cursor: 'pointer' }}
                               onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f87171'; e.currentTarget.style.color = '#f87171' }}
                               onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#3a3a3a'; e.currentTarget.style.color = '#aaa' }}
-                            >Sign out</button>
+                            >{t('github.signOut')}</button>
                           </div>
                         ) : ghUserCode ? (
                           <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 12 }}>Enter this code at <span style={{ color: 'var(--accent-color)' }}>github.com/login/device</span></div>
+                            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 12 }}>{t('github.enterCodeAt')} <span style={{ color: 'var(--accent-color)' }}>github.com/login/device</span></div>
                             <div style={{ fontFamily: 'monospace', fontSize: 24, fontWeight: 700, letterSpacing: 6, color: '#fff', background: '#0d1117', border: '1px solid #30363d', borderRadius: 8, padding: '12px 24px', display: 'inline-block', marginBottom: 12 }}>{ghUserCode}</div>
-                            <div style={{ fontSize: 11, color: '#666' }}>Waiting for authorization in browser…</div>
+                            <div style={{ fontSize: 11, color: '#666' }}>{t('github.waitingAuth')}</div>
                           </div>
                         ) : (
                           <div>
                             <button onClick={handleGhConnect} disabled={ghConnecting} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', borderRadius: 8, background: '#24292e', border: '1px solid #444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%', justifyContent: 'center' }}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-                              {ghConnecting ? 'Opening browser…' : 'Connect GitHub Account'}
+                              {ghConnecting ? t('github.connecting') : t('github.connect')}
                             </button>
                             {ghError && <div style={{ marginTop: 10, fontSize: 12, color: '#f87171' }}>{ghError}</div>}
                           </div>
@@ -2071,10 +2090,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             fontWeight: 600
                           }}
                         >
-                          Active Vault
+                          {t('settings.about.activeVault')}
                         </h3>
                         <p style={{ margin: '0 0 16px 0', color: '#777', fontSize: 12 }}>
-                          Details and current settings for the opened workspace vault directory.
+                          {t('settings.about.activeVaultDesc')}
                         </p>
                         <div
                           style={{
@@ -2090,15 +2109,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         >
                           <div style={{ display: 'flex' }}>
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
-                              Vault Name:
+                              {t('settings.about.vaultName')}
                             </span>
                             <span style={{ color: '#eee', fontFamily: 'monospace' }}>
-                              {vault?.name || 'No Vault'}
+                              {vault?.name || t('settings.about.noVault')}
                             </span>
                           </div>
                           <div style={{ display: 'flex' }}>
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
-                              Vault Path:
+                              {t('settings.about.vaultPath')}
                             </span>
                             <span
                               style={{
@@ -2107,7 +2126,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 wordBreak: 'break-all'
                               }}
                             >
-                              {vault?.path || 'No Path'}
+                              {vault?.path || t('settings.about.noPath')}
                             </span>
                           </div>
                         </div>
@@ -2122,10 +2141,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             fontWeight: 600
                           }}
                         >
-                          About Meridian
+                          {t('settings.about.title')}
                         </h3>
                         <p style={{ margin: '0 0 16px 0', color: '#777', fontSize: 12 }}>
-                          System environment statistics and versions.
+                          {t('settings.about.titleDesc')}
                         </p>
                         <div
                           style={{
@@ -2141,19 +2160,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         >
                           <div style={{ display: 'flex' }}>
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
-                              Version:
+                              {t('settings.about.version')}
                             </span>
                             <span style={{ color: '#eee' }}>v{(window as any).appInfo?.version ?? '1.0.0'}</span>
                           </div>
                           <div style={{ display: 'flex' }}>
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
-                              Engine:
+                              {t('settings.about.engine')}
                             </span>
                             <span style={{ color: '#aaa' }}>Electron / React / TypeScript</span>
                           </div>
                           <div style={{ display: 'flex' }}>
                             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
-                              Developer:
+                              {t('settings.about.developer')}
                             </span>
                             <span
                               onClick={() => handleOpenLink('https://github.com/bvsmma')}
@@ -2171,13 +2190,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
 
                       <div>
-                        <h3 style={{ margin: '0 0 4px 0', color: '#fff', fontSize: 16, fontWeight: 600 }}>Actions</h3>
-                        <p style={{ margin: '0 0 16px 0', color: '#777', fontSize: 12 }}>App utilities and developer tools.</p>
+                        <h3 style={{ margin: '0 0 4px 0', color: '#fff', fontSize: 16, fontWeight: 600 }}>{t('settings.about.actions')}</h3>
+                        <p style={{ margin: '0 0 16px 0', color: '#777', fontSize: 12 }}>{t('settings.about.actionsDesc')}</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           <button
                             onClick={() => handleOpenLink('https://github.com/bvsmma/meridian/releases')}
                             style={{ padding: '10px 16px', background: '#161616', border: '1px solid #252525', borderRadius: 8, color: '#eee', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
-                          >Check for updates →</button>
+                          >{t('settings.about.checkUpdates')}</button>
                           <button
                             onClick={async () => {
                               const vault = window.vault as any
@@ -2187,7 +2206,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               }
                             }}
                             style={{ padding: '10px 16px', background: '#161616', border: '1px solid #252525', borderRadius: 8, color: '#eee', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
-                          >Open config folder in Finder →</button>
+                          >{t('settings.about.openConfig')}</button>
                           <button
                             onClick={() => {
                               const raw = localStorage.getItem('meridian-settings') ?? '{}'
@@ -2198,7 +2217,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               URL.revokeObjectURL(url)
                             }}
                             style={{ padding: '10px 16px', background: '#161616', border: '1px solid #252525', borderRadius: 8, color: '#eee', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
-                          >Export settings as JSON →</button>
+                          >{t('settings.about.exportSettings')}</button>
                         </div>
                       </div>
                     </div>

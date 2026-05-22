@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SearchIcon, FileIcon, FolderIcon } from './Icons'
 import { useLinkStore } from '../store/useLinkStore'
 import { useVaultBridge, uniqueFileName } from '../hooks/useVaultBridge'
@@ -68,6 +69,7 @@ interface LayoutProps {
 }
 
 function HeaderSearch() {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -169,7 +171,7 @@ function HeaderSearch() {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
-          placeholder="Search notes... (⌘K)"
+          placeholder={t('layout.searchPlaceholder')}
           style={{
             flex: 1,
             background: 'transparent',
@@ -257,7 +259,7 @@ function HeaderSearch() {
           })}
           {searchResults.length === 0 && (
             <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 11, textAlign: 'center' }}>
-              No results found
+              {t('layout.noResults')}
             </div>
           )}
         </div>
@@ -278,11 +280,12 @@ export function Layout({
   onSidebarTabChange,
   activeSidebarTab
 }: LayoutProps) {
+  const { t } = useTranslation()
   const { createFile, createCanvas, openDailyNote } = useVaultBridge()
   const vault = useVaultStore((s) => s.vault)
   const vaultFiles = useVaultStore((s) => s.files)
   const activeTabPath = useVaultStore((s) => s.activeTabPath)
-  const vaultName = vault?.name ?? 'No Vault'
+  const vaultName = vault?.name ?? t('settings.about.noVault')
 
   // Get filename and relative folder path
   const filename = activeTabPath ? activeTabPath.split(/[/\\]/).pop()?.replace(/\.md$/, '') : null
@@ -487,16 +490,16 @@ export function Layout({
         >
           {/* Quick Actions Row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {renderQuickAction(<PlusIcon size={14} />, "Create New Note", () => {
+            {renderQuickAction(<PlusIcon size={14} />, t('layout.createNote'), () => {
               if (vault) createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', vaultFiles))
             })}
-            {renderQuickAction(<CanvasIcon size={13} />, "Create New Canvas", () => {
+            {renderQuickAction(<CanvasIcon size={13} />, t('layout.createCanvas'), () => {
               if (vault) createCanvas(vault.path, uniqueFileName(vault.path, 'Untitled', 'canvas', vaultFiles))
             })}
-            {renderQuickAction(<CalendarIcon size={13} />, "Open Today's Daily Note", () => {
+            {renderQuickAction(<CalendarIcon size={13} />, t('layout.openDaily'), () => {
               openDailyNote()
             })}
-            {renderQuickAction(<GraphIcon size={13} />, "Quick Graph View", () => {
+            {renderQuickAction(<GraphIcon size={13} />, t('layout.quickGraph'), () => {
               if (onSidebarTabChange) {
                 onSidebarTabChange('graph')
                 setSidebarCollapsed(false)
@@ -515,7 +518,7 @@ export function Layout({
                 setSidebarCollapsed(next)
                 localStorage.setItem('layout-sidebar-collapsed', String(next))
               }}
-              title="Toggle Primary Side Bar (⌘B)"
+              title={t('layout.toggleLeftSidebar')}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -545,7 +548,7 @@ export function Layout({
                 setRightPanelCollapsed(next)
                 localStorage.setItem('layout-right-collapsed', String(next))
               }}
-              title="Toggle Secondary Side Bar (⌘⌥B)"
+              title={t('layout.toggleRightSidebar')}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -594,7 +597,7 @@ export function Layout({
               e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
-            Reset Layout
+            {t('layout.resetLayout')}
           </button>
         </div>
       </div>

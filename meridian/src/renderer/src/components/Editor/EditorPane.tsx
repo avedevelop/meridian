@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FileIcon } from '../Icons'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
@@ -29,6 +30,7 @@ interface EditorContextMenuProps {
 }
 
 function EditorContextMenu({ x, y, onClose, view, containerEl }: EditorContextMenuProps) {
+  const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -203,60 +205,60 @@ function EditorContextMenu({ x, y, onClose, view, containerEl }: EditorContextMe
         }
       `}</style>
 
-      <button className={`menu-item \${!hasSelection ? 'disabled' : ''}`} onClick={() => executeAction('cut')} disabled={!hasSelection}>
+      <button className={`menu-item ${!hasSelection ? 'disabled' : ''}`} onClick={() => executeAction('cut')} disabled={!hasSelection}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
-        <span>Cut</span>
+        <span>{t('editor.contextMenu.cut')}</span>
       </button>
-
-      <button className={`menu-item \${!hasSelection ? 'disabled' : ''}`} onClick={() => executeAction('copy')} disabled={!hasSelection}>
+ 
+      <button className={`menu-item ${!hasSelection ? 'disabled' : ''}`} onClick={() => executeAction('copy')} disabled={!hasSelection}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-        <span>Copy</span>
+        <span>{t('editor.contextMenu.copy')}</span>
       </button>
-
+ 
       <button className="menu-item" onClick={() => executeAction('paste')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-        <span>Paste</span>
+        <span>{t('editor.contextMenu.paste')}</span>
       </button>
-
+ 
       <button className="menu-item" onClick={() => executeAction('select-all')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="4"></rect><path d="M9 12h6M12 9v6"></path></svg>
-        <span>Select All</span>
+        <span>{t('editor.contextMenu.selectAll')}</span>
       </button>
-
+ 
       <div className="menu-divider" />
-
+ 
       <button className="menu-item" onClick={() => executeAction('bold')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>
-        <span>Bold</span>
+        <span>{t('editor.contextMenu.bold')}</span>
       </button>
-
+ 
       <button className="menu-item" onClick={() => executeAction('italic')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg>
-        <span>Italic</span>
+        <span>{t('editor.contextMenu.italic')}</span>
       </button>
-
+ 
       <button className="menu-item" onClick={() => executeAction('code')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-        <span>Code Inline</span>
+        <span>{t('editor.contextMenu.codeInline')}</span>
       </button>
-
+ 
       <div className="menu-divider" />
-
+ 
       <button className="menu-item" onClick={() => executeAction('link')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-        <span>Wiki Link</span>
+        <span>{t('editor.contextMenu.wikiLink')}</span>
       </button>
-
+ 
       <button className="menu-item" onClick={() => executeAction('checklist')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 12l2 2 4-4"></path></svg>
-        <span>Todo Item</span>
+        <span>{t('editor.contextMenu.todoItem')}</span>
       </button>
-
+ 
       <div className="menu-divider" />
-
+ 
       <button className="menu-item" onClick={() => executeAction('clear')} style={{ color: '#ef4444' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        <span>Clear Document</span>
+        <span>{t('editor.contextMenu.clearDocument')}</span>
       </button>
     </div>
   )
@@ -270,6 +272,7 @@ interface SinglePaneAreaProps {
 }
 
 function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
+  const { t } = useTranslation()
   const {
     panes,
     setActivePane,
@@ -349,7 +352,6 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     pluginsEnabled
   } = useSettingsStore()
 
-  const defaultView = useSettingsStore((s) => s.defaultView)
   const paragraphSpacing = useSettingsStore((s) => s.paragraphSpacing)
   const showInvisibles = useSettingsStore((s) => s.showInvisibles)
   const indentWithTabs = useSettingsStore((s) => s.indentWithTabs)
@@ -358,7 +360,6 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const spellCheck = useSettingsStore((s) => s.spellCheck)
   const spellCheckLanguage = useSettingsStore((s) => s.spellCheckLanguage)
 
-  const [editorMode, setEditorMode] = React.useState<'editor' | 'preview' | 'split'>(defaultView)
 
   const isProgrammaticUpdate = useRef(false)
 
@@ -730,10 +731,10 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             <FileIcon size={40} color="var(--text-primary)" />
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 6px', fontWeight: 500 }}>
-            No file open
+            {t('editor.noFileOpen')}
           </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0, opacity: 0.6 }}>
-            Open a file from the sidebar or press ⌘K
+            {t('editor.openFileInstructions')}
           </p>
         </div>
       </div>
@@ -838,6 +839,7 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
 }
 
 export function EditorArea() {
+  const { t } = useTranslation()
   const { panes, activePaneId, mergeAllPanes } = useVaultStore()
   const paneRefs = useRef<{ [paneId: string]: HTMLDivElement | null }>({})
 
@@ -867,8 +869,8 @@ export function EditorArea() {
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
             <FileIcon size={48} color="var(--border-color)" />
           </div>
-          <p>Open a note from the sidebar</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>⌘K to search</p>
+          <p>{t('editor.openNoteFromSidebar')}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('editor.pressCmdKToSearch')}</p>
         </div>
       </div>
     )

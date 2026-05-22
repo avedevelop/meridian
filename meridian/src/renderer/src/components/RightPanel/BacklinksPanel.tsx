@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 
 export function BacklinksPanel() {
+  const { t } = useTranslation()
   const activeTabPath = useVaultStore((s) => s.activeTabPath)
   const linkStore = useLinkStore()
   const { openFile } = useVaultBridge()
@@ -23,11 +25,11 @@ export function BacklinksPanel() {
           opacity: 0.8
         }}
       >
-        Backlinks
+        {t('backlinks.title')}
       </div>
       {backlinks.length === 0 ? (
         <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
-          No notes link to this file yet
+          {t('backlinks.empty')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -72,7 +74,7 @@ export function BacklinksPanel() {
               opacity: 0.8
             }}
           >
-            Tags
+            {t('backlinks.tags')}
           </div>
           <div style={{ padding: '0 16px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {tags.map((tag) => (

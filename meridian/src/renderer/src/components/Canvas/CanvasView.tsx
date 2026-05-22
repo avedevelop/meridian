@@ -9,6 +9,7 @@ import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { TrashIcon, NoteConvertIcon, FrameIcon } from '../Icons'
+import { useTranslation } from 'react-i18next'
 
 /* ------------------------------------------------------------------ */
 /*  Data model                                                         */
@@ -216,6 +217,7 @@ function DotGrid({ stageX, stageY, stageScale, width, height }: DotGridProps) {
 /* ------------------------------------------------------------------ */
 
 export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
+  const { t } = useTranslation()
   const { openFile, refreshFiles } = useVaultBridge()
   const vault = useVaultStore((s) => s.vault)
   const connectionLineStyle = useSettingsStore((s) => s.connectionLineStyle) || 'curved'
@@ -275,7 +277,10 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           const content = await window.vault.readFile(n.file)
           setFileContents((prev) => ({ ...prev, [n.file!]: content }))
         } catch {
-          setFileContents((prev) => ({ ...prev, [n.file!]: `Error loading: ${n.file}` }))
+          setFileContents((prev) => ({
+            ...prev,
+            [n.file!]: t('canvas.failedToLoadFile', { file: n.file })
+          }))
         }
       }
     })
@@ -550,7 +555,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
         y: canvasY - DEFAULT_NODE_H / 2,
         width: DEFAULT_NODE_W,
         height: DEFAULT_NODE_H,
-        text: 'New Card'
+        text: t('canvas.defaultCardText')
       }
 
       mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
@@ -738,7 +743,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       y: cy - DEFAULT_NODE_H / 2,
       width: DEFAULT_NODE_W,
       height: DEFAULT_NODE_H,
-      text: 'New Card'
+      text: t('canvas.defaultCardText')
     }
     mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
   }, [size, stagePos, stageScale, mutate])
@@ -868,7 +873,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     const animate = (now: number) => {
       const elapsed = now - startTime
       const progress = Math.min(elapsed / duration, 1)
-      const t = 1 - Math.pow(1 - progress, 3) // cubic ease-out
+      const progressT = 1 - Math.pow(1 - progress, 3) // cubic ease-out
 
       setCanvasData((prev) => ({
         ...prev,
@@ -878,8 +883,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
           if (start && target) {
             return {
               ...n,
-              x: start.x + (target.x - start.x) * t,
-              y: start.y + (target.y - start.y) * t
+              x: start.x + (target.x - start.x) * progressT,
+              y: start.y + (target.y - start.y) * progressT
             }
           }
           return n
@@ -1157,7 +1162,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                             textOverflow: 'ellipsis'
                           }}
                         >
-                          {meta?.description || 'No description'}
+                          {meta?.description || t('canvas.noDescription')}
                         </div>
                       </div>
                       <div
@@ -1205,7 +1210,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                             window.vault.openExternal(trimmed)
                           }}
                         >
-                          Open ↗
+                          {t('canvas.openLink')}
                         </button>
                       </div>
                     </div>
@@ -1261,8 +1266,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {node.type === 'file' && node.file
                       ? fileContents[node.file] !== undefined
-                        ? `### Note: ${node.file.split('/').pop()?.replace(/\.md$/, '')}\n\n${fileContents[node.file]}`
-                        : `### Note: ${displayText}\nLoading...`
+                        ? `### ${t('canvas.notePrefix', { name: node.file.split('/').pop()?.replace(/\.md$/, '') })}\n\n${fileContents[node.file]}`
+                        : `### ${t('canvas.notePrefix', { name: displayText })}\n${t('canvas.loading')}`
                       : displayText}
                   </ReactMarkdown>
                 </div>
@@ -1342,7 +1347,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
             padding: '4px 8px', userSelect: 'none',
           }}>
             {/* Create group */}
-            {btn(addNodeAtCenter, 'New Card (double-click on canvas)', <><span style={{ fontSize: 15, fontWeight: 600 }}>+</span><span>Card</span></>, true)}
+            {btn(addNodeAtCenter, t('canvas.tooltip.newCard'), <><span style={{ fontSize: 15, fontWeight: 600 }}>+</span><span>{t('canvas.label.card')}</span></>, true)}
             {btn(() => {
               const stage = stageRef.current
               if (!stage) return
@@ -1351,14 +1356,14 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
               const cy = (stage.height() / 2 - sp.y) / ss
               mutateWithUndo(prev => ({ ...prev, nodes: [...prev.nodes, {
                 id: `${Date.now()}${Math.random().toString(36).slice(2)}`,
-                type: 'frame' as const, x: cx - 200, y: cy - 150, width: 400, height: 300, text: 'Frame',
+                type: 'frame' as const, x: cx - 200, y: cy - 150, width: 400, height: 300, text: t('canvas.defaultFrameText'),
               }] }))
-            }, 'Add Frame — group cards visually', <><FrameIcon size={13} color="#7c6af7" /><span>Frame</span></>)}
+            }, t('canvas.tooltip.addFrame'), <><FrameIcon size={13} color="#7c6af7" /><span>{t('canvas.label.frame')}</span></>)}
 
             {sep}
 
             {/* View group */}
-            {btn(fitToContent, 'Fit all cards in view', <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M1 5V2a1 1 0 011-1h3M11 1h3a1 1 0 011 1v3M15 11v3a1 1 0 01-1 1h-3M5 15H2a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>)}
+            {btn(fitToContent, t('canvas.tooltip.fitToContent'), <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M1 5V2a1 1 0 011-1h3M11 1h3a1 1 0 011 1v3M15 11v3a1 1 0 01-1 1h-3M5 15H2a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>)}
             <span style={{ fontSize: 12, color: '#555', minWidth: 34, textAlign: 'center', fontFamily: FONT_FAMILY }}>
               {zoomPct}%
             </span>
@@ -1367,8 +1372,8 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
             {/* Arrange group */}
             {btn(autoArrangeMindMap,
-              'Auto Layout — arrange cards as a tree based on their connections (edges between cards)',
-              <><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="3" r="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="3" cy="12" r="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="13" cy="12" r="2" stroke="currentColor" strokeWidth="1.4"/><path d="M8 5v2M6.5 7.5L4 10M9.5 7.5L12 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg><span>Auto Layout</span></>
+              t('canvas.tooltip.autoLayout'),
+              <><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="3" r="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="3" cy="12" r="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="13" cy="12" r="2" stroke="currentColor" strokeWidth="1.4"/><path d="M8 5v2M6.5 7.5L4 10M9.5 7.5L12 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg><span>{t('canvas.label.autoLayout')}</span></>
             )}
           </div>
         )
@@ -1653,14 +1658,14 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                     cursor: 'pointer',
                     padding: 0
                   }}
-                  title="Change Color"
+                  title={t('canvas.nodeToolbar.changeColor')}
                 />
               ))}
               {node.type === 'text' && !isUrl(node.text) && (
                 <>
                   <button
                     onClick={async () => {
-                      const name = prompt('Enter new note filename:', 'Note.md')
+                      const name = prompt(t('canvas.nodeToolbar.enterFilename'), t('canvas.nodeToolbar.defaultFilename'))
                       if (!name) return
                       const fileName = name.endsWith('.md') ? name : `${name}.md`
                       if (!vault) return
@@ -1688,7 +1693,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                         useLinkStore.getState().indexFile(filePath, fileName, node.text, vault.path)
                         await refreshFiles()
                       } catch (err: any) {
-                        alert(`Failed to create file: ${err.message}`)
+                        alert(t('canvas.nodeToolbar.failedToCreateFile', { message: err.message }))
                       }
                     }}
                     style={{
@@ -1704,7 +1709,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                       justifyContent: 'center',
                       fontWeight: 600
                     }}
-                    title="Create note from text"
+                    title={t('canvas.nodeToolbar.createNoteFromText')}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.background = 'rgba(124, 106, 247, 0.1)')
                     }
@@ -1737,7 +1742,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
-                title="Delete Card"
+                title={t('canvas.nodeToolbar.deleteCard')}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)')
                 }

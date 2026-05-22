@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import * as d3 from 'd3'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
@@ -32,6 +33,7 @@ interface LocalLink extends d3.SimulationLinkDatum<LocalNode> {
 }
 
 export function LocalGraphView() {
+  const { t } = useTranslation()
   const activeTabPath = useVaultStore((s) => s.activeTabPath)
   const linkStore = useLinkStore()
   const indexVersion = useLinkStore((s) => s.indexVersion)
@@ -136,7 +138,7 @@ export function LocalGraphView() {
       .attr('d', 'M0,-5L10,0L0,5')
       .attr('fill', 'rgba(255, 255, 255, 0.4)')
 
-    // Center g
+    // g
     const g = svg.append('g')
 
     // Zoom behavior
@@ -250,7 +252,7 @@ export function LocalGraphView() {
   if (!activeTabPath) {
     return (
       <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', opacity: 0.5 }}>
-        Select a note to view its connections
+        {t('localGraph.empty')}
       </div>
     )
   }
@@ -267,7 +269,7 @@ export function LocalGraphView() {
           letterSpacing: '0.06em'
         }}
       >
-        Local Connections
+        {t('localGraph.title')}
       </div>
       <div
         ref={containerRef}

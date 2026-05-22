@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FolderOpenBtnIcon, WebIcon, SettingsIcon, GitIcon } from '../Icons'
 
 type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
@@ -78,17 +79,18 @@ const CollapseIcon = (props: { size?: number; color?: string }) => (
 
 const TABS: {
   id: SidebarTab
-  label: string
+  labelKey: string
   Icon: React.ComponentType<{ size?: number; color?: string }>
 }[] = [
-  { id: 'files', label: 'Files', Icon: (props) => <FolderOpenBtnIcon size={20} {...props} /> },
-  { id: 'git', label: 'Source Control', Icon: (props) => <GitIcon size={20} {...props} /> },
-  { id: 'graph', label: 'Graph', Icon: (props) => <WebIcon size={20} {...props} /> },
-  { id: 'calendar', label: 'Calendar', Icon: (props) => <CalendarIcon size={20} {...props} /> },
-  { id: 'tasks', label: 'Tasks', Icon: (props) => <TasksIcon size={20} {...props} /> }
+  { id: 'files', labelKey: 'activityBar.files', Icon: (props) => <FolderOpenBtnIcon size={20} {...props} /> },
+  { id: 'git', labelKey: 'activityBar.git', Icon: (props) => <GitIcon size={20} {...props} /> },
+  { id: 'graph', labelKey: 'activityBar.graph', Icon: (props) => <WebIcon size={20} {...props} /> },
+  { id: 'calendar', labelKey: 'activityBar.calendar', Icon: (props) => <CalendarIcon size={20} {...props} /> },
+  { id: 'tasks', labelKey: 'activityBar.tasks', Icon: (props) => <TasksIcon size={20} {...props} /> }
 ]
 
 export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollapsed }: ActivityBarProps) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(() => {
     return localStorage.getItem('layout-activitybar-expanded') === 'true'
   })
@@ -140,9 +142,10 @@ export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollaps
         userSelect: 'none'
       }}
     >
-      {TABS.map(({ id, label, Icon }) => {
+      {TABS.map(({ id, labelKey, Icon }) => {
         const isActive = activeTab === id && !sidebarCollapsed
         const hasGitBadge = id === 'git' && gitChangesCount > 0
+        const label = t(labelKey)
 
         return (
           <button
@@ -234,7 +237,7 @@ export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollaps
       {/* Settings icon pinned to bottom */}
       <button
         onClick={onSettings}
-        title={expanded ? undefined : "Settings (⌘,)"}
+        title={expanded ? undefined : t('activityBar.settingsTooltip')}
         style={{
           width: '100%',
           height: 48,
@@ -272,7 +275,7 @@ export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollaps
               whiteSpace: 'nowrap'
             }}
           >
-            Settings
+            {t('activityBar.settings')}
           </span>
         )}
       </button>
@@ -284,7 +287,7 @@ export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollaps
           setExpanded(next)
           localStorage.setItem('layout-activitybar-expanded', String(next))
         }}
-        title={expanded ? "Collapse Menu" : "Expand Menu"}
+        title={expanded ? t('activityBar.collapseMenu') : t('activityBar.expandMenu')}
         style={{
           width: '100%',
           height: 48,
@@ -321,7 +324,7 @@ export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollaps
               whiteSpace: 'nowrap'
             }}
           >
-            Collapse
+            {t('activityBar.collapse')}
           </span>
         )}
       </button>

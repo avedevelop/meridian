@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface HistoryTimelineBarProps {
   progress: number
@@ -31,6 +32,7 @@ export function HistoryTimelineBar({
   activityBuckets,
   historyTicks
 }: HistoryTimelineBarProps) {
+  const { t } = useTranslation()
   const scrubberRef = useRef<HTMLDivElement>(null)
   const [hoveredTick, setHoveredTick] = useState<number | null>(null)
 
@@ -72,7 +74,7 @@ export function HistoryTimelineBar({
     >
       {/* Date */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0, justifyContent: 'center' }}>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', lineHeight: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Viewing</span>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', lineHeight: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{t('timeline.viewing')}</span>
         <span style={{ fontSize: 12, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
           {formattedDate}
         </span>
@@ -224,12 +226,12 @@ export function HistoryTimelineBar({
             }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
-            Stop
+            {t('timeline.stop')}
           </button>
         ) : (
           <button
             onClick={startRecording}
-            title="Record graph animation as WebM video"
+            title={t('timeline.record')}
             style={{
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.08)',

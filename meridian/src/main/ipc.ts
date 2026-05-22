@@ -365,7 +365,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
   })
 
   ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string) => {
-    const { https } = await import('https')
+    const https = await import('https')
     const { createWriteStream, createReadStream, mkdirSync, rmSync, renameSync, existsSync } = await import('fs')
     const { join } = await import('path')
     const { tmpdir } = await import('os')

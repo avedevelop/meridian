@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { FileIcon } from '../Icons'
 import { useSettingsStore } from '../../store/useSettingsStore'
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: any): string {
   const now = new Date()
   const then = new Date(dateStr)
   if (isNaN(then.getTime())) return dateStr
   const diffDays = Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) === 1 ? '' : 's'} ago`
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) === 1 ? '' : 's'} ago`
-  return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) === 1 ? '' : 's'} ago`
+  if (diffDays === 0) return t('gitPanel.today')
+  if (diffDays === 1) return t('gitPanel.yesterday')
+  if (diffDays < 7) return t('gitPanel.daysAgo', { count: diffDays })
+  if (diffDays < 30) return t('gitPanel.weeksAgo', { count: Math.floor(diffDays / 7) })
+  if (diffDays < 365) return t('gitPanel.monthsAgo', { count: Math.floor(diffDays / 30) })
+  return t('gitPanel.yearsAgo', { count: Math.floor(diffDays / 365) })
 }
 
 function applyCommitTemplate(template: string, changes: { path: string; status: string }[]): string {
@@ -36,12 +37,13 @@ interface SetupWizardProps {
 }
 
 function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSetRemote, loading, error }: SetupWizardProps) {
+  const { t } = useTranslation()
   const [remoteUrl, setRemoteUrl] = React.useState('')
 
   const steps = [
-    { done: isRepo, label: 'Enable backup', desc: 'Set up version history for this vault' },
-    { done: ghConnected, label: 'Connect GitHub', desc: 'Sign in to upload notes online' },
-    { done: hasRemote, label: 'Set repository', desc: 'Choose where to store your backup' },
+    { done: isRepo, label: t('gitPanel.step1'), desc: t('gitPanel.step1Desc') },
+    { done: ghConnected, label: t('gitPanel.step2'), desc: t('gitPanel.step2Desc') },
+    { done: hasRemote, label: t('gitPanel.step3'), desc: t('gitPanel.step3Desc') },
   ]
   const currentStep = steps.findIndex((s) => !s.done)
 
@@ -49,10 +51,10 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', overflowY: 'auto' }}>
       <div>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-          ☁️ Set up Cloud Backup
+          ☁️ {t('gitPanel.setupTitle')}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          Complete these steps to back up your notes automatically.
+          {t('gitPanel.setupDesc')}
         </div>
       </div>
 
@@ -98,7 +100,7 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
                       opacity: loading ? 0.6 : 1
                     }}
                   >
-                    {loading ? 'Setting up…' : 'Enable Backup'}
+                    {loading ? t('common.loading') : t('gitPanel.initRepo')}
                   </button>
                 )}
 
@@ -117,7 +119,7 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
                     </svg>
-                    Connect GitHub Account
+                    {t('gitPanel.connectGitHub')}
                   </button>
                 )}
 
@@ -125,14 +127,14 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
                   <div style={{ marginTop: 8 }}>
                     {ghUsername && (
                       <div style={{ fontSize: 11, color: '#4ade80', marginBottom: 6 }}>
-                        ✓ Signed in as @{ghUsername}
+                        {t('gitPanel.usernameStatus', { username: ghUsername })}
                       </div>
                     )}
                     <input
                       value={remoteUrl}
                       onChange={(e) => setRemoteUrl(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && remoteUrl.trim()) onSetRemote(remoteUrl.trim()) }}
-                      placeholder="https://github.com/you/my-notes.git"
+                      placeholder={t('gitPanel.repoUrlPlaceholder')}
                       style={{
                         width: '100%', padding: '6px 8px', borderRadius: 5,
                         background: 'var(--bg-surface)', border: '1px solid var(--border-color)',
@@ -151,7 +153,7 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
                         opacity: remoteUrl.trim() ? 1 : 0.5
                       }}
                     >
-                      Connect Repository
+                      {t('gitPanel.connectRepo')}
                     </button>
                   </div>
                 )}
@@ -171,6 +173,7 @@ function SetupWizard({ isRepo, ghConnected, ghUsername, hasRemote, onInit, onSet
 }
 
 export function GitPanel() {
+  const { t } = useTranslation()
   const openTab = useVaultStore((s) => s.openTab)
   const { autoBackupInterval, updateSetting } = useSettingsStore()
   const gitCommitTemplate = useSettingsStore((s) => s.gitCommitTemplate)
@@ -305,12 +308,12 @@ export function GitPanel() {
     try {
       const statusRes = await window.vault.gitStatus()
       if (!statusRes.hasRemote) {
-        setInfoMessage('Connect a GitHub repo first to back up online.')
+        setInfoMessage(t('gitPanel.connectRepoFirst'))
         setTimeout(() => setInfoMessage(null), 4000)
         return
       }
       if (statusRes.clean) {
-        setInfoMessage('Everything is already backed up.')
+        setInfoMessage(t('gitPanel.upToDate'))
         setTimeout(() => setInfoMessage(null), 3000)
         return
       }
@@ -330,14 +333,14 @@ export function GitPanel() {
     try {
       const commitRes = await window.vault.gitCommit()
       if (!commitRes.success && commitRes.message !== 'Nothing to commit') {
-        setError(commitRes.error ?? 'Commit failed')
+        setError(commitRes.error ?? t('gitPanel.commitFailed'))
         return
       }
       const syncRes = await window.vault.gitSync(gitDefaultBranch)
       if (!syncRes.success) {
-        setError(syncRes.error ?? 'Sync failed')
+        setError(syncRes.error ?? t('gitPanel.syncFailed'))
       } else {
-        setInfoMessage('Backup complete!')
+        setInfoMessage(t('gitPanel.backupComplete'))
         setTimeout(() => setInfoMessage(null), 4000)
         await fetchStatus()
         await fetchCommits()
@@ -365,7 +368,7 @@ export function GitPanel() {
   if (loading && !gitState) {
     return (
       <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>
-        Loading Git status...
+        {t('gitPanel.loadingGit')}
       </div>
     )
   }
@@ -385,7 +388,7 @@ export function GitPanel() {
           if (res.success) {
             await fetchStatus()
           } else {
-            setError(res.error ?? 'Failed to connect repository')
+            setError(res.error ?? t('gitPanel.connectRepoFailed'))
           }
         }}
         loading={loading}
@@ -402,7 +405,7 @@ export function GitPanel() {
       <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
           <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>
-            Cloud Backup
+            {t('gitPanel.title')}
           </h3>
           {ghConnected && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -413,7 +416,7 @@ export function GitPanel() {
         </div>
         <button
           onClick={() => { fetchStatus(); fetchCommits() }}
-          title="Refresh"
+          title={t('gitPanel.refresh')}
           style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', borderRadius: 4, flexShrink: 0 }}
           onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
           onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
@@ -431,7 +434,7 @@ export function GitPanel() {
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="What changed? (optional — auto-filled)"
+          placeholder={t('gitPanel.commitPlaceholderDesc')}
           style={{
             width: '100%',
             minHeight: 64,
@@ -466,7 +469,7 @@ export function GitPanel() {
               transition: 'opacity 0.2s'
             }}
           >
-            {committing ? 'Saving…' : 'Save Snapshot'}
+            {committing ? t('gitPanel.saving') : t('gitPanel.saveSnapshot')}
           </button>
           <button
             onClick={handleSyncCheck}
@@ -494,7 +497,7 @@ export function GitPanel() {
               style={{ animation: syncing ? 'spin 1.5s linear infinite' : 'none' }}>
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
             </svg>
-            <span>{syncing ? 'Backing up…' : checkingSync ? 'Checking…' : 'Backup Now'}</span>
+            <span>{syncing ? t('gitPanel.backingUp') : checkingSync ? t('gitPanel.checking') : t('gitPanel.backupNow')}</span>
           </button>
         </div>
       </div>
@@ -510,13 +513,13 @@ export function GitPanel() {
         }}>
           <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500, marginBottom: 4 }}>
             {syncConfirm.isEmpty
-              ? '📭 Remote repo is empty'
-              : `📝 ${syncConfirm.localCommits} file${syncConfirm.localCommits === 1 ? '' : 's'} changed`}
+              ? t('gitPanel.remoteEmpty')
+              : t(syncConfirm.localCommits === 1 ? 'gitPanel.filesChanged' : 'gitPanel.filesChanged_plural', { count: syncConfirm.localCommits })}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12 }}>
             {syncConfirm.isEmpty
-              ? 'Your notes will be uploaded to GitHub for the first time.'
-              : 'Your changes will be saved and uploaded to GitHub.'}
+              ? t('gitPanel.firstUpload')
+              : t('gitPanel.uploadConfirm')}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
@@ -527,7 +530,7 @@ export function GitPanel() {
                 border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer'
               }}
             >
-              Save &amp; Upload
+              {t('gitPanel.saveAndUpload')}
             </button>
             <button
               onClick={() => setSyncConfirm(null)}
@@ -537,7 +540,7 @@ export function GitPanel() {
                 border: '1px solid var(--border-color)', fontSize: 12, cursor: 'pointer'
               }}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -570,7 +573,7 @@ export function GitPanel() {
 
       {copiedHash && (
         <div style={{ padding: '6px 16px', fontSize: 11, color: 'var(--accent-color)', fontWeight: 500, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-          ✓ Copied commit hash to clipboard!
+          {t('gitPanel.copiedHash')}
         </div>
       )}
 
@@ -600,7 +603,7 @@ export function GitPanel() {
               display: 'inline-block',
               fontSize: 8
             }}>▶</span>
-            <span>UNSAVED CHANGES</span>
+            <span>{t('gitPanel.unsavedChanges')}</span>
           </div>
           <span style={{
             background: 'var(--bg-surface)',
@@ -615,7 +618,7 @@ export function GitPanel() {
           <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border-color)' }}>
             {changes.length === 0 ? (
               <div style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
-                Everything is saved
+                {t('gitPanel.upToDate')}
               </div>
             ) : (
               changes.map((change) => {
@@ -738,7 +741,7 @@ export function GitPanel() {
               display: 'inline-block',
               fontSize: 8
             }}>▶</span>
-            <span>SNAPSHOT HISTORY</span>
+            <span>{t('gitPanel.snapshotHistory')}</span>
           </div>
           <span style={{
             background: 'var(--bg-surface)',
@@ -753,14 +756,14 @@ export function GitPanel() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {commits.length === 0 ? (
               <div style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
-                No commits yet
+                {t('gitPanel.noCommits')}
               </div>
             ) : (
               commits.map((commit) => (
                 <div
                   key={commit.hash}
                   onClick={() => handleCopyHash(commit.hash)}
-                  title="Click to copy full commit hash"
+                  title={t('gitPanel.copyHash')}
                   style={{
                     padding: '8px 16px',
                     display: 'flex',
@@ -798,7 +801,7 @@ export function GitPanel() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-secondary)' }}>
                     <span>{commit.author}</span>
-                    <span>{timeAgo(commit.date)}</span>
+                    <span>{timeAgo(commit.date, t)}</span>
                   </div>
                 </div>
               ))
@@ -818,9 +821,12 @@ export function GitPanel() {
         flexShrink: 0
       }}>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>Auto-backup</div>
+          <div style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{t('gitPanel.autoBackup')}</div>
           <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
-            {autoBackupInterval === 0 ? 'Off' : `Every ${autoBackupInterval} min`}
+            {autoBackupInterval === 0 ? t('gitPanel.autoBackupOff') :
+             autoBackupInterval === 15 ? t('gitPanel.backup15Min') :
+             autoBackupInterval === 30 ? t('gitPanel.backup30Min') :
+             t('gitPanel.backup1Hour')}
           </div>
         </div>
         <select
@@ -837,10 +843,10 @@ export function GitPanel() {
             outline: 'none'
           }}
         >
-          <option value={0}>Off</option>
-          <option value={15}>15 min</option>
-          <option value={30}>30 min</option>
-          <option value={60}>1 hour</option>
+          <option value={0}>{t('gitPanel.autoBackupOff')}</option>
+          <option value={15}>{t('gitPanel.backup15Min')}</option>
+          <option value={30}>{t('gitPanel.backup30Min')}</option>
+          <option value={60}>{t('gitPanel.backup1Hour')}</option>
         </select>
       </div>
 

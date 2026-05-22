@@ -154,7 +154,7 @@ export function StatusBar() {
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-surface)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  SYNC
+                  {t('gitPanel.sync')}
                 </button>
               )}
             </>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { BacklinksPanel } from './BacklinksPanel'
 import { TagsPanel } from './TagsPanel'
 import { TocPanel } from './TocPanel'
@@ -10,15 +11,16 @@ import { SlidersIcon, LinkIcon, TagIcon, OutlineIcon, WebIcon } from '../Icons'
 type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties'
 
 export function RightPanel() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<RightTab>('properties')
   const plugins = useSettingsStore((s) => s.pluginsEnabled)
 
   const tabs = ([
-    { id: 'properties', label: 'Properties', Icon: (props: any) => <SlidersIcon size={15} {...props} /> },
-    plugins.backlinksPanel ? { id: 'backlinks', label: 'Backlinks & Tags', Icon: (props: any) => <LinkIcon size={15} {...props} /> } : null,
-    plugins.tagsPanel ? { id: 'tags', label: 'Tags List', Icon: (props: any) => <TagIcon size={15} {...props} /> } : null,
-    plugins.tocPanel ? { id: 'toc', label: 'Outline (ToC)', Icon: (props: any) => <OutlineIcon size={15} {...props} /> } : null,
-    { id: 'local-graph', label: 'Local Graph', Icon: (props: any) => <WebIcon size={15} {...props} /> }
+    { id: 'properties', label: t('rightPanel.properties'), Icon: (props: any) => <SlidersIcon size={15} {...props} /> },
+    plugins.backlinksPanel ? { id: 'backlinks', label: t('rightPanel.backlinks'), Icon: (props: any) => <LinkIcon size={15} {...props} /> } : null,
+    plugins.tagsPanel ? { id: 'tags', label: t('rightPanel.tags'), Icon: (props: any) => <TagIcon size={15} {...props} /> } : null,
+    plugins.tocPanel ? { id: 'toc', label: t('rightPanel.toc'), Icon: (props: any) => <OutlineIcon size={15} {...props} /> } : null,
+    { id: 'local-graph', label: t('rightPanel.localGraph'), Icon: (props: any) => <WebIcon size={15} {...props} /> }
   ].filter((t) => t !== null) as { id: RightTab; label: string; Icon: (props: any) => React.ReactElement }[])
 
   const activeTabExists = tabs.some((t) => t.id === activeTab)

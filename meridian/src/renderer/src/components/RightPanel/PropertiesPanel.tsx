@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 
 type FrontmatterValue = string | string[]
@@ -47,6 +48,7 @@ function updateContent(content: string, key: string, value: string): string {
 }
 
 export function PropertiesPanel() {
+  const { t } = useTranslation()
   const { panes, activePaneId, setTabContent, markTabDirty } = useVaultStore()
   const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0]
   const activeTab = activePane?.openTabs.find((t) => t.path === activePane?.activeTabPath)
@@ -68,15 +70,15 @@ export function PropertiesPanel() {
 
   const handleAddProperty = useCallback(() => {
     if (!activeTab) return
-    const key = window.prompt('Property name:')
+    const key = window.prompt(t('properties.namePrompt'))
     if (!key?.trim()) return
     handleChange(key.trim(), '')
-  }, [activeTab, handleChange])
+  }, [activeTab, handleChange, t])
 
   if (!activeTab) {
     return (
       <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>
-        No file open
+        {t('properties.noFileOpen')}
       </div>
     )
   }
@@ -93,12 +95,12 @@ export function PropertiesPanel() {
           marginBottom: 12
         }}
       >
-        Properties
+        {t('rightPanel.properties')}
       </div>
 
       {frontmatter === null && (
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-          No frontmatter found.
+          {t('properties.noFrontmatter')}
         </div>
       )}
 
@@ -161,7 +163,7 @@ export function PropertiesPanel() {
           e.currentTarget.style.background = 'var(--accent-glow)'
         }}
       >
-        + Add property
+        {t('properties.addProperty')}
       </button>
     </div>
   )

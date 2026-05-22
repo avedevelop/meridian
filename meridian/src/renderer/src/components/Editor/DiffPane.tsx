@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { MergeView } from '@codemirror/merge'
@@ -11,6 +12,7 @@ interface DiffPaneProps {
 }
 
 export function DiffPane({ filePath, fileName }: DiffPaneProps) {
+  const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const mergeViewRef = useRef<MergeView | null>(null)
   const vault = useVaultStore((s) => s.vault)
@@ -162,33 +164,33 @@ export function DiffPane({ filePath, fileName }: DiffPaneProps) {
             <path d="M12 6v6l4 2" />
           </svg>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-            Comparing Changes: {fileName.replace(/^Diff:\s*/, '')}
+            {t('diff.comparingChanges', { name: fileName.replace(/^Diff:\s*/, '') })}
           </span>
           <span style={{ fontSize: 10, background: 'var(--accent-glow)', color: 'var(--accent-color)', padding: '2px 6px', borderRadius: 10, fontWeight: 600 }}>
-            Git Diff (HEAD vs Local)
+            {t('diff.gitDiffLabel')}
           </span>
         </div>
         <div style={{ display: 'flex', gap: 20, fontSize: 11, color: 'var(--text-secondary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 8, height: 8, background: 'rgba(239, 68, 68, 0.4)', borderRadius: 2 }} />
-            <span>HEAD version (Original)</span>
+            <span>{t('diff.headVersion')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 8, height: 8, background: 'rgba(34, 197, 94, 0.4)', borderRadius: 2 }} />
-            <span>Local version (Modified)</span>
+            <span>{t('diff.localVersion')}</span>
           </div>
         </div>
       </div>
 
       {loading && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
-          Loading git diff view...
+          {t('diff.loading')}
         </div>
       )}
 
       {error && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171', fontSize: 13, padding: 24, textAlign: 'center' }}>
-          Failed to load diff: {error}
+          {t('diff.failedToLoad', { error })}
         </div>
       )}
 

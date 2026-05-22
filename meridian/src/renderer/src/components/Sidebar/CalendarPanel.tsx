@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { FileIcon } from '../Icons'
 
 export function CalendarPanel() {
+  const { t } = useTranslation()
   const { vault, files } = useVaultStore()
   const { openFile, refreshFiles } = useVaultBridge()
   const indexVersion = useLinkStore((s) => s.indexVersion)
@@ -17,7 +19,9 @@ export function CalendarPanel() {
   const month = currentDate.getMonth()
 
   // 1-indexed days of week starting from Monday (0: Monday, ..., 6: Sunday)
-  const weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+  const weekdays = useMemo(() => {
+    return t('calendar.weekdays').split(',')
+  }, [t])
 
   // Month navigation
   const prevMonth = () => {
@@ -124,10 +128,9 @@ export function CalendarPanel() {
     return `${d.getFullYear()}-${mm}-${dd}`
   }, [])
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ]
+  const monthNames = useMemo(() => {
+    return t('calendar.months').split(',')
+  }, [t])
 
   // Render cells list
   const cells = useMemo(() => {
@@ -162,7 +165,7 @@ export function CalendarPanel() {
                 cursor: 'pointer'
               }}
             >
-              Today
+              {t('calendar.today')}
             </button>
             <button
               onClick={prevMonth}
@@ -287,7 +290,7 @@ export function CalendarPanel() {
             marginBottom: 8
           }}
         >
-          Recent Edits
+          {t('calendar.recentEdits')}
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {recentEdits.map((item) => (
@@ -317,7 +320,7 @@ export function CalendarPanel() {
           ))}
           {recentEdits.length === 0 && (
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '4px 8px' }}>
-              No files found.
+              {t('calendar.noFiles')}
             </span>
           )}
         </div>

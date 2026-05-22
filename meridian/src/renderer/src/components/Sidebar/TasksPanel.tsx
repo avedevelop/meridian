@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
@@ -14,6 +15,7 @@ interface TaskItem {
 }
 
 export function TasksPanel() {
+  const { t } = useTranslation()
   const { openFile, saveFile } = useVaultBridge()
   const { openTabs, setTabContent } = useVaultStore()
   const indexVersion = useLinkStore((s) => s.indexVersion)
@@ -139,7 +141,7 @@ export function TasksPanel() {
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Filter tasks..."
+          placeholder={t('tasks.filter')}
           style={{
             width: '100%',
             padding: '6px 10px',
@@ -169,11 +171,10 @@ export function TasksPanel() {
                 padding: '4px 0',
                 borderRadius: 4,
                 cursor: 'pointer',
-                textTransform: 'capitalize',
                 transition: 'all 0.12s ease-out'
               }}
             >
-              {tab}
+              {t(`tasks.${tab}`)}
             </button>
           ))}
         </div>
@@ -183,7 +184,7 @@ export function TasksPanel() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 4px' }}>
         {loading && tasks.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Scanning vault...</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('tasks.scanning')}</span>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 8px' }}>
@@ -246,7 +247,7 @@ export function TasksPanel() {
             ))}
             {filteredTasks.length === 0 && (
               <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12 }}>
-                No tasks found
+                {t('tasks.noTasks')}
               </div>
             )}
           </div>

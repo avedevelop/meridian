@@ -1,4 +1,5 @@
 import { useState, useRef, useLayoutEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { ContextMenu } from '../Sidebar/ContextMenu'
@@ -22,6 +23,7 @@ export function TabBar({ paneId }: TabBarProps) {
     vault
   } = useVaultStore()
   const { renameFile, deleteFile, revealFile } = useVaultBridge()
+  const { t } = useTranslation()
 
   const alwaysShowTabBar = useSettingsStore((s) => s.alwaysShowTabBar)
   const openTabsForPane = useVaultStore((s) => s.panes.find((p) => p.id === paneId)?.openTabs ?? [])
@@ -379,7 +381,7 @@ export function TabBar({ paneId }: TabBarProps) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 6px', flexShrink: 0, borderLeft: '1px solid var(--border-color)' }}>
         <button
           onClick={() => splitPane(paneId, 'vertical')}
-          title="Split Vertically"
+          title={t('editor.splitVertically')}
           style={{
             background: 'transparent',
             border: 'none',
@@ -408,7 +410,7 @@ export function TabBar({ paneId }: TabBarProps) {
 
         <button
           onClick={() => splitPane(paneId, 'horizontal')}
-          title="Split Horizontally"
+          title={t('editor.splitHorizontally')}
           style={{
             background: 'transparent',
             border: 'none',
@@ -438,7 +440,7 @@ export function TabBar({ paneId }: TabBarProps) {
         {panes.length > 1 && (
           <button
             onClick={() => closePane(paneId)}
-            title="Close Pane"
+            title={t('editor.closePane')}
             style={{
               background: 'transparent',
               border: 'none',
@@ -474,36 +476,36 @@ export function TabBar({ paneId }: TabBarProps) {
           onClose={() => setContextMenu(null)}
           items={[
             {
-              label: 'Rename',
+              label: t('common.rename'),
               onClick: () => {
-                const newName = window.prompt('Rename file:', contextMenu.name)
+                const newName = window.prompt(t('editor.renameFilePrompt'), contextMenu.name)
                 if (newName && newName.trim() !== '') {
                   renameFile(contextMenu.path, newName.trim())
                 }
               }
             },
             {
-              label: 'Delete',
+              label: t('common.delete'),
               danger: true,
               onClick: () => {
-                if (window.confirm(`Delete "${contextMenu.name}"? This cannot be undone.`)) {
+                if (window.confirm(t('fileTree.deleteFileConfirm', { name: contextMenu.name }))) {
                   deleteFile(contextMenu.path)
                 }
               }
             },
             { separator: true },
             {
-              label: 'Reveal in Finder',
+              label: t('common.reveal'),
               onClick: () => revealFile(contextMenu.path)
             },
             {
-              label: 'Copy Path',
+              label: t('common.copyPath'),
               onClick: () => {
                 navigator.clipboard.writeText(contextMenu.path).catch(console.error)
               }
             },
             {
-              label: 'Copy Relative Path',
+              label: t('common.copyRelativePath'),
               onClick: () => {
                 if (vault) {
                   const rel = getRelativePath(contextMenu.path, vault.path)

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SearchIcon, SettingsIcon, LinkIcon } from '../Icons'
 
 
@@ -42,6 +43,7 @@ interface GraphSidebarProps {
 }
 
 export function GraphSidebar(props: GraphSidebarProps) {
+  const { t } = useTranslation()
   const {
     isSettingsOpen,
     setIsSettingsOpen,
@@ -93,7 +95,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
             transition: 'all 0.2s ease',
             backdropFilter: 'blur(8px)'
           }}
-          title="Open Graph Settings & Analytics"
+          title={t('graph.openSettings')}
         >
           <SettingsIcon size={16} />
         </button>
@@ -135,7 +137,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
           }}
         >
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-primary)', opacity: 0.85 }}>
-            GRAPH ANALYSIS
+            {t('graph.title')}
           </span>
           <button
             onClick={() => setIsSettingsOpen(false)}
@@ -173,7 +175,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
               transition: 'all 0.15s ease'
             }}
           >
-            Filters & Forces
+            {t('graph.filters')}
           </button>
           <button
             onClick={() => setActiveSidebarTab('analytics')}
@@ -190,7 +192,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
               transition: 'all 0.15s ease'
             }}
           >
-            Insights & Hubs
+            {t('graph.insights')}
           </button>
         </div>
 
@@ -200,7 +202,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
             <>
               {/* Search Box */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>SEARCH VAULT</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>{t('graph.search')}</span>
                 <div
                   style={{
                     background: 'rgba(0, 0, 0, 0.25)',
@@ -216,7 +218,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
                   <SearchIcon size={13} color="var(--text-secondary)" style={{ opacity: 0.6 }} />
                   <input
                     type="text"
-                    placeholder="Search note nodes..."
+                    placeholder={t('graph.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -262,13 +264,13 @@ export function GraphSidebar(props: GraphSidebarProps) {
                     onChange={(e) => setStrictFilter(e.target.checked)}
                     style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
                   />
-                  Strict Physics Subgraphing
+                  {t('graph.strictPhysics')}
                 </label>
               </div>
 
               {/* Force Presets */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>PHYSICS PRESETS</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>{t('graph.physicsPresets')}</span>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
                     onClick={() => {
@@ -287,7 +289,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Default
+                    {t('graph.presetDefault')}
                   </button>
                   <button
                     onClick={() => {
@@ -306,7 +308,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Dense
+                    {t('graph.presetDense')}
                   </button>
                   <button
                     onClick={() => {
@@ -325,21 +327,21 @@ export function GraphSidebar(props: GraphSidebarProps) {
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    Galaxy
+                    {t('graph.presetGalaxy')}
                   </button>
                 </div>
               </div>
 
               {/* Interactive Legend Filters */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>INTERACTIVE LEGEND</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>{t('graph.legend')}</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {[
-                    { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
-                    { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
-                    { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
-                    { key: 'connected', label: 'Connected Notes', color: GROUP_COLORS.connected },
-                    { key: 'orphan', label: 'Orphan Notes', color: GROUP_COLORS.orphan }
+                    { key: 'canvas', label: t('graph.legendCanvases'), color: GROUP_COLORS.canvas },
+                    { key: 'project', label: t('graph.legendProjects'), color: GROUP_COLORS.project },
+                    { key: 'daily', label: t('graph.legendDaily'), color: GROUP_COLORS.daily },
+                    { key: 'connected', label: t('graph.legendConnected'), color: GROUP_COLORS.connected },
+                    { key: 'orphan', label: t('graph.legendOrphan'), color: GROUP_COLORS.orphan }
                   ].map((cat) => {
                     const isDisabled = disabledCategories.has(cat.key)
                     return (
@@ -367,7 +369,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
                           <span>{cat.label}</span>
                         </div>
                         <span style={{ fontSize: 10, color: isDisabled ? 'var(--text-secondary)' : 'var(--accent-color)', fontWeight: 600 }}>
-                          {isDisabled ? 'HIDDEN' : 'VISIBLE'}
+                          {isDisabled ? t('graph.hidden') : t('graph.visible')}
                         </span>
                       </button>
                     )
@@ -377,11 +379,11 @@ export function GraphSidebar(props: GraphSidebarProps) {
 
               {/* Force Sliders */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>PHYSICS FORCES</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>{t('graph.physicsForces')}</span>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Link distance</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('graph.linkDistance')}</span>
                     <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{linkDistance}px</span>
                   </div>
                   <input
@@ -396,7 +398,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Repulsion force</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('graph.repulsionForce')}</span>
                     <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{Math.abs(repulsionStrength)}</span>
                   </div>
                   <input
@@ -412,7 +414,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
 
               {/* Display Options */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>DISPLAY SETTINGS</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>{t('graph.displaySettings')}</span>
 
                 <label
                   style={{
@@ -431,12 +433,12 @@ export function GraphSidebar(props: GraphSidebarProps) {
                     onChange={(e) => setShowArrows(e.target.checked)}
                     style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
                   />
-                  Link direction arrows
+                  {t('graph.linkArrows')}
                 </label>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Text size</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('graph.textSize')}</span>
                     <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{textSize}px</span>
                   </div>
                   <input
@@ -451,7 +453,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Link thickness</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('graph.linkThickness')}</span>
                     <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>{linkThickness}px</span>
                   </div>
                   <input
@@ -469,7 +471,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
             <>
               {/* Network Stats Card */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>VAULT NETWORK METRICS</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>{t('graph.metrics')}</span>
                 <div
                   style={{
                     background: 'rgba(0, 0, 0, 0.2)',
@@ -482,19 +484,19 @@ export function GraphSidebar(props: GraphSidebarProps) {
                   }}
                 >
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>TOTAL NOTES</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>{t('graph.totalNodes')}</span>
                     <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.totalNodes}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>TOTAL LINKS</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>{t('graph.totalLinks')}</span>
                     <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.totalLinks}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>ORPHAN NOTES</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>{t('graph.orphanNodes')}</span>
                     <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.orphans}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>DENSITY</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.7 }}>{t('graph.density')}</span>
                     <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{graphStats.density}</span>
                   </div>
                 </div>
@@ -502,11 +504,11 @@ export function GraphSidebar(props: GraphSidebarProps) {
 
               {/* Top Hubs List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: 14 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>TOP HUBS (MOST CONNECTED)</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', opacity: 0.6, letterSpacing: '0.04em' }}>{t('graph.topHubs')}</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {graphStats.hubs.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', opacity: 0.6, padding: 8 }}>
-                      No connections in network yet.
+                      {t('graph.noConnections')}
                     </div>
                   ) : (
                     graphStats.hubs.map((hub, index) => (

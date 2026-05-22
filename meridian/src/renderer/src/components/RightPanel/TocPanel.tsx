@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { FileIcon, EditNoteIcon } from '../Icons'
 
@@ -35,6 +36,7 @@ function scrollToHeading(index: number) {
 }
 
 export function TocPanel() {
+  const { t } = useTranslation()
   const { openTabs, activeTabPath } = useVaultStore()
   const activeTab = openTabs.find((t) => t.path === activeTabPath)
 
@@ -58,7 +60,7 @@ export function TocPanel() {
   if (!activeTab) {
     return (
       <div style={{ padding: 16, color: 'var(--text-secondary)', opacity: 0.5, fontSize: 13 }}>
-        No note open.
+        {t('toc.noNoteOpen')}
       </div>
     )
   }
@@ -67,7 +69,7 @@ export function TocPanel() {
     if (canvasNodes.length === 0) {
       return (
         <div style={{ padding: 16, color: 'var(--text-secondary)', opacity: 0.5, fontSize: 13 }}>
-          Canvas is empty.
+          {t('toc.canvasEmpty')}
         </div>
       )
     }
@@ -133,7 +135,7 @@ export function TocPanel() {
   if (headings.length === 0) {
     return (
       <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
-        No headings in this file
+        {t('toc.noHeadings')}
       </div>
     )
   }

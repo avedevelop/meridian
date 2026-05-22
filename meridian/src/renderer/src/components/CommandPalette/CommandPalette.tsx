@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FileIcon } from '../Icons'
 import { useLinkStore } from '../../store/useLinkStore'
 
@@ -24,6 +25,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands = [], recentPaths = [] }: CommandPaletteProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -119,7 +121,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
           value={query}
           onChange={handleQueryChange}
           onKeyDown={handleKey}
-          placeholder={isCommandMode ? 'Search commands...' : 'Search notes… (type > for commands)'}
+          placeholder={isCommandMode ? t('commandPalette.searchCommandsPlaceholder') : t('commandPalette.searchNotesPlaceholder')}
           style={{
             width: '100%', padding: '14px 16px',
             background: 'transparent', border: 'none', outline: 'none',
@@ -129,7 +131,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
         <div style={{ maxHeight: 360, overflowY: 'auto' }}>
           {isCommandMode ? (
             filteredCommands.length === 0 ? (
-              <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>No results</div>
+              <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>{t('commandPalette.noResults')}</div>
             ) : (
               filteredCommands.map((cmd, i) => (
                 <div
@@ -161,7 +163,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
                       textTransform: 'uppercase'
                     }}
                   >
-                    Recent
+                    {t('commandPalette.recent')}
                   </div>
                   {recentFiles.map((f, i) => (
                     <div
@@ -196,7 +198,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
                         textTransform: 'uppercase'
                       }}
                     >
-                      All Notes
+                      {t('commandPalette.allNotes')}
                     </div>
                   )}
                 </>
@@ -240,7 +242,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
                 )
               })}
               {recentFiles.length === 0 && filteredFiles.length === 0 && (
-                <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>No results</div>
+                <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>{t('commandPalette.noResults')}</div>
               )}
             </>
           )}

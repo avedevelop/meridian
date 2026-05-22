@@ -1,34 +1,35 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-export async function initI18n(language: string): Promise<void> {
-  // Bundled locales — loaded dynamically so new ones don't require code changes
-  const bundled: Record<string, object> = {}
-  const modules = import.meta.glob('./locales/*.json', { eager: true }) as Record<string, { default: object }>
-  for (const [path, mod] of Object.entries(modules)) {
-    const lang = path.replace('./locales/', '').replace('.json', '')
-    bundled[lang] = mod.default
-  }
+// Bundled locales — loaded dynamically so new ones don't require code changes
+const bundled: Record<string, object> = {}
+const modules = import.meta.glob('./locales/*.json', { eager: true }) as Record<string, { default: object }>
+for (const [path, mod] of Object.entries(modules)) {
+  const lang = path.replace('./locales/', '').replace('.json', '')
+  bundled[lang] = mod.default
+}
 
+const resources: Record<string, { translation: object }> = {}
+for (const [lang, msgs] of Object.entries(bundled)) {
+  resources[lang] = { translation: msgs }
+}
+
+// Synchronously initialize with bundled locales to avoid NO_I18NEXT_INSTANCE race condition
+i18n.use(initReactI18next).init({
+  resources,
+  lng: 'en',
+  fallbackLng: 'en',
+  interpolation: { escapeValue: false },
+})
+
+export async function initI18n(language: string): Promise<void> {
   // User-installed locales from {userData}/locales/
   const userLocales = await loadUserLocales()
-
-  const resources: Record<string, { translation: object }> = {}
-  for (const [lang, msgs] of Object.entries({ ...bundled, ...userLocales })) {
-    resources[lang] = { translation: msgs }
+  for (const [lang, msgs] of Object.entries(userLocales)) {
+    i18n.addResourceBundle(lang, 'translation', msgs, true, true)
   }
 
-  if (i18n.isInitialized) {
-    await i18n.changeLanguage(language)
-    return
-  }
-
-  await i18n.use(initReactI18next).init({
-    resources,
-    lng: language,
-    fallbackLng: 'en',
-    interpolation: { escapeValue: false },
-  })
+  await i18n.changeLanguage(language)
 }
 
 async function loadUserLocales(): Promise<Record<string, object>> {

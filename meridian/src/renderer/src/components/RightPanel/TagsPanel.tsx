@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 
 export function TagsPanel() {
+  const { t } = useTranslation()
   const linkStore = useLinkStore()
   const indexVersion = useLinkStore((s) => s.indexVersion)
   const { openFile } = useVaultBridge()
@@ -15,7 +17,7 @@ export function TagsPanel() {
   if (tags.length === 0) {
     return (
       <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
-        No tags found in this file
+        {t('tags.empty')}
       </div>
     )
   }

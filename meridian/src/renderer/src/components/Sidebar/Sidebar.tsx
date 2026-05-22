@@ -1,4 +1,5 @@
 import { useState, useMemo, Component, type ReactNode, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge, uniqueFileName } from '../../hooks/useVaultBridge'
 import { useSettingsStore } from '../../store/useSettingsStore'
@@ -75,6 +76,7 @@ function VaultSwitcherDropdown({
   onOpenVaultByPath,
   onCreateNewVault
 }: VaultSwitcherDropdownProps) {
+  const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
   const [recentVaults, setRecentVaults] = useState<import('@shared/types').VaultConfig[]>([])
   const [copied, setCopied] = useState(false)
@@ -204,7 +206,7 @@ function VaultSwitcherDropdown({
               fontWeight: 600
             }}
           >
-            Active
+            {t('sidebar.active')}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
@@ -243,10 +245,10 @@ function VaultSwitcherDropdown({
 
       <div className="vs-divider" />
 
-      <div className="vs-menu-section">Recent Projects</div>
+      <div className="vs-menu-section">{t('sidebar.recentProjects')}</div>
       {otherVaults.length === 0 ? (
         <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-          No other recent vaults
+          {t('sidebar.noOtherVaults')}
         </div>
       ) : (
         <div style={{ maxHeight: 150, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -271,7 +273,7 @@ function VaultSwitcherDropdown({
 
       <div className="vs-divider" />
 
-      <div className="vs-menu-section">Actions</div>
+      <div className="vs-menu-section">{t('sidebar.actions')}</div>
       <button
         className="vs-menu-item"
         onClick={() => {
@@ -280,7 +282,7 @@ function VaultSwitcherDropdown({
         }}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M12 11v6"></path><path d="M9 14h6"></path></svg>
-        <span>Open Folder...</span>
+        <span>{t('sidebar.openFolder')}</span>
       </button>
       <button
         className="vs-menu-item"
@@ -290,13 +292,14 @@ function VaultSwitcherDropdown({
         }}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-        <span>Create New Vault...</span>
+        <span>{t('sidebar.createNewVault')}</span>
       </button>
     </div>
   )
 }
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const { t } = useTranslation()
   const { vault, files, activeTabPath } = useVaultStore()
   const {
     openFile,
@@ -411,7 +414,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   e.stopPropagation()
                   openVault()
                 }}
-                title="Open another vault (⌘O)"
+                title={t('sidebar.openAnotherVault')}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -451,7 +454,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               <input
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                placeholder="Filter files..."
+                placeholder={t('sidebar.filterFiles')}
                 style={{
                   flex: 1,
                   minWidth: 40,
@@ -483,7 +486,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               )}
               <button
                 onClick={() => setCollapseKey((k) => k + 1)}
-                title="Collapse all folders"
+                title={t('sidebar.collapseAll')}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -513,7 +516,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               {filteredFiles ? (
                 filteredFiles.length === 0 ? (
                   <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 12 }}>
-                    No files match.
+                    {t('sidebar.noFilesMatch')}
                   </div>
                 ) : (
                   filteredFiles.map((f) => (
@@ -598,11 +601,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   cursor: 'pointer'
                 }}
               >
-                + New note
+                {t('sidebar.newNote')}
               </button>
               <button
                 onClick={() => createDrawing(vault.path, `Drawing ${Date.now()}`)}
-                title="Create a new drawing sketchpad"
+                title={t('sidebar.newDrawing')}
                 style={{
                   padding: '6px 10px',
                   borderRadius: 6,
@@ -624,7 +627,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               </button>
               <button
                 onClick={() => createCanvas(vault.path, `Canvas ${Date.now()}`)}
-                title="Create a new spatial canvas"
+                title={t('sidebar.newCanvas')}
                 style={{
                   padding: '6px 10px',
                   borderRadius: 6,
@@ -689,7 +692,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  ← Back
+                  {t('sidebar.graph.back')}
                 </button>
 
                 {/* Graph Title */}
@@ -703,7 +706,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                     <line x1="17" y1="8" x2="13" y2="16" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
                   </svg>
                   <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
-                    Knowledge Graph
+                    {t('sidebar.graph.title')}
                   </span>
                 </div>
 
@@ -713,7 +716,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 <div style={{ position: 'relative', width: 180, flexShrink: 0 }}>
                   <input
                     type="text"
-                    placeholder="Filter nodes…"
+                    placeholder={t('sidebar.graph.filter')}
                     style={{
                       width: '100%',
                       background: 'rgba(255,255,255,0.04)',
@@ -756,12 +759,15 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                     flexShrink: 0
                   }}
                 >
-                  {(['Network', 'History'] as const).map((label) => {
-                    const mode = label === 'Network' ? 'live' : 'history'
+                  {([
+                    { key: 'network', label: t('sidebar.graph.network') },
+                    { key: 'history', label: t('sidebar.graph.history') }
+                  ] as const).map(({ key, label }) => {
+                    const mode = key === 'network' ? 'live' : 'history'
                     const isActive = graphMode === mode
                     return (
                       <button
-                        key={label}
+                        key={key}
                         data-graph-mode={mode}
                         onClick={() => {
                           setGraphMode(mode)

@@ -126,7 +126,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
     readableLineLength = true,
     vaultPath
   }: MarkdownPreviewProps, scrollRef) {
-  const { fontFamily, fontWeight, lineHeight } = useSettingsStore()
+  const { fontWeight, lineHeight } = useSettingsStore()
   const codeBlockTheme = useSettingsStore((s) => s.codeBlockTheme)
   const previewFontFamily = useSettingsStore((s) => s.previewFontFamily)
   const { files } = useVaultStore()
@@ -156,22 +156,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
     link.href = themeUrls[codeBlockTheme] ?? themeUrls['github-dark']
   }, [codeBlockTheme])
 
-  const fontFamilyValue = useMemo(() => {
-    switch (fontFamily) {
-      case 'Georgia':
-        return 'Georgia, serif'
-      case 'Inter':
-        return 'Inter, sans-serif'
-      case 'Fira Code':
-        return '"Fira Code", monospace'
-      case 'JetBrains Mono':
-        return '"JetBrains Mono", monospace'
-      case 'system-ui':
-        return 'system-ui, -apple-system, sans-serif'
-      default:
-        return 'Georgia, serif'
-    }
-  }, [fontFamily])
+
 
   const previewFontFamilyValue = useMemo(() => {
     switch (previewFontFamily) {

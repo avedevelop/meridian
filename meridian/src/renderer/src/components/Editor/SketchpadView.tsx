@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface DrawingElement {
   id: string
@@ -21,6 +22,7 @@ interface SketchpadViewProps {
 }
 
 export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps) {
+  const { t } = useTranslation()
   const [elements, setElements] = useState<DrawingElement[]>([])
   const [tool, setTool] = useState<'pencil' | 'rectangle' | 'circle' | 'line' | 'text' | 'eraser'>('pencil')
   const [strokeColor, setStrokeColor] = useState('#7c6af7') // Default purple accent
@@ -334,7 +336,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
   }
 
   const clearCanvas = () => {
-    if (window.confirm('Are you sure you want to clear the sketchpad?')) {
+    if (window.confirm(t('sketchpad.clearConfirm'))) {
       pushState(elements)
       setElements([])
       saveDrawing([])
@@ -365,34 +367,33 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
         }}
       >
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-primary)', padding: 2, borderRadius: 6, border: '1px solid var(--border-color)' }}>
-          {(['pencil', 'rectangle', 'circle', 'line', 'text', 'eraser'] as const).map((t) => (
+          {(['pencil', 'rectangle', 'circle', 'line', 'text', 'eraser'] as const).map((toolId) => (
             <button
-              key={t}
+              key={toolId}
               onClick={() => {
-                setTool(t)
+                setTool(toolId)
                 setTextPos(null)
               }}
               style={{
-                background: tool === t ? 'var(--accent-color)' : 'transparent',
-                color: tool === t ? '#fff' : 'var(--text-secondary)',
+                background: tool === toolId ? 'var(--accent-color)' : 'transparent',
+                color: tool === toolId ? '#fff' : 'var(--text-secondary)',
                 border: 'none',
                 padding: '6px 10px',
                 borderRadius: 4,
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 500,
-                textTransform: 'capitalize',
                 transition: 'all 0.15s ease'
               }}
             >
-              {t}
+              {t(`sketchpad.tools.${toolId}`)}
             </button>
           ))}
         </div>
 
         {/* Color pickers */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Stroke:</label>
+          <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('sketchpad.stroke')}</label>
           {['#7c6af7', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#f3f4f6', '#9ca3af'].map((color) => (
             <button
               key={color}
@@ -411,7 +412,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Width:</label>
+          <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('sketchpad.width')}</label>
           <select
             value={strokeWidth}
             onChange={(e) => setStrokeWidth(Number(e.target.value))}
@@ -425,9 +426,9 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
               cursor: 'pointer'
             }}
           >
-            <option value="1">Thin</option>
-            <option value="3">Medium</option>
-            <option value="6">Thick</option>
+            <option value="1">{t('sketchpad.widthThin')}</option>
+            <option value="3">{t('sketchpad.widthMedium')}</option>
+            <option value="6">{t('sketchpad.widthThick')}</option>
           </select>
         </div>
 
@@ -446,7 +447,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
               fontSize: 11
             }}
           >
-            Undo
+            {t('common.undo')}
           </button>
           <button
             onClick={handleRedo}
@@ -461,7 +462,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
               fontSize: 11
             }}
           >
-            Redo
+            {t('common.redo')}
           </button>
           <button
             onClick={clearCanvas}
@@ -475,7 +476,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
               fontSize: 11
             }}
           >
-            Clear
+            {t('common.clear')}
           </button>
         </div>
       </div>
@@ -610,7 +611,7 @@ export function SketchpadView({ filePath, content, onSave }: SketchpadViewProps)
               if (e.key === 'Enter') handleTextCommit()
               if (e.key === 'Escape') setTextPos(null)
             }}
-            placeholder="Type text, Enter..."
+            placeholder={t('sketchpad.textPlaceholder')}
             style={{
               background: 'transparent',
               border: 'none',

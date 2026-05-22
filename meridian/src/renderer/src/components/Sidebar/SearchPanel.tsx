@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { FileIcon } from '../Icons'
 
 export function SearchPanel() {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [hoveredPath, setHoveredPath] = React.useState<string | null>(null)
   const { search, searchResults } = useLinkStore()
@@ -31,7 +33,7 @@ export function SearchPanel() {
         <input
           value={query}
           onChange={handleChange}
-          placeholder="Search vault..."
+          placeholder={t('search.placeholder')}
           autoFocus
           style={{
             width: '100%',
@@ -82,7 +84,7 @@ export function SearchPanel() {
         ))}
         {query && searchResults.length === 0 && (
           <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
-            No notes match "{query}"
+            {t('search.noMatch', { query })}
           </div>
         )}
       </div>
