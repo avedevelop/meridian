@@ -7,6 +7,7 @@ import { HistoryTimelineBar } from './HistoryTimelineBar'
 import { GraphSidebar, GROUP_COLORS } from './GraphSidebar'
 import type { GNode, GLink, D3State, GraphViewProps } from './graphTypes'
 import { flattenFiles, getNodeGroup, nodeR, labelColor, buildGraphData } from './graphLayout'
+import { useGraphTimeline } from './useGraphTimeline'
 
 export function GraphView({ onFileOpen }: GraphViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -14,7 +15,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const d3Ref = useRef<D3State | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const progressRef = useRef(1)
   const visibleNodesRef = useRef<Set<string>>(new Set())
   const modeHandlerRef = useRef<(mode: 'live' | 'history') => void>(() => {})
 
@@ -24,10 +24,22 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const { openFile } = useVaultBridge()
 
   const [viewMode, setViewMode] = useState<'live' | 'history'>('live')
-  const [progress, setProgress] = useState(1)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [playDuration, setPlayDuration] = useState(20000)
   const [isRecording, setIsRecording] = useState(false)
+
+  const {
+    progress,
+    setProgress,
+    isPlaying,
+    setIsPlaying,
+    playDuration,
+    setPlayDuration,
+    birthtimes,
+    minTime,
+    maxTime,
+    formattedDate,
+    activityBuckets,
+    historyTicks
+  } = useGraphTimeline({ files, viewMode })
 
   // Graph View Settings State
   const [searchQuery, setSearchQuery] = useState('')
@@ -216,67 +228,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [hoverPreviewContent, setHoverPreviewContent] = useState<string>('')
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  progressRef.current = progress
-  const viewModeRef = useRef(viewMode)
-  viewModeRef.current = viewMode
-
-  const { birthtimes, minTime, maxTime } = useMemo(() => {
-    const bt = new Map<string, number>()
-    flattenFiles(files).forEach((f) => {
-      if (!f.isDirectory) bt.set(f.path, f.birthtime ?? f.mtime)
-    })
-    const times = Array.from(bt.values())
-    const min = times.length > 0 ? Math.min(...times) : Date.now() - 86_400_000
-    const max = times.length > 0 ? Math.max(...times) : Date.now()
-    const finalMax = max === min ? min + 3600000 : max
-    return {
-      birthtimes: bt,
-      minTime: min,
-      maxTime: finalMax
-    }
-  }, [files])
-
-  const currentTimestamp = minTime + (maxTime - minTime) * progress
-
-  const formattedDate = new Date(currentTimestamp).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-
-  const historyTicks = useMemo(() => {
-    if (maxTime === minTime) return []
-    const span = maxTime - minTime
-    const MS_MONTH = 30 * 86400000
-    const MS_YEAR = 365 * 86400000
-    const count = 6
-    return Array.from({ length: count + 1 }, (_, i) => {
-      const frac = i / count
-      const ts = minTime + span * frac
-      const d = new Date(ts)
-      let label: string
-      if (span > MS_YEAR * 1.5) {
-        label = String(d.getFullYear())
-      } else if (span > MS_MONTH * 2) {
-        label = d.toLocaleDateString('en-US', { month: 'short' })
-      } else {
-        label = String(d.getDate())
-      }
-      return { frac, label }
-    }).filter((t, i, arr) => t.frac > 0.04 && t.frac < 0.96 && (i === 0 || t.label !== arr[i - 1].label))
-  }, [minTime, maxTime])
-
-  const activityBuckets = useMemo(() => {
-    const BUCKETS = 80
-    const counts = new Array<number>(BUCKETS).fill(0)
-    birthtimes.forEach((ts) => {
-      const frac = (ts - minTime) / (maxTime - minTime)
-      const idx = Math.min(Math.floor(frac * BUCKETS), BUCKETS - 1)
-      counts[idx]++
-    })
-    const maxCount = Math.max(...counts, 1)
-    return counts.map((c) => c / maxCount)
-  }, [birthtimes, minTime, maxTime])
 
   const applyFiltersAndVisibility = useCallback(() => {
     const state = d3Ref.current
@@ -884,45 +835,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     strictFilter ? debouncedSearchQuery : ''
   ])
 
-  useEffect(() => {
-    if (!isPlaying) return
-    const startTime = performance.now()
-    const startProgress = progressRef.current
-    let raf: number
-    const tick = (now: number) => {
-      const newProgress = Math.min(startProgress + (now - startTime) / playDuration, 1)
-      setProgress(newProgress)
-      if (newProgress >= 1) {
-        setIsPlaying(false)
-        return
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [isPlaying, playDuration])
 
-  useEffect(() => {
-    if (viewMode !== 'history') return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return
-      if (e.code === 'Space') {
-        e.preventDefault()
-        if (progress >= 1) setProgress(0)
-        setIsPlaying((p) => !p)
-      } else if (e.code === 'ArrowRight') {
-        e.preventDefault()
-        setIsPlaying(false)
-        setProgress((p) => Math.min(p + 0.01, 1))
-      } else if (e.code === 'ArrowLeft') {
-        e.preventDefault()
-        setIsPlaying(false)
-        setProgress((p) => Math.max(p - 0.01, 0))
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [viewMode, progress])
 
   const renderFrameToCanvas = useCallback(() => {
     const state = d3Ref.current
