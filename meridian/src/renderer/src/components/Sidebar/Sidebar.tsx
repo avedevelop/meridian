@@ -1,6 +1,7 @@
 import { useState, useMemo, Component, type ReactNode, useRef, useEffect } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge, uniqueFileName } from '../../hooks/useVaultBridge'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { FileTree } from './FileTree'
 import { FolderOpenBtnIcon, CollapseAllIcon } from '../Icons'
 import { GraphView } from '../Graph/GraphView'
@@ -10,26 +11,28 @@ import { CalendarPanel } from './CalendarPanel'
 import { TasksPanel } from './TasksPanel'
 import { GitPanel } from './GitPanel'
 
-type SortOrder = 'name-asc' | 'name-desc' | 'modified'
-
-const SORT_LABELS: Record<SortOrder, string> = {
-  'name-asc': 'A↑',
-  'name-desc': 'A↓',
-  'modified': '🕐'
-}
-
-const SORT_CYCLE: SortOrder[] = ['name-asc', 'name-desc', 'modified']
-
-function sortFiles(files: import('@shared/types').VaultFile[], order: SortOrder): import('@shared/types').VaultFile[] {
-  const sorted = [...files].sort((a, b) => {
+function sortAndFilterFiles(
+  files: import('@shared/types').VaultFile[],
+  sortBy: 'name' | 'created' | 'modified',
+  showHidden: boolean,
+  excluded: string[]
+): import('@shared/types').VaultFile[] {
+  const filtered = files.filter((f) => {
+    if (!showHidden && f.name.startsWith('.')) return false
+    if (excluded.includes(f.name)) return false
+    return true
+  })
+  const sorted = [...filtered].sort((a, b) => {
     if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
-    if (order === 'name-asc') return a.name.localeCompare(b.name)
-    if (order === 'name-desc') return b.name.localeCompare(a.name)
-    if (order === 'modified') return b.mtime - a.mtime
+    if (sortBy === 'name') return a.name.localeCompare(b.name)
+    if (sortBy === 'created') return b.birthtime - a.birthtime
+    if (sortBy === 'modified') return b.mtime - a.mtime
     return 0
   })
   return sorted.map((f) =>
-    f.isDirectory && f.children ? { ...f, children: sortFiles(f.children, order) } : f
+    f.isDirectory && f.children
+      ? { ...f, children: sortAndFilterFiles(f.children, sortBy, showHidden, excluded) }
+      : f
   )
 }
 
@@ -309,12 +312,21 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     deleteFile,
     revealFile
   } = useVaultBridge()
+  const fileSortBy = useSettingsStore((s) => s.fileSortBy)
+  const showHiddenFiles = useSettingsStore((s) => s.showHiddenFiles)
+  const excludedFolders = useSettingsStore((s) => s.excludedFolders)
   const [filterQuery, setFilterQuery] = useState('')
   const [collapseKey, setCollapseKey] = useState(0)
-  const [sortOrder, setSortOrder] = useState<SortOrder>('name-asc')
   const [vaultMenuOpen, setVaultMenuOpen] = useState(false)
   const [graphMode, setGraphMode] = useState<'live' | 'history'>('live')
-  const sortedFiles = useMemo(() => sortFiles(files, sortOrder), [files, sortOrder])
+  const excludedList = useMemo(
+    () => excludedFolders.split(',').map((s) => s.trim()).filter(Boolean),
+    [excludedFolders]
+  )
+  const sortedFiles = useMemo(
+    () => sortAndFilterFiles(files, fileSortBy, showHiddenFiles, excludedList),
+    [files, fileSortBy, showHiddenFiles, excludedList]
+  )
 
   // Sync graph mode from GraphView
   useEffect(() => {
@@ -495,42 +507,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 }}
               >
                 <CollapseAllIcon size={14} />
-              </button>
-              <button
-                onClick={() =>
-                  setSortOrder((o) => {
-                    const idx = SORT_CYCLE.indexOf(o)
-                    return SORT_CYCLE[(idx + 1) % SORT_CYCLE.length]
-                  })
-                }
-                title={`Sort: ${SORT_LABELS[sortOrder]} — click to change`}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '4px 6px',
-                  borderRadius: 4,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  minWidth: 28,
-                  justifyContent: 'center',
-                  transition: 'background 0.15s, color 0.15s',
-                  flexShrink: 0
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-surface)'
-                  e.currentTarget.style.color = 'var(--text-primary)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color =
-                    sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)'
-                }}
-              >
-                {SORT_LABELS[sortOrder]}
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
