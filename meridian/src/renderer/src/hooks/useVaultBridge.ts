@@ -304,6 +304,11 @@ export function useVaultBridge() {
   const deleteFile = useCallback(
     async (path: string) => {
       try {
+        const { confirmDelete } = useSettingsStore.getState()
+        if (confirmDelete) {
+          const fileName = path.split('/').pop() ?? path
+          if (!window.confirm(`Delete "${fileName}"? This cannot be undone.`)) return
+        }
         await window.vault.deleteFile(path)
         const { openTabs } = useVaultStore.getState()
         if (openTabs.some((t) => t.path === path)) {
@@ -343,7 +348,14 @@ export function useVaultBridge() {
     if (!vault) return
 
     const d = new Date()
-    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const { dailyNoteDateFormat } = useSettingsStore.getState()
+    const Y = String(d.getFullYear())
+    const M = String(d.getMonth() + 1).padStart(2, '0')
+    const D = String(d.getDate()).padStart(2, '0')
+    const today = dailyNoteDateFormat
+      .replace('YYYY', Y)
+      .replace('MM', M)
+      .replace('DD', D)
     const fileName = `${today}.md`
     const dailyDir = `${vault.path}/Daily`
     const fullPath = `${dailyDir}/${fileName}`
@@ -377,13 +389,16 @@ export function useVaultBridge() {
     async (base64: string, ext: string): Promise<string | null> => {
       const vault = useVaultStore.getState().vault
       if (!vault) return null
+      const { attachmentFolder } = useSettingsStore.getState()
+      const folder = attachmentFolder.trim() || 'assets'
       const timestamp = Date.now()
       const fileName = `image-${timestamp}.${ext}`
-      const filePath = `${vault.path}/assets/${fileName}`
+      const filePath = `${vault.path}/${folder}/${fileName}`
       try {
+        try { await window.vault.createDir(vault.path, folder) } catch { /* may already exist */ }
         await window.vault.writeBinary(filePath, base64)
         await refreshFiles()
-        return `assets/${fileName}`
+        return `${folder}/${fileName}`
       } catch (e) {
         console.error('[Bridge] saveImage error', e)
         return null

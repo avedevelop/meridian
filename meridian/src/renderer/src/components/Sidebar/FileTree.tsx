@@ -315,13 +315,7 @@ export function FileTree({
                     label: 'Delete',
                     danger: true,
                     onClick: () => {
-                      if (
-                        window.confirm(
-                          `Delete folder "${contextMenu.file.name}" and all its contents? This cannot be undone.`
-                        )
-                      ) {
-                        onDelete?.(contextMenu.file.path)
-                      }
+                      onDelete?.(contextMenu.file.path)
                     }
                   },
                   { separator: true as const },
@@ -364,11 +358,7 @@ export function FileTree({
                     label: 'Delete',
                     danger: true,
                     onClick: () => {
-                      if (
-                        window.confirm(`Delete "${contextMenu.file.name}"? This cannot be undone.`)
-                      ) {
-                        onDelete?.(contextMenu.file.path)
-                      }
+                      onDelete?.(contextMenu.file.path)
                     }
                   },
                   { separator: true as const },
