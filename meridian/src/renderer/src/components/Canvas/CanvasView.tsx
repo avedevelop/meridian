@@ -1,28 +1,16 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Stage, Layer, Rect, Text, Group, Line, Circle, Transformer } from 'react-konva'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import type Konva from 'konva'
-import { Html } from 'react-konva-utils'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { useLinkStore } from '../../store/useLinkStore'
-import { useSettingsStore } from '../../store/useSettingsStore'
 import { TrashIcon, NoteConvertIcon } from '../Icons'
 import { useTranslation } from 'react-i18next'
 import { CanvasToolbar } from './CanvasToolbar'
+import { CanvasStage } from './CanvasStage'
 
-import { CanvasNodeData, CanvasEdgeData, CanvasData, CanvasViewProps } from './canvasTypes'
+import { CanvasNodeData, CanvasData, CanvasViewProps } from './canvasTypes'
 import {
   BG,
-  NODE_FILL,
-  NODE_STROKE,
-  NODE_SELECTED_STROKE,
-  EDGE_COLOR,
-  DOT_COLOR,
-  DOT_SPACING,
-  DOT_RADIUS,
-  SCALE_BY,
   MIN_SCALE,
   MAX_SCALE,
   SAVE_DEBOUNCE_MS,
@@ -30,48 +18,8 @@ import {
   DEFAULT_NODE_H,
   FONT_FAMILY,
   parseCanvasData,
-  nodeCenter,
-  getContrastColor,
-  isUrl,
-  getEdgePoints
+  isUrl
 } from './canvasTools'
-
-/* ------------------------------------------------------------------ */
-/*  Dot-grid background                                                */
-/* ------------------------------------------------------------------ */
-
-interface DotGridProps {
-  stageX: number
-  stageY: number
-  stageScale: number
-  width: number
-  height: number
-}
-
-function DotGrid({ stageX, stageY, stageScale, width, height }: DotGridProps) {
-  const dots = useMemo(() => {
-    const spacing = DOT_SPACING
-    const startX = Math.floor(-stageX / stageScale / spacing) * spacing - spacing
-    const startY = Math.floor(-stageY / stageScale / spacing) * spacing - spacing
-    const endX = startX + width / stageScale + spacing * 2
-    const endY = startY + height / stageScale + spacing * 2
-    const result: { x: number; y: number }[] = []
-    for (let x = startX; x <= endX; x += spacing) {
-      for (let y = startY; y <= endY; y += spacing) {
-        result.push({ x, y })
-      }
-    }
-    return result
-  }, [stageX, stageY, stageScale, width, height])
-
-  return (
-    <>
-      {dots.map((d, i) => (
-        <Circle key={i} x={d.x} y={d.y} radius={DOT_RADIUS} fill={DOT_COLOR} listening={false} />
-      ))}
-    </>
-  )
-}
 
 /* ------------------------------------------------------------------ */
 /*  CanvasView                                                         */
@@ -81,7 +29,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const { t } = useTranslation()
   const { openFile, refreshFiles } = useVaultBridge()
   const vault = useVaultStore((s) => s.vault)
-  const connectionLineStyle = useSettingsStore((s) => s.connectionLineStyle) || 'curved'
 
   /* --- Container sizing ------------------------------------------- */
   const containerRef = useRef<HTMLDivElement>(null)
@@ -245,21 +192,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   /* --- Selection & Transformer ------------------------------------ */
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
-  const trRef = useRef<Konva.Transformer>(null)
-  const nodeRefs = useRef<Record<string, Konva.Group | null>>({})
-  const nodeMinHeights = useRef<Record<string, number>>({})
 
-  useEffect(() => {
-    if (selectedNodeId && trRef.current) {
-      const node = nodeRefs.current[selectedNodeId]
-      if (node) {
-        trRef.current.nodes([node])
-        trRef.current.getLayer()?.batchDraw()
-      }
-    } else if (trRef.current) {
-      trRef.current.nodes([])
-    }
-  }, [selectedNodeId, canvasData.nodes])
 
   /* --- Inline editing --------------------------------------------- */
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
@@ -301,9 +234,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     }
   }, [shiftHeld])
 
-  /* --- Shift-drag edge creation ----------------------------------- */
-  const shiftDragOriginRef = useRef<string | null>(null)
-  const [tempLineEnd, setTempLineEnd] = useState<{ x: number; y: number } | null>(null)
+
 
   /* --- Delete selected node or edge ------------------------------- */
   useEffect(() => {
@@ -360,238 +291,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     return () => window.removeEventListener('canvas:center-node', handleCenter)
   }, [canvasData.nodes, stageScale])
 
-  /* --- Wheel zoom ------------------------------------------------- */
-  const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
-    e.evt.preventDefault()
-    const stage = stageRef.current
-    if (!stage) return
 
-    const oldScale = stage.scaleX()
-    const pointer = stage.getPointerPosition()
-    if (!pointer) return
-
-    const direction = e.evt.deltaY > 0 ? -1 : 1
-    const newScale = Math.min(
-      MAX_SCALE,
-      Math.max(MIN_SCALE, direction > 0 ? oldScale * SCALE_BY : oldScale / SCALE_BY)
-    )
-
-    const mousePointTo = {
-      x: (pointer.x - stage.x()) / oldScale,
-      y: (pointer.y - stage.y()) / oldScale
-    }
-
-    const newPos = {
-      x: pointer.x - mousePointTo.x * newScale,
-      y: pointer.y - mousePointTo.y * newScale
-    }
-
-    setStageScale(newScale)
-    setStagePos(newPos)
-  }, [])
-
-  /* --- Drag end (pan) --------------------------------------------- */
-  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
-    if (e.target === stageRef.current) {
-      setStagePos({ x: e.target.x(), y: e.target.y() })
-    }
-  }, [])
-
-  /* --- Double-click to create node -------------------------------- */
-  const handleDblClick = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      // Only on empty stage area
-      if (e.target !== stageRef.current) return
-      const stage = stageRef.current!
-      const pointer = stage.getPointerPosition()
-      if (!pointer) return
-
-      const canvasX = (pointer.x - stagePos.x) / stageScale
-      const canvasY = (pointer.y - stagePos.y) / stageScale
-
-      const newNode: CanvasNodeData = {
-        id: crypto.randomUUID(),
-        type: 'text',
-        x: canvasX - DEFAULT_NODE_W / 2,
-        y: canvasY - DEFAULT_NODE_H / 2,
-        width: DEFAULT_NODE_W,
-        height: DEFAULT_NODE_H,
-        text: t('canvas.defaultCardText')
-      }
-
-      mutateWithUndo((prev) => ({ ...prev, nodes: [...prev.nodes, newNode] }))
-    },
-    [stagePos, stageScale, mutate]
-  )
-
-  /* --- Click on empty stage to deselect --------------------------- */
-  const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (e.target === stageRef.current) {
-      setSelectedNodeId(null)
-      setSelectedEdgeId(null)
-    }
-  }, [])
-
-  /* --- Node drag -------------------------------------------------- */
-  const frameChildrenRef = useRef<{ id: string; offsetX: number; offsetY: number }[]>([])
-
-  const handleNodeDragStart = useCallback(
-    (nodeId: string) => {
-      const node = canvasData.nodes.find((n) => n.id === nodeId)
-      if (node?.type === 'frame') {
-        const children = canvasData.nodes.filter(
-          (n) =>
-            n.id !== nodeId &&
-            n.x >= node.x &&
-            n.x + n.width <= node.x + node.width &&
-            n.y >= node.y &&
-            n.y + n.height <= node.y + node.height
-        )
-        frameChildrenRef.current = children.map((c) => ({
-          id: c.id,
-          offsetX: c.x - node.x,
-          offsetY: c.y - node.y
-        }))
-      } else {
-        frameChildrenRef.current = []
-      }
-    },
-    [canvasData.nodes]
-  )
-
-  const handleNodeDragMove = useCallback((nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
-    const x = e.target.x()
-    const y = e.target.y()
-    const isFrame = frameChildrenRef.current.length > 0
-    setCanvasData((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) => {
-        if (n.id === nodeId) return { ...n, x, y }
-        if (isFrame) {
-          const child = frameChildrenRef.current.find((c) => c.id === n.id)
-          if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
-        }
-        return n
-      })
-    }))
-  }, [])
-
-  const handleNodeDragEnd = useCallback(
-    (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
-      const x = e.target.x()
-      const y = e.target.y()
-      const isFrame = frameChildrenRef.current.length > 0
-      mutateWithUndo((prev) => ({
-        ...prev,
-        nodes: prev.nodes.map((n) => {
-          if (n.id === nodeId) return { ...n, x, y }
-          if (isFrame) {
-            const child = frameChildrenRef.current.find((c) => c.id === n.id)
-            if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
-          }
-          return n
-        })
-      }))
-    },
-    [mutate]
-  )
-
-  /* --- Shift-drag: edge creation & Z-index ------------------------ */
-  const handleNodeMouseDown = useCallback(
-    (nodeId: string, e: Konva.KonvaEventObject<MouseEvent>) => {
-      // Bring node to front
-      mutate((prev) => {
-        const nodeIdx = prev.nodes.findIndex((n) => n.id === nodeId)
-        if (nodeIdx === -1 || nodeIdx === prev.nodes.length - 1) return prev
-        const newNodes = [...prev.nodes]
-        const [node] = newNodes.splice(nodeIdx, 1)
-        newNodes.push(node)
-        return { ...prev, nodes: newNodes }
-      })
-
-      if (e.evt.shiftKey) {
-        shiftDragOriginRef.current = nodeId
-        // Initialize temp line at mouse position
-        const stage = stageRef.current
-        if (stage) {
-          const pointer = stage.getPointerPosition()
-          if (pointer) {
-            setTempLineEnd({
-              x: (pointer.x - stagePos.x) / stageScale,
-              y: (pointer.y - stagePos.y) / stageScale
-            })
-          }
-        }
-      }
-    },
-    [stagePos, stageScale, mutate]
-  )
-
-  /* Stage-level mouseMove: update temp line during shift-drag */
-  const handleStageMouseMove = useCallback(
-    (_e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (!shiftDragOriginRef.current) return
-      const stage = stageRef.current
-      if (!stage) return
-      const pointer = stage.getPointerPosition()
-      if (!pointer) return
-      setTempLineEnd({
-        x: (pointer.x - stagePos.x) / stageScale,
-        y: (pointer.y - stagePos.y) / stageScale
-      })
-    },
-    [stagePos, stageScale]
-  )
-
-  /* Stage-level mouseUp: detect target node under cursor for edge creation */
-  const handleStageMouseUp = useCallback(
-    (_e: Konva.KonvaEventObject<MouseEvent>) => {
-      const origin = shiftDragOriginRef.current
-      if (!origin) return
-      shiftDragOriginRef.current = null
-      setTempLineEnd(null)
-
-      // Find which node is under the pointer
-      const stage = stageRef.current
-      if (!stage) return
-      const pointer = stage.getPointerPosition()
-      if (!pointer) return
-
-      // Convert screen coords to canvas coords
-      const canvasX = (pointer.x - stagePos.x) / stageScale
-      const canvasY = (pointer.y - stagePos.y) / stageScale
-
-      // Find which node contains this point
-      const targetNode = canvasData.nodes.find(
-        (n) =>
-          n.id !== origin &&
-          canvasX >= n.x &&
-          canvasX <= n.x + n.width &&
-          canvasY >= n.y &&
-          canvasY <= n.y + n.height
-      )
-      if (!targetNode) return
-
-      mutateWithUndo((prev) => {
-        const exists = prev.edges.some(
-          (ed) =>
-            (ed.fromNode === origin && ed.toNode === targetNode.id) ||
-            (ed.fromNode === targetNode.id && ed.toNode === origin)
-        )
-        if (exists) return prev
-
-        const newEdge: CanvasEdgeData = {
-          id: crypto.randomUUID(),
-          fromNode: origin,
-          toNode: targetNode.id,
-          fromSide: 'right',
-          toSide: 'left'
-        }
-        return { ...prev, edges: [...prev.edges, newEdge] }
-      })
-    },
-    [mutate, canvasData.nodes, stagePos, stageScale]
-  )
 
   /* --- Toolbar actions -------------------------------------------- */
   const addNodeAtCenter = useCallback(() => {
@@ -793,23 +493,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     requestAnimationFrame(animate)
   }, [canvasData, mutate, fitToContent])
 
-  /* --- Build edge lines ------------------------------------------- */
-  const edgeLines = useMemo(() => {
-    const nodeMap = new Map(canvasData.nodes.map((n) => [n.id, n]))
-    return canvasData.edges
-      .map((edge) => {
-        const from = nodeMap.get(edge.fromNode)
-        const to = nodeMap.get(edge.toNode)
-        if (!from || !to) return null
-        const res = getEdgePoints(from, to, connectionLineStyle)
-        return {
-          id: edge.id,
-          points: res.points,
-          bezier: res.bezier ?? false
-        }
-      })
-      .filter(Boolean) as { id: string; points: number[]; bezier: boolean }[]
-  }, [canvasData, connectionLineStyle])
+
   /* --- Drop handler for files from sidebar ------------------------ */
   const handleContainerDragOver = useCallback((e: React.DragEvent) => {
     // Must call preventDefault to allow drop
@@ -856,313 +540,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   /* --- Zoom percentage label -------------------------------------- */
   const zoomPct = Math.round(stageScale * 100)
 
-  /* --- Render Node Helper ------------------------------------------ */
-  const renderNode = (node: CanvasNodeData) => {
-    const isSelected = node.id === selectedNodeId
-    const displayText =
-      node.type === 'file' && node.file ? (node.file.split('/').pop() ?? node.text) : node.text
 
-    return (
-      <Group
-        key={node.id}
-        ref={(el) => {
-          nodeRefs.current[node.id] = el
-        }}
-        x={node.x}
-        y={node.y}
-        draggable={!spaceHeld && !shiftHeld}
-        onDragStart={() => handleNodeDragStart(node.id)}
-        onDragEnd={(e) => handleNodeDragEnd(node.id, e)}
-        onDragMove={(e) => handleNodeDragMove(node.id, e)}
-        onClick={() => {
-          setSelectedNodeId(node.id)
-          setSelectedEdgeId(null)
-        }}
-        onDblClick={() => {
-          if (node.type === 'text') {
-            if (isUrl(node.text)) {
-              window.vault.openExternal(node.text.trim())
-            } else {
-              setEditingNodeId(node.id)
-              setEditText(node.text)
-              setInitialEditingHeight(node.height)
-            }
-          } else if (node.type === 'file' && node.file) {
-            const fileName = node.file.split('/').pop() ?? ''
-            openFile(node.file, fileName)
-          }
-        }}
-        onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
-        onTransform={(e) => {
-          const el = e.target
-          const scaleX = el.scaleX()
-          const scaleY = el.scaleY()
-          el.scaleX(1)
-          el.scaleY(1)
-          setCanvasData((prev) => ({
-            ...prev,
-            nodes: prev.nodes.map((n) =>
-              n.id === node.id
-                ? {
-                    ...n,
-                    x: el.x(),
-                    y: el.y(),
-                    width: Math.max(150, n.width * scaleX),
-                    height: Math.max(60, n.height * scaleY)
-                  }
-                : n
-            )
-          }))
-        }}
-        onTransformEnd={(e) => {
-          const el = e.target
-          mutateWithUndo((prev) => ({
-            ...prev,
-            nodes: prev.nodes.map((n) =>
-              n.id === node.id
-                ? {
-                    ...n,
-                    x: el.x(),
-                    y: el.y(),
-                    width: n.width,
-                    height: n.height
-                  }
-                : n
-            )
-          }))
-        }}
-      >
-        <Rect
-          width={node.width}
-          height={node.height}
-          fill={
-            node.type === 'frame'
-              ? node.color
-                ? `${node.color}33`
-                : 'rgba(255,255,255,0.05)'
-              : (node.color ?? NODE_FILL)
-          }
-          stroke={
-            isSelected
-              ? NODE_SELECTED_STROKE
-              : node.type === 'frame'
-                ? (node.color ?? '#555')
-                : NODE_STROKE
-          }
-          strokeWidth={isSelected ? 2 : node.type === 'frame' ? 2 : 1}
-          cornerRadius={8}
-          shadowColor="#000"
-          shadowBlur={isSelected ? 12 : 4}
-          shadowOpacity={isSelected ? 0.4 : 0.2}
-          shadowOffsetY={2}
-        />
-        {node.type === 'frame' && (
-          <Text
-            text={displayText}
-            fill={node.color ?? '#ccc'}
-            fontFamily={FONT_FAMILY}
-            fontSize={18}
-            fontStyle="bold"
-            y={-28}
-            listening={false}
-          />
-        )}
-        {node.type !== 'frame' && (
-          <Html
-            divProps={{
-              style: {
-                pointerEvents: 'none',
-                width: `${node.width}px`,
-                height: `${node.height}px`,
-                overflow: 'hidden',
-                boxSizing: 'border-box',
-                zIndex: canvasData.nodes.findIndex((n) => n.id === node.id)
-              }
-            }}
-          >
-            {node.type === 'text' && isUrl(node.text) ? (
-              (() => {
-                const trimmed = node.text.trim()
-                const meta = urlMetadata[trimmed]
-                return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      height: '100%',
-                      width: '100%',
-                      background: node.color ? `${node.color}55` : 'rgba(25, 25, 30, 0.75)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 8,
-                      overflow: 'hidden',
-                      boxSizing: 'border-box',
-                      fontFamily: FONT_FAMILY
-                    }}
-                  >
-                    {meta?.image && (
-                      <div
-                        style={{
-                          width: '30%',
-                          minWidth: 70,
-                          height: '100%',
-                          background: `url(${meta.image}) center/cover no-repeat`,
-                          borderRight: '1px solid rgba(255,255,255,0.08)'
-                        }}
-                      />
-                    )}
-                    <div
-                      style={{
-                        flex: 1,
-                        padding: '12px 14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      <div style={{ overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            fontSize: 13,
-                            color: '#fff',
-                            marginBottom: 4,
-                            whiteSpace: 'nowrap',
-                            textOverflow: 'ellipsis',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {meta?.title || trimmed}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: '#aaa',
-                            lineHeight: '1.4em',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}
-                        >
-                          {meta?.description || t('canvas.noDescription')}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          fontSize: 10,
-                          color: '#7c6af7',
-                          fontWeight: 500,
-                          marginTop: 4
-                        }}
-                      >
-                        <span
-                          style={{
-                            opacity: 0.8,
-                            textOverflow: 'ellipsis',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                            maxWidth: '65%'
-                          }}
-                        >
-                          {(() => {
-                            try {
-                              return new URL(trimmed).hostname
-                            } catch {
-                              return trimmed
-                            }
-                          })()}
-                        </span>
-                        <button
-                          style={{
-                            background: 'rgba(124, 106, 247, 0.2)',
-                            border: 'none',
-                            borderRadius: 4,
-                            color: '#a395ff',
-                            padding: '2px 8px',
-                            fontSize: 10,
-                            cursor: 'pointer',
-                            pointerEvents: 'auto',
-                            fontWeight: 600
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.vault.openExternal(trimmed)
-                          }}
-                        >
-                          {t('canvas.openLink')}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()
-            ) : (
-              <div
-                className="markdown-preview canvas-card-content"
-                style={{
-                  color: getContrastColor(node.color),
-                  fontFamily: FONT_FAMILY,
-                  fontSize: 13,
-                  margin: 0,
-                  padding: '16px 20px',
-                  width: '100%',
-                  height: '100%',
-                  boxSizing: 'border-box',
-                  overflowY: 'auto',
-                  overflowX: 'hidden',
-                  wordBreak: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                  background: node.color ?? NODE_FILL,
-                  border: isSelected
-                    ? `2px solid ${NODE_SELECTED_STROKE}`
-                    : `1px solid ${NODE_STROKE}`,
-                  borderRadius: '8px',
-                  boxShadow: isSelected
-                    ? '0 6px 12px rgba(0,0,0,0.4)'
-                    : '0 2px 4px rgba(0,0,0,0.2)'
-                }}
-              >
-                <div
-                  ref={(el) => {
-                    if (el) {
-                      const contentHeight = el.offsetHeight + 32
-                      nodeMinHeights.current[node.id] = contentHeight
-                      if (node.height < contentHeight) {
-                        setTimeout(() => {
-                          setCanvasData((prev) => ({
-                            ...prev,
-                            nodes: prev.nodes.map((n) =>
-                              n.id === node.id && n.height < contentHeight
-                                ? { ...n, height: contentHeight }
-                                : n
-                            )
-                          }))
-                        }, 0)
-                      }
-                    }
-                  }}
-                >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {node.type === 'file' && node.file
-                      ? fileContents[node.file] !== undefined
-                        ? `### ${t('canvas.notePrefix', { name: node.file.split('/').pop()?.replace(/\.md$/, '') })}\n\n${fileContents[node.file]}`
-                        : `### ${t('canvas.notePrefix', { name: displayText })}\n${t('canvas.loading')}`
-                      : displayText}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            )}
-          </Html>
-        )}
-      </Group>
-    )
-  }
 
   /* --- Render ----------------------------------------------------- */
   return (
@@ -1188,114 +566,30 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
       />
 
       {/* Konva Stage */}
-      <Stage
-        ref={stageRef}
-        width={size.width}
-        height={size.height}
-        x={stagePos.x}
-        y={stagePos.y}
-        scaleX={stageScale}
-        scaleY={stageScale}
-        draggable={!shiftHeld}
-        onWheel={handleWheel}
-        onDragEnd={handleDragEnd}
-        onDblClick={handleDblClick}
-        onClick={handleStageClick}
-        onMouseUp={handleStageMouseUp}
-        onMouseMove={handleStageMouseMove}
-        style={{ cursor: shiftHeld ? 'crosshair' : spaceHeld ? 'grab' : 'default' }}
-      >
-        {/* Background layer */}
-        <Layer listening={false}>
-          <Rect
-            x={-stagePos.x / stageScale}
-            y={-stagePos.y / stageScale}
-            width={size.width / stageScale}
-            height={size.height / stageScale}
-            fill={BG}
-            listening={false}
-          />
-          <DotGrid
-            stageX={stagePos.x}
-            stageY={stagePos.y}
-            stageScale={stageScale}
-            width={size.width}
-            height={size.height}
-          />
-        </Layer>
-
-        {/* Layer 2: Frames */}
-        <Layer>
-          {canvasData.nodes.filter((node) => node.type === 'frame').map((node) => renderNode(node))}
-        </Layer>
-
-        {/* Layer 3: Edges */}
-        <Layer>
-          {edgeLines.map((edge) => {
-            const isEdgeSelected = edge.id === selectedEdgeId
-            return (
-              <Line
-                key={edge.id}
-                points={edge.points}
-                bezier={edge.bezier}
-                stroke={isEdgeSelected ? '#a78bfa' : EDGE_COLOR}
-                strokeWidth={isEdgeSelected ? 3 : 2}
-                opacity={isEdgeSelected ? 1 : 0.6}
-                lineCap="round"
-                hitStrokeWidth={16}
-                onClick={() => {
-                  setSelectedEdgeId(edge.id)
-                  setSelectedNodeId(null)
-                }}
-              />
-            )
-          })}
-          {/* Temporary line while shift-dragging */}
-          {shiftDragOriginRef.current &&
-            tempLineEnd &&
-            (() => {
-              const originNode = canvasData.nodes.find((n) => n.id === shiftDragOriginRef.current)
-              if (!originNode) return null
-              const oc = nodeCenter(originNode)
-              return (
-                <Line
-                  points={[oc.x, oc.y, tempLineEnd.x, tempLineEnd.y]}
-                  stroke={EDGE_COLOR}
-                  strokeWidth={2}
-                  opacity={0.8}
-                  dash={[8, 4]}
-                  lineCap="round"
-                  listening={false}
-                />
-              )
-            })()}
-        </Layer>
-
-        {/* Layer 4: Cards & Transformer */}
-        <Layer>
-          {canvasData.nodes.filter((node) => node.type !== 'frame').map((node) => renderNode(node))}
-          <Transformer
-            ref={trRef}
-            boundBoxFunc={(oldBox, newBox) => {
-              const minH = Math.max(
-                60,
-                (selectedNodeId && nodeMinHeights.current[selectedNodeId]) || 60
-              )
-              if (newBox.width < 150 || newBox.height < minH) return oldBox
-              return newBox
-            }}
-            padding={4}
-            anchorSize={8}
-            anchorCornerRadius={4}
-            borderStroke="#7c6af7"
-            anchorStroke="#7c6af7"
-            anchorFill="#fff"
-            rotateEnabled={false}
-            keepRatio={false}
-            shiftBehavior="none"
-          />
-        </Layer>
-      </Stage>
+      <CanvasStage
+        stageRef={stageRef}
+        size={size}
+        stagePos={stagePos}
+        setStagePos={setStagePos}
+        stageScale={stageScale}
+        setStageScale={setStageScale}
+        spaceHeld={spaceHeld}
+        shiftHeld={shiftHeld}
+        canvasData={canvasData}
+        setCanvasData={setCanvasData}
+        mutate={mutate}
+        mutateWithUndo={mutateWithUndo}
+        selectedNodeId={selectedNodeId}
+        setSelectedNodeId={setSelectedNodeId}
+        selectedEdgeId={selectedEdgeId}
+        setSelectedEdgeId={setSelectedEdgeId}
+        setEditingNodeId={setEditingNodeId}
+        setEditText={setEditText}
+        setInitialEditingHeight={setInitialEditingHeight}
+        fileContents={fileContents}
+        urlMetadata={urlMetadata}
+        openFile={openFile}
+      />
 
       {/* Inline text editing overlay */}
       {editingNodeId &&
