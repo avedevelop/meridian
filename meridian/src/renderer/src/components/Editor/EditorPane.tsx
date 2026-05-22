@@ -349,6 +349,15 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     pluginsEnabled
   } = useSettingsStore()
 
+  const defaultView = useSettingsStore((s) => s.defaultView)
+  const paragraphSpacing = useSettingsStore((s) => s.paragraphSpacing)
+  const showInvisibles = useSettingsStore((s) => s.showInvisibles)
+  const indentWithTabs = useSettingsStore((s) => s.indentWithTabs)
+  const tabSize = useSettingsStore((s) => s.tabSize)
+  const typingMode = useSettingsStore((s) => s.typingMode)
+
+  const [editorMode, setEditorMode] = React.useState<'editor' | 'preview' | 'split'>(defaultView)
+
   const isProgrammaticUpdate = useRef(false)
 
   const isCanvasFile = activeTabPath?.endsWith('.canvas') ?? false
@@ -546,7 +555,10 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             fontWeight,
             lineHeight,
             pluginsEnabled.slashCommands,
-            pluginsEnabled.vimMode
+            pluginsEnabled.vimMode,
+            showInvisibles,
+            indentWithTabs,
+            tabSize
           ),
           EditorView.updateListener.of((update) => {
             if (!update.selectionSet && !update.docChanged) return
@@ -566,7 +578,27 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
               useEditorStore.getState().setCursorPos(cursorPos)
               useEditorStore.getState().setActiveHeading(activeHeading)
             }
-          })
+          }),
+          ...(typingMode !== 'normal' ? [
+            EditorView.updateListener.of((update) => {
+              if (!update.selectionSet && !update.docChanged) return
+              const view = update.view
+              if (typingMode === 'typewriter') {
+                const { head } = update.state.selection.main
+                const line = view.lineBlockAt(head)
+                const target = line.top - view.scrollDOM.clientHeight / 2 + line.height / 2
+                view.scrollDOM.scrollTop = Math.max(0, target)
+              }
+              if (typingMode === 'focus') {
+                const { head } = update.state.selection.main
+                const activeLine = update.state.doc.lineAt(head).number
+                view.dom.querySelectorAll('.cm-line').forEach((el, i) => {
+                  ;(el as HTMLElement).style.opacity = i + 1 === activeLine ? '1' : '0.25'
+                  ;(el as HTMLElement).style.transition = 'opacity 0.15s'
+                })
+              }
+            })
+          ] : [])
         ]
       }),
       parent: editorRef.current
@@ -597,7 +629,11 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     isCanvasFile,
     isDrawingFile,
     isDiffFile,
-    isActive
+    isActive,
+    showInvisibles,
+    indentWithTabs,
+    tabSize,
+    typingMode
   ])
 
   // Sync content programmatically
@@ -650,6 +686,15 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
       scrollSyncRef.current = false
     }
   }, [activeTabPath, isCanvasFile, isDrawingFile, isDiffFile])
+
+  // Reset focus mode opacity when typingMode changes away from 'focus'
+  useEffect(() => {
+    if (typingMode !== 'focus') {
+      viewRef.current?.dom.querySelectorAll('.cm-line').forEach((el) => {
+        ;(el as HTMLElement).style.opacity = ''
+      })
+    }
+  }, [typingMode])
 
   // Show empty pane placeholder
   if (openTabs.length === 0) {
@@ -731,12 +776,13 @@ function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             ref={editorRef}
             onContextMenu={handleContextMenu}
             style={{
+              '--paragraph-spacing': `${paragraphSpacing}em`,
               width: activeTab ? `${splitRatio * 100}%` : '100%',
               flexShrink: 0,
               overflow: 'auto',
               height: '100%',
               background: 'var(--bg-tertiary)'
-            }}
+            } as React.CSSProperties}
           />
           {activeTab && (
             <>

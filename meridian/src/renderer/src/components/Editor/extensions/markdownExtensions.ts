@@ -19,7 +19,8 @@ import {
   syntaxHighlighting,
   defaultHighlightStyle,
   bracketMatching,
-  foldKeymap
+  foldKeymap,
+  indentUnit
 } from '@codemirror/language'
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
 import { lintKeymap } from '@codemirror/lint'
@@ -93,7 +94,8 @@ export function createMeridianTheme(
         outline: 'none'
       },
       '.cm-line': {
-        padding: '0'
+        padding: '0',
+        marginBottom: 'var(--paragraph-spacing, 0)'
       }
     },
     { dark: true }
@@ -116,7 +118,10 @@ export function createMarkdownExtensions(
   fontWeight = '400',
   lineHeight = 1.8,
   slashCommandsEnabled = false,
-  vimModeEnabled = false
+  vimModeEnabled = false,
+  showInvisibles = false,
+  indentWithTabs = false,
+  tabSize = 4
 ) {
   return [
     ...(vimModeEnabled ? [vim()] : []),
@@ -125,7 +130,8 @@ export function createMarkdownExtensions(
     lineWrapping ? EditorView.lineWrapping : [],
     lineNumbersEnabled ? lineNumbers() : [],
     highlightActiveLineGutter(),
-    highlightSpecialChars(),
+    ...(showInvisibles ? [highlightSpecialChars()] : []),
+    indentUnit.of(indentWithTabs ? '\t' : ' '.repeat(tabSize)),
     history(),
     foldGutter(),
     dropCursor(),
