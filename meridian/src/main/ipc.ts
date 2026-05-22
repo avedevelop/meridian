@@ -364,6 +364,58 @@ export function registerIpcHandlers(settings: AppSettings): void {
     await shell.openPath(filePath)
   })
 
+  ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string) => {
+    const { https } = await import('https')
+    const { createWriteStream, createReadStream, mkdirSync, rmSync, renameSync, existsSync } = await import('fs')
+    const { join } = await import('path')
+    const { tmpdir } = await import('os')
+    const unzipper = await import('unzipper')
+
+    const zipUrl = 'https://github.com/bvsmma/meridian-welcome/archive/refs/heads/main.zip'
+    const tmpZip = join(tmpdir(), `meridian-welcome-${Date.now()}.zip`)
+    const tmpExtract = join(tmpdir(), `meridian-welcome-extract-${Date.now()}`)
+
+    // Download ZIP
+    await new Promise<void>((resolve, reject) => {
+      const follow = (url: string) => {
+        https.get(url, (res) => {
+          if (res.statusCode === 301 || res.statusCode === 302) {
+            follow(res.headers.location!)
+            return
+          }
+          const file = createWriteStream(tmpZip)
+          res.pipe(file)
+          file.on('finish', () => file.close(() => resolve()))
+          file.on('error', reject)
+        }).on('error', reject)
+      }
+      follow(zipUrl)
+    })
+
+    // Extract ZIP
+    mkdirSync(tmpExtract, { recursive: true })
+    await new Promise<void>((resolve, reject) => {
+      createReadStream(tmpZip)
+        .pipe(unzipper.Extract({ path: tmpExtract }))
+        .on('close', resolve)
+        .on('error', reject)
+    })
+
+    // The ZIP extracts to meridian-welcome-main/ subfolder — move its contents to destPath
+    const { readdirSync } = await import('fs')
+    const extracted = readdirSync(tmpExtract)[0]
+    const extractedPath = join(tmpExtract, extracted)
+
+    if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
+    renameSync(extractedPath, destPath)
+
+    // Cleanup
+    try { rmSync(tmpZip) } catch { /* ignore */ }
+    try { rmSync(tmpExtract, { recursive: true }) } catch { /* ignore */ }
+
+    return destPath
+  })
+
   ipcMain.handle(IPC.VAULT_OPEN_EXTERNAL, async (_event, url: string) => {
     try {
       const parsed = new URL(url)

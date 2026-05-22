@@ -54,6 +54,7 @@
     "remark-gfm": "^4.0.1",
     "remark-html": "^16.0.1",
     "remark-rehype": "^11.1.2",
+    "unzipper": "^0.12.3",
     "zustand": "^5.0.13"
   },
   "build": {
