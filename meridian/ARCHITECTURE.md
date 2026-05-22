@@ -4,49 +4,83 @@ To prevent component bloat and preserve a clean, modular, and maintainable codeb
 
 ---
 
+## Canonical workspace
+
+- **Repo root:** `/Users/vladyslav/Desktop/dev/new project`
+- **App (run all npm commands here):** `meridian/`
+- **Do not develop** in `~/Documents/antigravity/*` or other duplicate clones.
+
+```bash
+cd meridian
+npm run dev
+npm run test
+npm run check-lines
+```
+
+---
+
 ## 1. File Size Limits
 
-We enforce strict maximum line count limits for files under the components and features tree to keep modules single-purpose and easy to review:
+We enforce strict maximum line count limits for files under `src/renderer/src/components`:
 
-| File Type | Target Size | Strict Maximum Limit | Description / Exceptions |
-| :--- | :--- | :--- | :--- |
-| **React Components** (`*.tsx`) | **≤ 400 lines** | **500 lines** | UI layout, composition, and event handling. Legacy exceptions: `CanvasStage.tsx`, `SettingsContent.tsx`, `SketchpadView.tsx`. |
-| **Custom Hooks** (`use*.ts`) | **≤ 200 lines** | **250 lines** | State management, side-effects, and subscription wiring. |
-| **Pure Utilities** (`*.ts`) | **≤ 150 lines** | **200 lines** | Pure data processing, helpers, and types. |
+| File Type | Target Size | Strict Maximum |
+| :--- | :--- | :--- |
+| **React Components** (`*.tsx`) | ≤ 400 lines | **500 lines** |
+| **Custom Hooks** (`use*.ts`) | ≤ 200 lines | **250 lines** |
+| **Pure Utilities** (`*.ts`) | ≤ 150 lines | **200 lines** |
+
+No legacy exceptions — `npm run check-lines` fails on any component `.tsx` over 500 lines.
 
 ---
 
 ## 2. Where to Add New Features
 
-Before adding logic to any root orchestrator component, locate the correct target files or create new focused sub-modules. Do not expand main views directly.
+Do not expand root orchestrator views. Add code in the focused modules below.
 
 ### A. Settings UI
-- **Do NOT** modify [SettingsModal.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Settings/SettingsModal.tsx) to add new configurations.
-- **Do** define settings definitions and custom rendering logic inside [settingsDefinitions.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Settings/settingsDefinitions.tsx).
-- Add new controls in `components/Settings/controls/`.
+
+- **Do NOT** modify [SettingsModal.tsx](src/renderer/src/components/Settings/SettingsModal.tsx) for new options.
+- **Do** add definitions in [settingsDefinitions/](src/renderer/src/components/Settings/settingsDefinitions/) (e.g. `appearanceSettings.tsx`).
+- Plugins / hotkeys / about: [SettingsPluginsSection.tsx](src/renderer/src/components/Settings/SettingsPluginsSection.tsx), [SettingsHotkeysSection.tsx](src/renderer/src/components/Settings/SettingsHotkeysSection.tsx), [SettingsAboutSection.tsx](src/renderer/src/components/Settings/SettingsAboutSection.tsx).
+- Controls: `components/Settings/controls/`.
 
 ### B. Graph View
-- **Do NOT** add force layout calculations, recording, or scrub logic directly in [GraphView.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Graph/GraphView.tsx).
-- **Do** place new logic in respective hooks:
-  - Simulation behavior: [useGraphSimulation.ts](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Graph/useGraphSimulation.ts)
-  - Playback and timeline: [useGraphTimeline.ts](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Graph/useGraphTimeline.ts)
-  - Media/video recording: [useGraphRecording.ts](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Graph/useGraphRecording.ts)
-- Add timeline button controls in [GraphControls.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Graph/GraphControls.tsx).
+
+- **Do NOT** add simulation, recording, or scrub logic in [GraphView.tsx](src/renderer/src/components/Graph/GraphView.tsx).
+- **Do** use:
+  - [useGraphSimulation.ts](src/renderer/src/components/Graph/useGraphSimulation.ts) + `Graph/simulation/*`
+  - [useGraphTimeline.ts](src/renderer/src/components/Graph/useGraphTimeline.ts)
+  - [useGraphRecording.ts](src/renderer/src/components/Graph/useGraphRecording.ts)
+  - [GraphControls.tsx](src/renderer/src/components/Graph/GraphControls.tsx)
+  - [graphLayout.ts](src/renderer/src/components/Graph/graphLayout.ts)
 
 ### C. Canvas View
-- **Do NOT** modify [CanvasView.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Canvas/CanvasView.tsx) for drawing, stage rendering, or zoom events.
-- **Do** update the Konva layers and stage wrappers in [CanvasStage.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Canvas/CanvasStage.tsx).
-- Put mouse/pointer interaction logic in [useCanvasDrawing.ts](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Canvas/useCanvasDrawing.ts) and keyboard events in [useCanvasKeys.ts](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Canvas/useCanvasKeys.ts).
 
-### D. Editor & Git Panel
-- **Do NOT** add tab handling or preview pane toggles directly to [EditorPane.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Editor/EditorPane.tsx). Update [SinglePaneArea.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Editor/SinglePaneArea.tsx) instead.
-- **Do NOT** place Git panel operations or accordions inside [GitPanel.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Sidebar/GitPanel.tsx). Place them in [useGit.ts](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Sidebar/useGit.ts), [ChangesAccordion.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Sidebar/ChangesAccordion.tsx), or [HistoryAccordion.tsx](file:///Users/vladyslav/Documents/antigravity/fearless-hypatia/meridian/src/renderer/src/components/Sidebar/HistoryAccordion.tsx).
+- **Do NOT** grow [CanvasView.tsx](src/renderer/src/components/Canvas/CanvasView.tsx) for drawing or stage logic.
+- **Do** use [CanvasStage.tsx](src/renderer/src/components/Canvas/CanvasStage.tsx), [useCanvasDrawing.ts](src/renderer/src/components/Canvas/useCanvasDrawing.ts), [useCanvasKeys.ts](src/renderer/src/components/Canvas/useCanvasKeys.ts).
+
+### D. Editor & Git
+
+- **Do NOT** add tab/preview logic to [EditorPane.tsx](src/renderer/src/components/Editor/EditorPane.tsx) — use [SinglePaneArea.tsx](src/renderer/src/components/Editor/SinglePaneArea.tsx).
+- **Do NOT** grow [GitPanel.tsx](src/renderer/src/components/Sidebar/GitPanel.tsx) — use [useGit.ts](src/renderer/src/components/Sidebar/useGit.ts), [ChangesAccordion.tsx](src/renderer/src/components/Sidebar/ChangesAccordion.tsx), [HistoryAccordion.tsx](src/renderer/src/components/Sidebar/HistoryAccordion.tsx).
+
+### E. Layout & Sidebar
+
+- [Layout.tsx](src/renderer/src/components/Layout.tsx) — shell only; extract new blocks (e.g. [HeaderSearch.tsx](src/renderer/src/components/HeaderSearch.tsx)).
+- [Sidebar.tsx](src/renderer/src/components/Sidebar/Sidebar.tsx) — routing only; panels live in `Sidebar/*Panel.tsx`.
 
 ---
 
 ## 3. Enforcement
 
-Run the following command before committing any component modifications to check for file-size limit violations:
 ```bash
 npm run check-lines
+npm run typecheck
+npm run test
 ```
+
+---
+
+## 4. Dev launch
+
+`npm run dev` unsets `ELECTRON_RUN_AS_NODE` (required in Cursor/VS Code). See [README.md](README.md) if Electron fails to start.

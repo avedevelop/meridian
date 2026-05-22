@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Meridian: Dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/meridian"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Meridian: Kill dev port",
+      "type": "shell",
+      "command": "npm run dev:kill",
+      "options": {
+        "cwd": "${workspaceFolder}/meridian"
+      }
+    }
+  ]
+}

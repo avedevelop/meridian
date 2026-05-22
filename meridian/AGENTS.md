@@ -1,5 +1,12 @@
 # Meridian — Agent Handoff Document
 
+## Canonical workspace (read first)
+
+- **Only edit:** `/Users/vladyslav/Desktop/dev/new project/meridian`
+- **Never use:** `~/Documents/antigravity/fearless-hypatia` or other clones
+- **Commands:** `cd meridian` then `npm run dev` | `npm run test` | `npm run check-lines`
+- **Modularity rules:** [ARCHITECTURE.md](ARCHITECTURE.md)
+
 ## What is this project?
 
 **Meridian** is a macOS desktop app — a free, open-source Obsidian alternative built with Electron + React + TypeScript. Portfolio project by @bvsmma. GitHub: https://github.com/bvsmma/meridian
