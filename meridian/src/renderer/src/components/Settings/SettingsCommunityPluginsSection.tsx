@@ -200,31 +200,66 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
                     </div>
                   )}
                 </div>
-                <div
-                  onClick={() => store.togglePlugin(p.id)}
-                  style={{
-                    width: 38,
-                    height: 20,
-                    borderRadius: 10,
-                    background: isEnabled ? '#7c6af7' : '#333',
-                    position: 'relative',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s ease',
-                    flexShrink: 0
-                  }}
-                >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  {isEnabled && (
+                    <button
+                      type="button"
+                      title={t('settings.plugins.community.reloadOneTitle')}
+                      onClick={() => {
+                        const reload = (window as any).__meridianReloadPlugin
+                        if (typeof reload === 'function') reload(p.id)
+                      }}
+                      style={{
+                        background: '#1c1c1c',
+                        color: '#bbb',
+                        border: '1px solid #2a2a2a',
+                        padding: '4px 10px',
+                        borderRadius: 5,
+                        fontSize: 10,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#242424'
+                        e.currentTarget.style.borderColor = '#3a3a3a'
+                        e.currentTarget.style.color = '#eee'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#1c1c1c'
+                        e.currentTarget.style.borderColor = '#2a2a2a'
+                        e.currentTarget.style.color = '#bbb'
+                      }}
+                    >
+                      🔄 {t('settings.plugins.community.reloadOne')}
+                    </button>
+                  )}
                   <div
+                    onClick={() => store.togglePlugin(p.id)}
                     style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      background: '#fff',
-                      position: 'absolute',
-                      top: 3,
-                      left: isEnabled ? 21 : 3,
-                      transition: 'left 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'
+                      width: 38,
+                      height: 20,
+                      borderRadius: 10,
+                      background: isEnabled ? '#7c6af7' : '#333',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s ease',
+                      flexShrink: 0
                     }}
-                  />
+                  >
+                    <div
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        background: '#fff',
+                        position: 'absolute',
+                        top: 3,
+                        left: isEnabled ? 21 : 3,
+                        transition: 'left 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )

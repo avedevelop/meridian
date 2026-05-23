@@ -339,6 +339,8 @@
   "settings.plugins.community.description": "Install third-party plugins in your vault's .meridian/plugins folder to add custom features.",
   "settings.plugins.community.openFolder": "Open Plugins Folder",
   "settings.plugins.community.reload": "Reload Plugins",
+  "settings.plugins.community.reloadOne": "Reload",
+  "settings.plugins.community.reloadOneTitle": "Reload this plugin",
   "settings.plugins.community.loadFailed": "Failed to load community plugin: {{name}}",
   "settings.plugins.community.loadFailedDetail": "Failed to load community plugin {{name}}: {{error}}",
   "settings.plugins.community.syncFailed": "Failed to sync community plugins",
