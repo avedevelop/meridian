@@ -1,6 +1,6 @@
 # Meridian
 
-> A free, open-source knowledge base for macOS — a full-featured alternative to Obsidian.
+> A free, open-source local-first notes app inspired by Obsidian — not a drop-in replacement.
 
 Meridian stores your notes as plain Markdown files on your local filesystem. No cloud required, no subscriptions, no lock-in.
 
@@ -82,7 +82,7 @@ npm run dev
 - [x] Phase 1 — Core: vault manager, CodeMirror editor, file tree, tabs
 - [x] Phase 2 — Links: wiki-links, backlinks, graph view, search, command palette
 - [x] Phase 3 — Polish: themes, daily notes, templates, outline
-- [x] Phase 4 — Plugins: plugin API, manager UI, community plugins
+- [x] Phase 4 — Core plugins + Plugin API v1 ([scope](meridian/SCOPE.md))
 - [x] Phase 5 — Canvas: infinite whiteboard, note cards, connections
 
 ---
@@ -90,6 +90,8 @@ npm run dev
 ## Maintenance & Guardrails
 
 To preserve modularity and keep the codebase clean, we enforce component file-size limits. See [meridian/ARCHITECTURE.md](meridian/ARCHITECTURE.md) for full details.
+
+[Product scope](meridian/SCOPE.md) — what Meridian is and isn't.
 
 Run the file size checks with:
 ```bash

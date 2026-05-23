@@ -1,6 +1,6 @@
 # Meridian
 
-Obsidian-alternative note-taking app built with Electron 39 + React 18 + TypeScript.
+Local-first notes app inspired by Obsidian — not a drop-in replacement. Built with Electron 39 + React 18 + TypeScript.
 
 ---
 
