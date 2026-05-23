@@ -78,7 +78,13 @@ export function createD3Simulation({
         .strength(0.25)
     )
     .force('charge', d3.forceManyBody().strength(repulsionStrength).distanceMax(300))
-    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('x', d3.forceX<GNode>(width / 2).strength(0.06))
+    .force('y', d3.forceY<GNode>(height / 2).strength(0.06))
+    .force(
+      'orphanRadial',
+      d3.forceRadial<GNode>(Math.min(width, height) * 0.4, width / 2, height / 2)
+        .strength((d) => d.degree === 0 ? 0.12 : 0)
+    )
     .force(
       'collide',
       d3.forceCollide<GNode>((d) => nodeR(d) + 12 + (textSize * 0.5))
@@ -271,6 +277,37 @@ export function createD3Simulation({
   // Warm up simulation to avoid layout explosion on first render
   sim.tick(120)
   sim.alphaTarget(0)
+
+  // Auto-fit viewport to graph bounding box after warmup
+  if (nodes.length > 0) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    nodes.forEach((n) => {
+      const r = nodeR(n)
+      if (n.x! - r < minX) minX = n.x! - r
+      if (n.x! + r > maxX) maxX = n.x! + r
+      if (n.y! - r < minY) minY = n.y! - r
+      if (n.y! + r > maxY) maxY = n.y! + r
+    })
+
+    const dx = maxX - minX
+    const dy = maxY - minY
+    const cx = (minX + maxX) / 2
+    const cy = (minY + maxY) / 2
+
+    if (dx > 0 && dy > 0) {
+      const padding = 40
+      const scale = Math.max(0.2, Math.min(2, Math.min(
+        (width - padding * 2) / dx,
+        (height - padding * 2) / dy
+      )))
+      const transform = d3.zoomIdentity
+        .translate(width / 2, height / 2)
+        .scale(scale)
+        .translate(-cx, -cy)
+
+      svg.call(zoom.transform, transform)
+    }
+  }
 
   if (showArrows) {
     linkSel.attr('marker-end', 'url(#arrow)')
