@@ -19,6 +19,8 @@ interface GraphSidebarFiltersProps {
   setTextSize: (v: number) => void
   linkThickness: number
   setLinkThickness: (v: number) => void
+  labelMode: 'auto' | 'hover' | 'all'
+  setLabelMode: (v: 'auto' | 'hover' | 'all') => void
 }
 
 export function GraphSidebarFilters({
@@ -37,7 +39,9 @@ export function GraphSidebarFilters({
   textSize,
   setTextSize,
   linkThickness,
-  setLinkThickness
+  setLinkThickness,
+  labelMode,
+  setLabelMode
 }: GraphSidebarFiltersProps) {
   const { t } = useTranslation()
 
@@ -382,6 +386,30 @@ export function GraphSidebarFilters({
         >
           {t('graph.displaySettings')}
         </span>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+            {t('graph.labelMode.title')}
+          </span>
+          <select
+            value={labelMode}
+            onChange={(e) => setLabelMode(e.target.value as any)}
+            style={{
+              background: 'rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 6,
+              color: 'var(--text-primary)',
+              fontSize: 12,
+              padding: '6px 8px',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="auto" style={{ background: '#1e1e1e' }}>{t('graph.labelMode.auto')}</option>
+            <option value="hover" style={{ background: '#1e1e1e' }}>{t('graph.labelMode.hover')}</option>
+            <option value="all" style={{ background: '#1e1e1e' }}>{t('graph.labelMode.all')}</option>
+          </select>
+        </div>
 
         <label
           style={{

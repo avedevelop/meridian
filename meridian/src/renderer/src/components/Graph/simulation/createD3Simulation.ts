@@ -3,6 +3,7 @@ import type { VaultFile } from '@shared/types'
 import type { GNode, GLink, D3State, GraphBuildResult } from '../graphTypes'
 import { nodeR, labelColor, buildGraphData, getNodeGroup } from '../graphLayout'
 import { GROUP_COLORS } from '../GraphSidebar'
+import { shouldShowLabel, truncateLabel } from '../graphLabelHelpers'
 
 export interface CreateSimulationOptions {
   el: HTMLDivElement
@@ -20,6 +21,7 @@ export interface CreateSimulationOptions {
   handleMouseOver: (gEl: SVGGElement, d: GNode, event: MouseEvent) => void
   handleMouseOut: (gEl: SVGGElement, d: GNode) => void
   maxNodes: number
+  labelMode: 'auto' | 'hover' | 'all'
 }
 
 export interface SimulationResult {
@@ -43,7 +45,8 @@ export function createD3Simulation({
   onFileOpen,
   handleMouseOver,
   handleMouseOut,
-  maxNodes
+  maxNodes,
+  labelMode
 }: CreateSimulationOptions): SimulationResult | null {
   el.innerHTML = ''
   const width = el.clientWidth
@@ -84,6 +87,7 @@ export function createD3Simulation({
     .append('svg')
     .attr('width', width)
     .attr('height', height)
+    .attr('data-label-mode', labelMode)
     .style('cursor', 'grab')
     .style('display', 'block')
 
@@ -139,7 +143,16 @@ export function createD3Simulation({
   const zoom = d3
     .zoom<SVGSVGElement, unknown>()
     .scaleExtent([0.1, 5])
-    .on('zoom', ({ transform }) => root.attr('transform', transform.toString()))
+    .on('zoom', (event) => {
+      const transform = event.transform
+      root.attr('transform', transform.toString())
+      const currentLabelMode = (svg.node()?.getAttribute('data-label-mode') || 'auto') as any
+      nodeG.selectAll('text').attr('opacity', function (this: any, d: any) {
+        const parent = this?.parentNode
+        const isHovered = parent ? d3.select(parent).classed('is-hovered') : false
+        return shouldShowLabel(currentLabelMode, transform.k, d.degree, isHovered) ? 1 : 0
+      })
+    })
     .on('start', () => svg.style('cursor', 'grabbing'))
     .on('end', () => svg.style('cursor', 'grab'))
 
@@ -206,13 +219,13 @@ export function createD3Simulation({
 
   nodeG
     .append('text')
-    .text((d) => d.name)
+    .text((d) => truncateLabel(d.name))
     .attr('font-size', textSize)
     .attr('font-family', '-apple-system, sans-serif')
     .attr('fill', (d) => labelColor(d))
     .attr('text-anchor', 'middle')
     .attr('dy', (d) => nodeR(d) + textSize + 2)
-    .attr('opacity', 0)
+    .attr('opacity', (d) => shouldShowLabel(labelMode, 1.0, d.degree, false) ? 1 : 0)
     .style('pointer-events', 'none')
     .style('user-select', 'none')
 

@@ -41,6 +41,8 @@ interface GraphSidebarProps {
     hubs: Array<{ id: string; name: string; degree: number }>
   }
   focusNode: (id: string) => void
+  labelMode: 'auto' | 'hover' | 'all'
+  setLabelMode: (v: 'auto' | 'hover' | 'all') => void
 }
 
 export function GraphSidebar(props: GraphSidebarProps) {
@@ -67,7 +69,9 @@ export function GraphSidebar(props: GraphSidebarProps) {
     linkThickness,
     setLinkThickness,
     graphStats,
-    focusNode
+    focusNode,
+    labelMode,
+    setLabelMode
   } = props
 
   return (
@@ -248,6 +252,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
               setTextSize={setTextSize}
               linkThickness={linkThickness}
               setLinkThickness={setLinkThickness}
+              labelMode={labelMode}
+              setLabelMode={setLabelMode}
             />
           ) : (
             <GraphSidebarAnalytics graphStats={graphStats} focusNode={focusNode} />

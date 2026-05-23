@@ -7,6 +7,7 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { nodeR } from './graphLayout'
 import { useGraphVisibility } from './simulation/useGraphVisibility'
 import { createD3Simulation } from './simulation/createD3Simulation'
+import { shouldShowLabel } from './graphLabelHelpers'
 
 export interface UseGraphSimulationOptions {
   files: VaultFile[]
@@ -27,6 +28,7 @@ export interface UseGraphSimulationOptions {
   minTime: number
   maxTime: number
   onFileOpen?: () => void
+  labelMode: 'auto' | 'hover' | 'all'
 }
 
 export function useGraphSimulation({
@@ -47,7 +49,8 @@ export function useGraphSimulation({
   birthtimes,
   minTime,
   maxTime,
-  onFileOpen
+  onFileOpen,
+  labelMode
 }: UseGraphSimulationOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   const d3Ref = useRef<D3State | null>(null)
@@ -81,7 +84,8 @@ export function useGraphSimulation({
     birthtimes,
     disabledCategories,
     linkThickness,
-    textSize
+    textSize,
+    labelMode
   })
 
   // Mutable refs to prevent stale closures in d3 event handlers
@@ -126,6 +130,25 @@ export function useGraphSimulation({
     state.linkSel.attr('marker-end', showArrows ? 'url(#arrow)' : null)
   }, [showArrows])
 
+  // Effect: Update Label Mode dynamically
+  useEffect(() => {
+    const state = d3Ref.current
+    if (!state) return
+
+    state.svgEl.setAttribute('data-label-mode', labelMode)
+
+    const zoomK = state.svgEl ? d3.zoomTransform(state.svgEl).k : 1.0
+    state.nodeG
+      .selectAll('text')
+      .transition()
+      .duration(150)
+      .attr('opacity', function (this: any, d: any) {
+        const parent = this?.parentNode
+        const isHovered = parent ? d3.select(parent).classed('is-hovered') : false
+        return shouldShowLabel(labelMode, zoomK, d.degree, isHovered) ? 1 : 0
+      })
+  }, [labelMode])
+
   // Effect: Reapply filters on filter changes
   useEffect(() => {
     applyFiltersAndVisibility()
@@ -153,7 +176,8 @@ export function useGraphSimulation({
         onFileOpen,
         handleMouseOver: (gEl, d, event) => handleMouseOverRef.current(gEl, d, event),
         handleMouseOut: (gEl, d) => handleMouseOutRef.current(gEl, d),
-        maxNodes: graphMaxNodes
+        maxNodes: graphMaxNodes,
+        labelMode
       })
 
       if (!res) return

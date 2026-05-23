@@ -54,6 +54,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [textSize, setTextSize] = useState(11)
   const [linkThickness, setLinkThickness] = useState(0.8)
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
+  const [labelMode, setLabelMode] = useState<'auto' | 'hover' | 'all'>(() => {
+    return (localStorage.getItem('meridian:graph-label-mode') as any) || 'auto'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('meridian:graph-label-mode', labelMode)
+  }, [labelMode])
 
   const [strictFilter, setStrictFilter] = useState(false)
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set())
@@ -87,7 +94,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     birthtimes,
     minTime,
     maxTime,
-    onFileOpen
+    onFileOpen,
+    labelMode
   })
 
   const { canvasRef, isRecording, startRecording, stopRecording, cancelRecording } =
@@ -354,6 +362,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         isPhysicsRunning={isPhysicsRunning}
         graphStats={graphStats}
         focusNode={focusNode}
+        labelMode={labelMode}
+        setLabelMode={setLabelMode}
       />
 
       <div

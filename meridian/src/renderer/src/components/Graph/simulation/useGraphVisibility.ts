@@ -3,6 +3,7 @@ import * as d3 from 'd3'
 import type { GNode, D3State } from '../graphTypes'
 import { nodeR, labelColor, getNodeGroup } from '../graphLayout'
 import { GROUP_COLORS } from '../GraphSidebar'
+import { shouldShowLabel } from '../graphLabelHelpers'
 
 export interface VisibilityOptions {
   searchQuery: string
@@ -14,6 +15,7 @@ export interface VisibilityOptions {
   disabledCategories: Set<string>
   linkThickness: number
   textSize: number
+  labelMode: 'auto' | 'hover' | 'all'
 }
 
 /**
@@ -59,7 +61,8 @@ export function useGraphVisibility(
     birthtimes,
     disabledCategories,
     linkThickness,
-    textSize
+    textSize,
+    labelMode
   } = opts
 
   const visibleNodesRef = useRef<Set<string>>(new Set())
@@ -147,7 +150,10 @@ export function useGraphVisibility(
 
         circle.transition().duration(800).ease(d3.easeBackOut).attr('r', nodeR(d))
 
-        text.transition().duration(150).attr('opacity', 1)
+        const zoomK = state.svgEl ? d3.zoomTransform(state.svgEl).k : 1.0
+        const isHovered = d3.select(this).classed('is-hovered')
+        const show = shouldShowLabel(labelMode, zoomK, d.degree, isHovered)
+        text.transition().duration(150).attr('opacity', show ? 1 : 0)
 
         let baseOpacity = 1
         if (q) {
@@ -209,7 +215,8 @@ export function useGraphVisibility(
     viewMode,
     birthtimes,
     disabledCategories,
-    linkThickness
+    linkThickness,
+    labelMode
   ])
 
   const handleMouseOver = useCallback(
@@ -235,6 +242,9 @@ export function useGraphVisibility(
       const hoverColor = GROUP_COLORS[hoverGroup]
 
       d3.select(gEl)
+        .classed('is-hovered', true)
+
+      d3.select(gEl)
         .select('circle.glow-halo')
         .transition()
         .duration(150)
@@ -257,6 +267,7 @@ export function useGraphVisibility(
         .attr('fill', '#fff')
         .attr('font-size', textSize + 1)
         .style('font-weight', 'bold')
+        .attr('opacity', 1)
 
       state.nodeG.each(function (n) {
         if (n.id === d.id) return
@@ -340,6 +351,9 @@ export function useGraphVisibility(
       const group = getNodeGroup(d.id, d.name, d.degree)
 
       d3.select(gEl)
+        .classed('is-hovered', false)
+
+      d3.select(gEl)
         .select('circle.glow-halo')
         .transition()
         .duration(150)
@@ -356,6 +370,9 @@ export function useGraphVisibility(
         .attr('stroke-width', 1.5)
         .style('filter', null)
 
+      const state = d3Ref.current
+      const zoomK = state?.svgEl ? d3.zoomTransform(state.svgEl).k : 1.0
+
       d3.select(gEl)
         .select('text')
         .transition()
@@ -363,6 +380,7 @@ export function useGraphVisibility(
         .attr('fill', labelColor(d))
         .attr('font-size', textSize)
         .style('font-weight', 'normal')
+        .attr('opacity', shouldShowLabel(labelMode, zoomK, d.degree, false) ? 1 : 0)
 
       applyFiltersAndVisibility()
 
@@ -373,7 +391,7 @@ export function useGraphVisibility(
       setHoveredNode(null)
       setHoverPreviewContent('')
     },
-    [textSize, applyFiltersAndVisibility]
+    [textSize, applyFiltersAndVisibility, labelMode]
   )
 
   return {
