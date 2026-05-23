@@ -340,6 +340,7 @@
   "settings.plugins.community.openFolder": "Open Plugins Folder",
   "settings.plugins.community.reload": "Reload Plugins",
   "settings.plugins.community.loadFailed": "Failed to load community plugin: {{name}}",
+  "settings.plugins.community.syncFailed": "Failed to sync community plugins",
   "settings.plugins.community.noPlugins": "No community plugins found. To create one, follow the link below or create a directory in your vault under .meridian/plugins/.",
   "settings.plugins.community.developerLink": "Plugin Developer Documentation",
   "settings.hotkeys.group.general": "General",

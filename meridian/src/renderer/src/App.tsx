@@ -210,6 +210,7 @@ export default function App() {
         }
       } catch (err) {
         console.error('Failed to sync community plugins:', err)
+        pluginAPI.ui.toast(i18n.t('settings.plugins.community.syncFailed'))
       }
     }
 
