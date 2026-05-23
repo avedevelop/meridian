@@ -1,0 +1,45 @@
+name: Meridian CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'meridian/**'
+      - '.github/workflows/meridian-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'meridian/**'
+      - '.github/workflows/meridian-ci.yml'
+
+jobs:
+  verify:
+    name: typecheck / test / check-lines
+    runs-on: macos-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: meridian
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: meridian/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Check component line limits
+        run: npm run check-lines
