@@ -13,19 +13,24 @@ export function SettingsCommunityPluginsSection() {
     let active = true
     async function fetchPlugins() {
       try {
+        if (!vault) {
+          setPlugins([])
+          return
+        }
         const list = await window.vault.listPlugins()
         if (active) {
           setPlugins(list)
         }
       } catch (err) {
         console.error('Failed to list plugins:', err)
+        if (active) setPlugins([])
       }
     }
     fetchPlugins()
     return () => {
       active = false
     }
-  }, [])
+  }, [vault])
 
   const handleOpenFolder = () => {
     if (!vault) return
