@@ -26,3 +26,13 @@ export interface D3State {
   width: number
   height: number
 }
+
+export interface GraphBuildResult {
+  nodes: GNode[]
+  links: GLink[]
+  totalEligible: number      // after filters, before cap
+  displayedCount: number
+  truncated: boolean
+  maxNodes: number
+}
+

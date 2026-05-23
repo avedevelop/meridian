@@ -72,6 +72,9 @@ export interface SettingsState {
   gitDefaultBranch: string
   language: string // ISO 639-1, e.g. 'en', 'ru'
 
+  // Graph Settings
+  graphMaxNodes: 200 | 400 | 800 | 0
+
   // Plugins
   pluginsEnabled: {
     dailyNotes: boolean
@@ -156,6 +159,7 @@ const DEFAULTS: Omit<
   gitCommitTemplate: 'Updated {files}',
   gitDefaultBranch: 'main',
   language: 'en',
+  graphMaxNodes: 400,
   pluginsEnabled: {
     dailyNotes: true,
     wordCounter: true,

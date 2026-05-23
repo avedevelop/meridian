@@ -1,6 +1,6 @@
 import * as d3 from 'd3'
 import type { VaultFile } from '@shared/types'
-import type { GNode, GLink, D3State } from '../graphTypes'
+import type { GNode, GLink, D3State, GraphBuildResult } from '../graphTypes'
 import { nodeR, labelColor, buildGraphData, getNodeGroup } from '../graphLayout'
 import { GROUP_COLORS } from '../GraphSidebar'
 
@@ -19,11 +19,13 @@ export interface CreateSimulationOptions {
   onFileOpen?: () => void
   handleMouseOver: (gEl: SVGGElement, d: GNode, event: MouseEvent) => void
   handleMouseOut: (gEl: SVGGElement, d: GNode) => void
+  maxNodes: number
 }
 
 export interface SimulationResult {
   state: D3State
   zoom: d3.ZoomBehavior<SVGSVGElement, unknown>
+  buildResult: GraphBuildResult
 }
 
 export function createD3Simulation({
@@ -40,20 +42,23 @@ export function createD3Simulation({
   openFile,
   onFileOpen,
   handleMouseOver,
-  handleMouseOut
+  handleMouseOut,
+  maxNodes
 }: CreateSimulationOptions): SimulationResult | null {
   el.innerHTML = ''
   const width = el.clientWidth
   const height = el.clientHeight
   if (!width || !height) return null
 
-  const { nodes, links: finalLinks } = buildGraphData(files, outlinks, {
+  const buildResult = buildGraphData(files, outlinks, {
     disabledCategories,
     strictFilter,
     debouncedSearchQuery,
     width,
-    height
+    height,
+    maxNodes
   })
+  const { nodes, links: finalLinks } = buildResult
 
   const sim = d3
     .forceSimulation(nodes)
@@ -252,6 +257,8 @@ export function createD3Simulation({
 
   return {
     state,
-    zoom
+    zoom,
+    buildResult
   }
 }
+

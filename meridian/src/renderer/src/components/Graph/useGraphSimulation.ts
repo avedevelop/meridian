@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import * as d3 from 'd3'
 import type { VaultFile } from '@shared/types'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
-import type { GNode, GLink, D3State } from './graphTypes'
+import type { GNode, GLink, D3State, GraphBuildResult } from './graphTypes'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { nodeR } from './graphLayout'
 import { useGraphVisibility } from './simulation/useGraphVisibility'
 import { createD3Simulation } from './simulation/createD3Simulation'
@@ -53,6 +54,9 @@ export function useGraphSimulation({
   const zoomBehaviorRef = useRef<any>(null)
 
   const { openFile } = useVaultBridge()
+
+  const graphMaxNodes = useSettingsStore((s) => s.graphMaxNodes)
+  const [buildResult, setBuildResult] = useState<GraphBuildResult | null>(null)
 
   const [isPhysicsRunning, setIsPhysicsRunning] = useState(true)
   const isPhysicsRunningRef = useRef(isPhysicsRunning)
@@ -148,13 +152,15 @@ export function useGraphSimulation({
         openFile,
         onFileOpen,
         handleMouseOver: (gEl, d, event) => handleMouseOverRef.current(gEl, d, event),
-        handleMouseOut: (gEl, d) => handleMouseOutRef.current(gEl, d)
+        handleMouseOut: (gEl, d) => handleMouseOutRef.current(gEl, d),
+        maxNodes: graphMaxNodes
       })
 
       if (!res) return
       d3Ref.current = res.state
       zoomBehaviorRef.current = res.zoom
       sim = res.state.sim
+      setBuildResult(res.buildResult)
 
       applyFiltersAndVisibility()
       if (!isPhysicsRunningRef.current) {
@@ -180,7 +186,8 @@ export function useGraphSimulation({
     disabledCategories,
     strictFilter,
     debouncedSearchQuery,
-    onFileOpen
+    onFileOpen,
+    graphMaxNodes
   ])
 
   const handleTogglePhysics = useCallback(() => {
@@ -202,6 +209,7 @@ export function useGraphSimulation({
     isPhysicsRunning,
     handleTogglePhysics,
     hoveredNode,
-    hoverPreviewContent
+    hoverPreviewContent,
+    buildResult
   }
 }

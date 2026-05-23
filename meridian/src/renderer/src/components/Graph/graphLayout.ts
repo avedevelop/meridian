@@ -1,5 +1,5 @@
 import type { VaultFile } from '@shared/types'
-import type { GNode, GLink } from './graphTypes'
+import type { GNode, GLink, GraphBuildResult } from './graphTypes'
 import { GROUP_COLORS } from './GraphSidebar'
 
 /**
@@ -32,17 +32,41 @@ export interface BuildGraphDataOptions {
   debouncedSearchQuery: string
   width: number
   height: number
+  maxNodes: number
+}
+
+function applyNodeCap(
+  paths: string[],
+  degree: Record<string, number>,
+  mtimeMap: Record<string, number>,
+  max: number
+): string[] {
+  if (max === 0 || paths.length <= max) return paths
+  return [...paths]
+    .sort((a, b) => {
+      const degA = degree[a] ?? 0
+      const degB = degree[b] ?? 0
+      if (degB !== degA) return degB - degA
+      return (mtimeMap[b] ?? 0) - (mtimeMap[a] ?? 0)
+    })
+    .slice(0, max)
 }
 
 export function buildGraphData(
   files: VaultFile[],
   outlinks: (file: string) => any,
   options: BuildGraphDataOptions
-): { nodes: GNode[]; links: GLink[] } {
-  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height } = options
+): GraphBuildResult {
+  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height, maxNodes } = options
+
+  const flat = flattenFiles(files)
+  const mtimeMap: Record<string, number> = {}
+  for (const f of flat) {
+    mtimeMap[f.path] = f.mtime ?? 0
+  }
 
   // Phase 1: Filter base paths (daily, canvas, project, strict search)
-  let filteredPaths = flattenFiles(files)
+  let filteredPaths = flat
     .filter((f) => !f.isDirectory && (f.name.endsWith('.md') || f.name.endsWith('.canvas')))
     .map((f) => f.path)
 
@@ -99,8 +123,11 @@ export function buildGraphData(
     return true
   })
 
-  // Final dataset setup (limit to MAX_GRAPH_NODES for performance)
-  const finalPathsSet = new Set(filteredPaths.slice(0, MAX_GRAPH_NODES))
+  // Final dataset setup (limit to maxNodes for performance)
+  const totalEligible = filteredPaths.length
+  const truncated = maxNodes > 0 && totalEligible > maxNodes
+  const cappedPaths = applyNodeCap(filteredPaths, degree, mtimeMap, maxNodes)
+  const finalPathsSet = new Set(cappedPaths)
   const finalPaths = filteredPaths.filter((p) => finalPathsSet.has(p))
 
   const finalLinks = links.filter(
@@ -123,5 +150,12 @@ export function buildGraphData(
     y: height / 2 + (Math.random() - 0.5) * 100
   }))
 
-  return { nodes, links: finalLinks }
+  return {
+    nodes,
+    links: finalLinks,
+    totalEligible,
+    displayedCount: nodes.length,
+    truncated,
+    maxNodes
+  }
 }
