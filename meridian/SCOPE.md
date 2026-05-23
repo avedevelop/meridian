@@ -39,3 +39,10 @@ Plain `.md` files on disk, wiki-links, graph, canvas — no cloud lock-in.
 
 Use this line in README and marketing materials.
 See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure and contribution rules.
+
+## Next milestones (not v1.0)
+
+- Integrated community plugin registry browser within the app settings.
+- Automated hot-reloading for plugin developments on manifest/source file changes.
+- Granular sandboxed iframe permission layer for untrusted community plugins.
+- Performance optimization timeline features and WebGL force layout rendering.
