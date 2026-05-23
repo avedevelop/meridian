@@ -1,6 +1,16 @@
 # Meridian
 
+[![Meridian CI](https://github.com/bvsmma/meridian/actions/workflows/meridian-ci.yml/badge.svg?branch=main)](https://github.com/bvsmma/meridian/actions/workflows/meridian-ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/bvsmma/meridian?display_name=tag)](https://github.com/bvsmma/meridian/releases/latest)
+
 Local-first notes app inspired by Obsidian — not a drop-in replacement. Built with Electron 39 + React 18 + TypeScript.
+
+## Установка (macOS)
+
+1. Скачай свежий DMG из [Releases](https://github.com/bvsmma/meridian/releases/latest).
+2. Открой DMG, перетащи Meridian в Applications.
+3. **Первый запуск:** DMG не подписан Apple — Gatekeeper заблокирует обычный двойной клик. Правый клик по приложению → **Open** → подтверди один раз. Дальше запускается как любое другое.
+4. Хочешь подписанный билд — следи за релизами или собери сам (`npm run build:mac` в `meridian/`).
 
 ---
 
