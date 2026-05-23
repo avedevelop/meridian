@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { HistoryTimelineBar } from './HistoryTimelineBar'
 
 export interface GraphControlsProps {
@@ -45,6 +46,7 @@ export function GraphControls({
   activityBuckets,
   historyTicks
 }: GraphControlsProps) {
+  const { t } = useTranslation()
   return (
     <>
       {viewMode === 'history' && (
@@ -85,7 +87,7 @@ export function GraphControls({
       >
         <button
           onClick={handleZoomIn}
-          title="Zoom In"
+          title={t('graph.controls.zoomIn')}
           style={{
             background: 'transparent',
             border: 'none',
@@ -112,7 +114,7 @@ export function GraphControls({
         </button>
         <button
           onClick={handleZoomOut}
-          title="Zoom Out"
+          title={t('graph.controls.zoomOut')}
           style={{
             background: 'transparent',
             border: 'none',
@@ -139,7 +141,7 @@ export function GraphControls({
         </button>
         <button
           onClick={handleRecenter}
-          title="Recenter & Fit View"
+          title={t('graph.controls.recenter')}
           style={{
             background: 'transparent',
             border: 'none',
@@ -169,7 +171,11 @@ export function GraphControls({
 
         <button
           onClick={handleTogglePhysics}
-          title={isPhysicsRunning ? 'Pause Physics Simulation' : 'Resume Physics Simulation'}
+          title={
+            isPhysicsRunning
+              ? t('graph.controls.pausePhysics')
+              : t('graph.controls.resumePhysics')
+          }
           style={{
             background: 'transparent',
             border: 'none',

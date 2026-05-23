@@ -463,6 +463,11 @@
   "localGraph.empty": "Выберите заметку для просмотра ее связей",
 
   "graph.openSettings": "Открыть настройки графа и аналитику",
+  "graph.controls.zoomIn": "Увеличить масштаб",
+  "graph.controls.zoomOut": "Уменьшить масштаб",
+  "graph.controls.recenter": "Центрировать и подогнать вид",
+  "graph.controls.pausePhysics": "Приостановить физику",
+  "graph.controls.resumePhysics": "Возобновить физику",
   "graph.truncation.banner": "Показано {{displayed}} из {{total}} заметок (скрыто: {{hidden}}). Граф ограничен для производительности.",
   "graph.truncation.increaseLimit": "Увеличить лимит",
   "graph.truncation.openFilters": "Открыть фильтры",

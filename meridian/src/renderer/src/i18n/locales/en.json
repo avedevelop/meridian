@@ -463,6 +463,11 @@
   "localGraph.empty": "Select a note to view its connections",
 
   "graph.openSettings": "Open Graph Settings & Analytics",
+  "graph.controls.zoomIn": "Zoom in",
+  "graph.controls.zoomOut": "Zoom out",
+  "graph.controls.recenter": "Recenter and fit view",
+  "graph.controls.pausePhysics": "Pause physics simulation",
+  "graph.controls.resumePhysics": "Resume physics simulation",
   "graph.truncation.banner": "Showing {{displayed}} of {{total}} notes ({{hidden}} hidden). Graph limited for performance.",
   "graph.truncation.increaseLimit": "Increase limit",
   "graph.truncation.openFilters": "Open filters",
