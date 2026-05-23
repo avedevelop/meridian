@@ -42,7 +42,20 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for codebase structure and contribution r
 
 ## Next milestones (not v1.0)
 
-- Integrated community plugin registry browser within the app settings.
-- Automated hot-reloading for plugin developments on manifest/source file changes.
-- Granular sandboxed iframe permission layer for untrusted community plugins.
-- Performance optimization timeline features and WebGL force layout rendering.
+Done in the lead-up to v1.0 (no longer "next"):
+
+- Plugin API v1 with command palette + onLoad/onUnload hooks
+- Hot-reload of community plugin sources (manifest.json / main.js)
+- `meridian-plugin://` protocol with vault-rooted path validation
+- Graph visual polish (LOD, glow, auto-fit, truncation banner with hidden count)
+- Layout refactor under the 450-line target + line-limit CI gate
+
+Remaining backlog (post-v1.0, not blocking release):
+
+- In-app community plugin registry browser (install / update from Settings)
+- Sandboxed iframe permission layer for untrusted community plugins
+- Plugin marketplace + signing
+- WebGL / GPU-accelerated force layout for very large vaults (10k+ nodes)
+- Windows / Linux QA sign-off and release artifacts
+- Notarized / signed macOS DMG (currently unsigned)
+- Granular per-plugin permission prompts (vault read, network, settings write)
