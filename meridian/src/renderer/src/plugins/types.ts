@@ -14,6 +14,9 @@ export interface PluginAPI {
     toast(message: string): void
     openSettings?(tab?: string): void
   }
+  app: {
+    openDailyNote(): Promise<void>
+  }
   registerCommand(cmd: PluginCommand): void
 }
 

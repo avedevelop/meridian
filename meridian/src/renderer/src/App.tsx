@@ -66,6 +66,9 @@ import { useAutoSave } from './hooks/useAutoSave'
 import { useGitSync } from './hooks/useGitSync'
 import { useSessionPersist } from './hooks/useSessionPersist'
 
+import { initCorePlugins } from './plugins/core'
+import { pluginRegistry } from './plugins/registry'
+
 declare global {
   interface Window {
     menuAPI: {
@@ -84,8 +87,56 @@ export default function App() {
   const allFiles = useLinkStore((s) => s.allFiles)
   const indexVersion = useLinkStore((s) => s.indexVersion)
   const { openFile, openVault, openDailyNote, exportNote, exportPdf, createFile, saveFile, listTemplates, applyTemplate } = useVaultBridge()
+  const pluginsEnabled = useSettingsStore((s) => s.pluginsEnabled)
+
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Initialize core plugins API
+  const pluginAPI = useMemo(() => ({
+    vault: window.vault,
+    settings: {
+      get: <T,>(key: string) => useSettingsStore.getState()[key] as T,
+      set: (key: string, value: unknown) => useSettingsStore.getState().updateSetting(key as any, value as any)
+    },
+    ui: {
+      toast: (msg: string) => {
+        console.log(`[Toast] ${msg}`)
+      },
+      openSettings: () => {
+        setSettingsOpen(true)
+      }
+    },
+    app: {
+      openDailyNote: async () => {
+        await openDailyNote()
+      }
+    },
+    registerCommand: () => {}
+  }), [openDailyNote])
+
+  // Initialize Core Plugins list once
+  useEffect(() => {
+    initCorePlugins(pluginAPI)
+  }, [pluginAPI])
+
+  // Sync active plugins from store to registry
+  useEffect(() => {
+    if (!vault) return
+
+    // Core plugins sync
+    const coreList = pluginRegistry.getCorePlugins()
+    for (const p of coreList) {
+      const shouldBeEnabled = pluginsEnabled[p.id]
+      const isCurrentlyEnabled = pluginRegistry.isPluginLoaded(p.id)
+      if (shouldBeEnabled && !isCurrentlyEnabled) {
+        pluginRegistry.enablePlugin(p.id)
+      } else if (!shouldBeEnabled && isCurrentlyEnabled) {
+        pluginRegistry.disablePlugin(p.id)
+      }
+    }
+  }, [vault, pluginsEnabled])
+
   const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'>('files')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('layout-sidebar-collapsed') === 'true'

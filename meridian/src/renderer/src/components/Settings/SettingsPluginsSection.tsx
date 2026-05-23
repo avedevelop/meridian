@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { pluginRegistry } from '../../plugins/registry'
 
 export function SettingsPluginsSection() {
   const { t } = useTranslation()
@@ -13,62 +14,7 @@ export function SettingsPluginsSection() {
     }
   }
 
-  const pluginsList = [
-    {
-      id: 'dailyNotes',
-      name: 'Daily Notes',
-      desc: 'Create and open a daily note based on current date automatically.',
-      author: 'ave'
-    },
-    {
-      id: 'wordCounter',
-      name: 'Word Counter',
-      desc: 'Count and display the total number of words in the status bar.',
-      author: 'ave'
-    },
-    {
-      id: 'slashCommands',
-      name: 'Slash Commands',
-      desc: 'Trigger formatting actions and note insertions using / key triggers.',
-      author: 'ave'
-    },
-    {
-      id: 'tagsPanel',
-      name: 'Tag Index Panel',
-      desc: 'Show an index of all hashtag elements parsed in note contents.',
-      author: 'ave'
-    },
-    {
-      id: 'backlinksPanel',
-      name: 'Backlinks Explorer',
-      desc: 'List notes referencing the current active tab note.',
-      author: 'ave'
-    },
-    {
-      id: 'tocPanel',
-      name: 'Table of Contents',
-      desc: 'Generate dynamic layout heading navigators for markdown documents.',
-      author: 'ave'
-    },
-    {
-      id: 'gitBackup',
-      name: 'Git Autocommit Backups',
-      desc: 'Periodically git commit changes inside the vault automatically.',
-      author: 'ave'
-    },
-    {
-      id: 'excalidraw',
-      name: 'Excalidraw Sketchpad',
-      desc: 'Integrate dynamic hand-drawn diagrams inside notes.',
-      author: 'ave'
-    },
-    {
-      id: 'vimMode',
-      name: 'Vim Mode',
-      desc: 'Enable Vim keybindings in the markdown editor (Normal, Insert, Visual modes).',
-      author: 'ave'
-    }
-  ] as const
+  const pluginsList = pluginRegistry.getCorePlugins()
 
   return (
     <div>
@@ -87,7 +33,7 @@ export function SettingsPluginsSection() {
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {pluginsList.map((p) => {
-          const isEnabled = store.pluginsEnabled[p.id]
+          const isEnabled = store.pluginsEnabled[p.id as keyof typeof store.pluginsEnabled]
           return (
             <div
               key={p.id}
@@ -151,7 +97,7 @@ export function SettingsPluginsSection() {
                 </div>
               </div>
               <div
-                onClick={() => store.togglePlugin(p.id)}
+                onClick={() => store.togglePlugin(p.id as keyof typeof store.pluginsEnabled)}
                 style={{
                   width: 38,
                   height: 20,
