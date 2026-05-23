@@ -112,6 +112,7 @@ export interface PluginAPI {
 1. Open your active vault folder on your machine.
 2. Create `.meridian/plugins/my-plugin/` directory.
 3. Put `manifest.json` and `main.js` inside.
-4. Open Meridian settings (⌘,), go to **Community Plugins** tab.
+4. Open Meridian settings (⌘,), go to the **Community Plugins** tab.
 5. Click **Open Plugins Folder** to verify the folder opens, and click **Reload/Refresh** (or reopen the settings dialog) to see your plugin.
 6. Toggle the switch to enable it!
+7. Open the Command Palette (⌘K) to verify that any registered commands are shown and can be executed.
