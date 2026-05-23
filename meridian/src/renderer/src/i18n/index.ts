@@ -26,25 +26,7 @@ i18n.use(initReactI18next).init({
 })
 
 export async function initI18n(language: string): Promise<void> {
-  // User-installed locales from {userData}/locales/
-  const userLocales = await loadUserLocales()
-  for (const [lang, msgs] of Object.entries(userLocales)) {
-    i18n.addResourceBundle(lang, 'translation', msgs, true, true)
-  }
-
   await i18n.changeLanguage(language)
-}
-
-async function loadUserLocales(): Promise<Record<string, object>> {
-  try {
-    const files: { lang: string; content: object }[] =
-      (await (window.vault as any).listUserLocales?.()) ?? []
-    const result: Record<string, object> = {}
-    for (const { lang, content } of files) result[lang] = content
-    return result
-  } catch {
-    return {}
-  }
 }
 
 export { i18n }
