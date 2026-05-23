@@ -463,7 +463,7 @@
   "localGraph.empty": "Выберите заметку для просмотра ее связей",
 
   "graph.openSettings": "Открыть настройки графа и аналитику",
-  "graph.truncation.banner": "Показано {{displayed}} из {{total}} заметок. Граф ограничен для производительности.",
+  "graph.truncation.banner": "Показано {{displayed}} из {{total}} заметок (скрыто: {{hidden}}). Граф ограничен для производительности.",
   "graph.truncation.increaseLimit": "Увеличить лимит",
   "graph.truncation.openFilters": "Открыть фильтры",
   "graph.truncation.slowWarning": "Отображение {{count}} узлов может замедлить работу. Продолжить?",

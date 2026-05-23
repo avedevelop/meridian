@@ -366,7 +366,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             <span>
               {t('graph.truncation.banner', {
                 displayed: buildResult.displayedCount,
-                total: buildResult.totalEligible
+                total: buildResult.totalEligible,
+                hidden: Math.max(0, buildResult.totalEligible - buildResult.displayedCount)
               })}
             </span>
             <div style={{ display: 'flex', gap: 12 }}>

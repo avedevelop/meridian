@@ -463,7 +463,7 @@
   "localGraph.empty": "Select a note to view its connections",
 
   "graph.openSettings": "Open Graph Settings & Analytics",
-  "graph.truncation.banner": "Showing {{displayed}} of {{total}} notes. Graph limited for performance.",
+  "graph.truncation.banner": "Showing {{displayed}} of {{total}} notes ({{hidden}} hidden). Graph limited for performance.",
   "graph.truncation.increaseLimit": "Increase limit",
   "graph.truncation.openFilters": "Open filters",
   "graph.truncation.slowWarning": "Rendering {{count}} nodes may be slow. Continue?",
