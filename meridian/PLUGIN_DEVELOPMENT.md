@@ -116,3 +116,5 @@ export interface PluginAPI {
 5. Click **Open Plugins Folder** to verify the folder opens, and click **Reload/Refresh** (or reopen the settings dialog) to see your plugin.
 6. Toggle the switch to enable it!
 7. Open the Command Palette (⌘K) to verify that any registered commands are shown and can be executed.
+
+**Troubleshooting:** If enabling shows «Failed to load community plugin», check DevTools console. A common cause is Content-Security-Policy blocking `meridian-plugin://` module loads — `src/renderer/index.html` must include `meridian-plugin:` in `script-src` and `connect-src`.
