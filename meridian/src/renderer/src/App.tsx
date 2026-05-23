@@ -147,6 +147,35 @@ export default function App() {
     initCorePlugins(pluginAPI)
   }, [pluginAPI])
 
+  // Bumping this counter forces the community-plugin sync effect to re-run.
+  // pluginReloadIds collects ids that should be force-reloaded (module re-imported)
+  // on the next sync — populated by hot-reload watcher and by manual reload buttons.
+  const [pluginReloadCounter, setPluginReloadCounter] = useState(0)
+  const pluginReloadIdsRef = useRef<Set<string>>(new Set())
+  const requestPluginReload = useCallback((id: string) => {
+    pluginReloadIdsRef.current.add(id)
+    setPluginReloadCounter((c) => c + 1)
+  }, [])
+
+  // Subscribe to main-process file change events for community plugins.
+  useEffect(() => {
+    if (!vault) return
+    const unsubscribe = (window.vault as any).onPluginFileChanged?.(
+      (event: { pluginId: string }) => {
+        requestPluginReload(event.pluginId)
+      }
+    )
+    // Expose a renderer-only entry point so settings UI can trigger
+    // a manual reload without prop drilling through the whole app.
+    ;(window as any).__meridianReloadPlugin = requestPluginReload
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe()
+      if ((window as any).__meridianReloadPlugin === requestPluginReload) {
+        delete (window as any).__meridianReloadPlugin
+      }
+    }
+  }, [vault, requestPluginReload])
+
   useEffect(() => {
     if (!vault) {
       pluginRegistry.clearCommunityPlugins()
@@ -175,6 +204,8 @@ export default function App() {
 
     // Community plugins sync
     let active = true
+    const reloadIds = new Set(pluginReloadIdsRef.current)
+    pluginReloadIdsRef.current.clear()
     async function syncCommunityPlugins() {
       try {
         const manifests = await window.vault.listPlugins()
@@ -186,7 +217,17 @@ export default function App() {
         // (handles vault switch — stale ids from previous vault).
         pluginRegistry.pruneCommunityPlugins(manifestIds)
 
-        // Disable any loaded plugins that are now disabled in settings
+        // Drop hot-reload-targeted plugins from the registry so the
+        // load loop re-imports them with a fresh module URL.
+        for (const id of reloadIds) {
+          if (!manifestIds.has(id)) continue
+          if (pluginRegistry.isPluginLoaded(id)) pluginRegistry.disablePlugin(id)
+          pluginRegistry.pruneCommunityPlugins(
+            new Set(Array.from(manifestIds).filter((mid) => mid !== id))
+          )
+        }
+
+        // Disable any loaded plugins that are now disabled in settings.
         const loadedCommunity = pluginRegistry.getCommunityPlugins()
         for (const p of loadedCommunity) {
           const shouldBeEnabled = !!pluginsEnabled[p.id]
@@ -230,7 +271,7 @@ export default function App() {
     return () => {
       active = false
     }
-  }, [vault, pluginsEnabled, pluginAPI])
+  }, [vault, pluginsEnabled, pluginAPI, pluginReloadCounter])
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<
     'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'

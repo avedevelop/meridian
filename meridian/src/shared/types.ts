@@ -70,5 +70,11 @@ export const IPC = {
   OPEN_PATH: 'shell:open-path',
   WELCOME_DOWNLOAD: 'welcome:download',
   PLUGIN_LIST: 'plugin:list',
-  PLUGIN_LOAD: 'plugin:load'
+  PLUGIN_LOAD: 'plugin:load',
+  PLUGIN_FILE_CHANGED: 'plugin:file-changed' // main → renderer push event
 } as const
+
+export interface PluginFileChangeEvent {
+  pluginId: string
+  vaultPath: string
+}

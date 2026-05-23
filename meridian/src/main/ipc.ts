@@ -1,7 +1,12 @@
 import { BrowserWindow, ipcMain, dialog, shell } from 'electron'
-import { basename, isAbsolute, resolve } from 'path'
+import { basename, isAbsolute, resolve, sep } from 'path'
 import chokidar, { type FSWatcher } from 'chokidar'
-import { IPC, type VaultFileChangeEvent, type VaultFileChangeType } from '../shared/types'
+import {
+  IPC,
+  type PluginFileChangeEvent,
+  type VaultFileChangeEvent,
+  type VaultFileChangeType
+} from '../shared/types'
 import { buildPluginUrl } from '../shared/pluginUrl'
 import { VaultManager } from './vault'
 import { AppSettings } from './settings'
@@ -9,6 +14,10 @@ import { AppSettings } from './settings'
 let vaultManager: VaultManager | null = null
 let vaultWatcher: FSWatcher | null = null
 let watcherSession = 0
+let pluginWatcher: FSWatcher | null = null
+let pluginWatcherSession = 0
+const pluginChangeDebounce = new Map<string, NodeJS.Timeout>()
+const PLUGIN_DEBOUNCE_MS = 300
 
 const WATCH_EVENT_TYPES = new Set<VaultFileChangeType>([
   'add',
@@ -76,6 +85,71 @@ export function stopVaultWatcher(): void {
   const currentWatcher = vaultWatcher
   vaultWatcher = null
   if (currentWatcher) void currentWatcher.close()
+  stopPluginWatcher()
+}
+
+function emitPluginFileChanged(manager: VaultManager, pluginId: string): void {
+  const event: PluginFileChangeEvent = {
+    pluginId,
+    vaultPath: manager.vaultPath
+  }
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send(IPC.PLUGIN_FILE_CHANGED, event)
+  })
+}
+
+function startPluginWatcher(manager: VaultManager): void {
+  pluginWatcherSession += 1
+  const session = pluginWatcherSession
+  const previousWatcher = pluginWatcher
+  if (previousWatcher) void previousWatcher.close()
+  for (const timer of pluginChangeDebounce.values()) clearTimeout(timer)
+  pluginChangeDebounce.clear()
+
+  const pluginsRoot = resolve(manager.vaultPath, '.meridian', 'plugins')
+
+  pluginWatcher = chokidar.watch(pluginsRoot, {
+    ignoreInitial: true,
+    depth: 4,
+    awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 }
+  })
+
+  pluginWatcher.on('all', (eventName, changedPath) => {
+    if (session !== pluginWatcherSession || manager !== vaultManager) return
+    if (eventName !== 'add' && eventName !== 'change' && eventName !== 'unlink') return
+    const absolute = isAbsolute(changedPath)
+      ? changedPath
+      : resolve(pluginsRoot, String(changedPath))
+    if (!absolute.startsWith(pluginsRoot + sep)) return
+
+    const relative = absolute.slice(pluginsRoot.length + 1)
+    const [pluginId, ...rest] = relative.split(sep)
+    if (!pluginId || rest.length === 0) return
+    const fileName = rest.join(sep)
+    if (fileName !== 'main.js' && fileName !== 'manifest.json') return
+
+    const existing = pluginChangeDebounce.get(pluginId)
+    if (existing) clearTimeout(existing)
+    const timer = setTimeout(() => {
+      pluginChangeDebounce.delete(pluginId)
+      if (session !== pluginWatcherSession || manager !== vaultManager) return
+      emitPluginFileChanged(manager, pluginId)
+    }, PLUGIN_DEBOUNCE_MS)
+    pluginChangeDebounce.set(pluginId, timer)
+  })
+
+  pluginWatcher.on('error', (error) => {
+    console.error('[Watcher] plugin watcher error:', error)
+  })
+}
+
+function stopPluginWatcher(): void {
+  pluginWatcherSession += 1
+  const current = pluginWatcher
+  pluginWatcher = null
+  if (current) void current.close()
+  for (const timer of pluginChangeDebounce.values()) clearTimeout(timer)
+  pluginChangeDebounce.clear()
 }
 
 export function registerIpcHandlers(settings: AppSettings): void {
@@ -91,6 +165,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
     startVaultWatcher(vaultManager)
+    startPluginWatcher(vaultManager)
     settings.addRecentVault(vaultPath, name)
     settings.setLastVault(vaultPath)
     return { path: vaultPath, name }
@@ -107,6 +182,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
     startVaultWatcher(vaultManager)
+    startPluginWatcher(vaultManager)
     settings.addRecentVault(vaultPath, name)
     settings.setLastVault(vaultPath)
     return { path: vaultPath, name }

@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/types'
-import type { VaultFileChangeEvent, VaultFile, VaultConfig, AppConfig } from '../shared/types'
+import type {
+  PluginFileChangeEvent,
+  VaultFileChangeEvent,
+  VaultFile,
+  VaultConfig,
+  AppConfig
+} from '../shared/types'
 
 import { homedir } from 'os'
 
@@ -109,7 +115,13 @@ const vaultAPI = {
   openPath: (filePath: string) => ipcRenderer.invoke(IPC.OPEN_PATH, filePath),
   downloadWelcomeVault: (destPath: string) => ipcRenderer.invoke(IPC.WELCOME_DOWNLOAD, destPath),
   listPlugins: (): Promise<any[]> => ipcRenderer.invoke(IPC.PLUGIN_LIST),
-  loadPlugin: (id: string): Promise<string> => ipcRenderer.invoke(IPC.PLUGIN_LOAD, id)
+  loadPlugin: (id: string): Promise<string> => ipcRenderer.invoke(IPC.PLUGIN_LOAD, id),
+  onPluginFileChanged: (callback: (event: PluginFileChangeEvent) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, change: PluginFileChangeEvent) =>
+      callback(change)
+    ipcRenderer.on(IPC.PLUGIN_FILE_CHANGED, handler)
+    return () => ipcRenderer.removeListener(IPC.PLUGIN_FILE_CHANGED, handler)
+  }
 }
 
 const settingsAPI = {
