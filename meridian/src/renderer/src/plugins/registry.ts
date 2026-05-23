@@ -97,6 +97,18 @@ class PluginRegistry {
     this.communityPlugins.clear()
   }
 
+  pruneCommunityPlugins(keepIds: Iterable<string>): void {
+    const keep = new Set(keepIds)
+    for (const id of Array.from(this.communityPlugins.keys())) {
+      if (!keep.has(id)) {
+        if (this.loadedPlugins.has(id)) {
+          this.disablePlugin(id)
+        }
+        this.communityPlugins.delete(id)
+      }
+    }
+  }
+
   loadCommunityPlugin(manifest: any, moduleExports: any): MeridianPlugin {
     let pluginInstance: any
     if (typeof moduleExports.default === 'function') {

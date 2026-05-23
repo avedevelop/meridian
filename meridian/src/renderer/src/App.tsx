@@ -180,6 +180,12 @@ export default function App() {
         const manifests = await window.vault.listPlugins()
         if (!active) return
 
+        const manifestIds = new Set(manifests.map((m) => m.id))
+
+        // Drop registry entries for plugins missing in current vault
+        // (handles vault switch — stale ids from previous vault).
+        pluginRegistry.pruneCommunityPlugins(manifestIds)
+
         // Disable any loaded plugins that are now disabled in settings
         const loadedCommunity = pluginRegistry.getCommunityPlugins()
         for (const p of loadedCommunity) {
@@ -189,7 +195,9 @@ export default function App() {
           }
         }
 
-        // Enable any plugins that should be enabled but are not loaded
+        // Enable any plugins that should be enabled but are not loaded.
+        // Plugins enabled in settings but missing from the current vault
+        // are silently skipped — manifests is the source of truth here.
         for (const manifest of manifests) {
           const shouldBeEnabled = !!pluginsEnabled[manifest.id]
           const isLoaded = pluginRegistry.isPluginLoaded(manifest.id)
