@@ -93,4 +93,30 @@ describe('VaultManager', () => {
     expect(manifests).toHaveLength(1)
     expect(manifests[0]).toEqual(manifest)
   })
+
+  it('listPluginManifests handles missing plugins folder gracefully', async () => {
+    const manifests = await vault.listPluginManifests()
+    expect(manifests).toEqual([])
+  })
+
+  it('listPluginManifests ignores malformed manifest.json files', async () => {
+    const pluginsDir = join(tmpDir, '.meridian', 'plugins')
+    mkdirSync(join(pluginsDir, 'bad-plugin'), { recursive: true })
+    writeFileSync(join(pluginsDir, 'bad-plugin', 'manifest.json'), 'invalid-json')
+
+    const manifests = await vault.listPluginManifests()
+    expect(manifests).toEqual([])
+  })
+
+  it('listPluginManifests ignores manifests missing required fields', async () => {
+    const pluginsDir = join(tmpDir, '.meridian', 'plugins')
+    mkdirSync(join(pluginsDir, 'missing-fields-plugin'), { recursive: true })
+    const manifest = {
+      version: '1.0.0'
+    }
+    writeFileSync(join(pluginsDir, 'missing-fields-plugin', 'manifest.json'), JSON.stringify(manifest))
+
+    const manifests = await vault.listPluginManifests()
+    expect(manifests).toEqual([])
+  })
 })
