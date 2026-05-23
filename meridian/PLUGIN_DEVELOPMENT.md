@@ -117,4 +117,24 @@ export interface PluginAPI {
 6. Toggle the switch to enable it!
 7. Open the Command Palette (⌘K) to verify that any registered commands are shown and can be executed.
 
+## Smoke Checklist (run after every plugin or loader change)
+
+Repeat these steps before claiming community plugins still work — vault switches, CSP, and the dev reload path are easy to break.
+
+1. Restart `npm run dev` from the canonical workspace
+   (`/Users/vladyslav/Desktop/dev/new project/meridian`).
+2. Open the welcome vault, then **Settings → Community Plugins**.
+3. Enable the bundled **Sample Plugin** (`demo-vault/.meridian/plugins/sample-plugin/`).
+4. A toast similar to «Hello from sample plugin!» should appear within ~1s.
+   No «Failed to load community plugin …» toast.
+5. Open Command Palette (⌘K) and run **Sample: Show Greeting Toast**
+   (or whatever command the sample registers). It should toast again.
+6. Open DevTools (⌥⌘I) → **Console** and verify there are **no
+   `Refused to load … because it violates the following Content Security Policy directive`** errors.
+   The CSP in `src/renderer/index.html` must whitelist `meridian-plugin:` for both
+   `script-src` and `connect-src`.
+7. Switch vaults via the vault picker. The previous vault's plugin must
+   not produce a load-error toast in the new vault, even if its id is
+   still listed in `pluginsEnabled` (see `App.tsx` community sync).
+
 **Troubleshooting:** If enabling shows «Failed to load community plugin», check DevTools console. A common cause is Content-Security-Policy blocking `meridian-plugin://` module loads — `src/renderer/index.html` must include `meridian-plugin:` in `script-src` and `connect-src`.
