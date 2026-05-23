@@ -165,7 +165,9 @@ export default function App() {
       const shouldBeEnabled = pluginsEnabled[p.id]
       const isCurrentlyEnabled = pluginRegistry.isPluginLoaded(p.id)
       if (shouldBeEnabled && !isCurrentlyEnabled) {
-        pluginRegistry.enablePlugin(p.id)
+        pluginRegistry.enablePlugin(p.id).catch((err) => {
+          console.error(`Failed to enable core plugin ${p.id}:`, err)
+        })
       } else if (!shouldBeEnabled && isCurrentlyEnabled) {
         pluginRegistry.disablePlugin(p.id)
       }
@@ -199,10 +201,12 @@ export default function App() {
               pluginRegistry.loadCommunityPlugin(manifest, moduleExports)
               await pluginRegistry.enablePlugin(manifest.id)
             } catch (err) {
+              const message = err instanceof Error ? err.message : String(err)
               console.error(`Failed to load community plugin ${manifest.id}:`, err)
               pluginAPI.ui.toast(
-                i18n.t('settings.plugins.community.loadFailed', {
-                  name: manifest.name || manifest.id
+                i18n.t('settings.plugins.community.loadFailedDetail', {
+                  name: manifest.name || manifest.id,
+                  error: message
                 })
               )
             }

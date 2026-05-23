@@ -1,5 +1,4 @@
 import type { MeridianPlugin, PluginCommand, PluginAPI } from './types'
-import { i18n } from '../i18n/index'
 
 class PluginRegistry {
   private corePlugins = new Map<string, MeridianPlugin>()
@@ -65,11 +64,7 @@ class PluginRegistry {
           this.commands.delete(cmd.id)
         }
       }
-      this.api.ui.toast(
-        i18n.t('settings.plugins.community.loadFailed', {
-          name: plugin.name || id
-        })
-      )
+      throw err
     }
   }
 

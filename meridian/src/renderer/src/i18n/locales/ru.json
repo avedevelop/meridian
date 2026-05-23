@@ -340,6 +340,7 @@
   "settings.plugins.community.openFolder": "Открыть папку плагинов",
   "settings.plugins.community.reload": "Перезагрузить плагины",
   "settings.plugins.community.loadFailed": "Не удалось загрузить сторонний плагин: {{name}}",
+  "settings.plugins.community.loadFailedDetail": "Не удалось загрузить сторонний плагин {{name}}: {{error}}",
   "settings.plugins.community.syncFailed": "Не удалось синхронизировать сторонние плагины",
   "settings.plugins.community.noPlugins": "Сторонние плагины не найдены. Чтобы создать плагин, перейдите по ссылке ниже или создайте папку в .meridian/plugins/ вашего хранилища.",
   "settings.plugins.community.developerLink": "Документация разработчика плагинов",
