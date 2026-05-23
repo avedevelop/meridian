@@ -11,7 +11,10 @@ export function timeAgo(dateStr: string, t: any): string {
   return t('gitPanel.yearsAgo', { count: Math.floor(diffDays / 365) })
 }
 
-export function applyCommitTemplate(template: string, changes: { path: string; status: string }[]): string {
+export function applyCommitTemplate(
+  template: string,
+  changes: { path: string; status: string }[]
+): string {
   if (changes.length === 0) return ''
   const names = changes.slice(0, 3).map((c) => c.path.split('/').pop() ?? c.path)
   const suffix = changes.length > 3 ? ` +${changes.length - 3} more` : ''

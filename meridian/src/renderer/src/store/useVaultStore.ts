@@ -18,7 +18,7 @@ export interface Pane {
 interface VaultState {
   vault: VaultConfig | null
   files: VaultFile[]
-  
+
   // Legacy fields (synced with active pane for backward compatibility)
   openTabs: Tab[]
   activeTabPath: string | null
@@ -29,7 +29,7 @@ interface VaultState {
 
   setVault: (vault: VaultConfig) => void
   setFiles: (files: VaultFile[]) => void
-  
+
   // Tab management (targets active pane or custom pane)
   openTab: (path: string, name: string) => void
   closeTab: (path: string, paneId?: string) => void
@@ -103,7 +103,8 @@ export const useVaultStore = create<VaultState>((set, get) => {
         const emptyPane = updated.find((p) => p.id === targetPaneId && p.openTabs.length === 0)
         if (emptyPane) {
           updated = updated.filter((p) => p.id !== targetPaneId)
-          const nextActive = updated.find((p) => p.id === activePaneId)?.id ?? updated[0]?.id ?? 'pane-main'
+          const nextActive =
+            updated.find((p) => p.id === activePaneId)?.id ?? updated[0]?.id ?? 'pane-main'
           return set(syncLegacyState(updated, nextActive))
         }
       }
@@ -222,7 +223,8 @@ export const useVaultStore = create<VaultState>((set, get) => {
       const nextSourceTabs = fromPane.openTabs.filter((t) => t.path !== tabPath)
       let nextSourceActive = fromPane.activeTabPath
       if (fromPane.activeTabPath === tabPath) {
-        nextSourceActive = nextSourceTabs[Math.max(0, sourceIndex - 1)]?.path ?? nextSourceTabs[0]?.path ?? null
+        nextSourceActive =
+          nextSourceTabs[Math.max(0, sourceIndex - 1)]?.path ?? nextSourceTabs[0]?.path ?? null
       }
 
       // Insert tab into target pane
@@ -256,17 +258,20 @@ export const useVaultStore = create<VaultState>((set, get) => {
       // Collect all unique tabs from all panes into the main pane
       const seen = new Set<string>()
       const mergedTabs: Tab[] = []
-      panes.forEach(p => {
-        p.openTabs.forEach(t => {
-          if (!seen.has(t.path)) { seen.add(t.path); mergedTabs.push(t) }
+      panes.forEach((p) => {
+        p.openTabs.forEach((t) => {
+          if (!seen.has(t.path)) {
+            seen.add(t.path)
+            mergedTabs.push(t)
+          }
         })
       })
       const mainPane: Pane = {
         id: 'pane-main',
         openTabs: mergedTabs,
-        activeTabPath: mergedTabs[0]?.path ?? null,
+        activeTabPath: mergedTabs[0]?.path ?? null
       }
       set(syncLegacyState([mainPane], 'pane-main'))
-    },
+    }
   }
 })

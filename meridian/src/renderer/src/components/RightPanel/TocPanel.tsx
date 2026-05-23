@@ -134,7 +134,15 @@ export function TocPanel() {
 
   if (headings.length === 0) {
     return (
-      <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
+      <div
+        style={{
+          padding: '24px 16px',
+          textAlign: 'center',
+          color: 'var(--text-secondary)',
+          fontSize: 12,
+          opacity: 0.6
+        }}
+      >
         {t('toc.noHeadings')}
       </div>
     )
@@ -167,7 +175,8 @@ export function TocPanel() {
             e.currentTarget.style.background = 'var(--bg-surface)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = h.level === 1 ? 'var(--text-primary)' : 'var(--text-secondary)'
+            e.currentTarget.style.color =
+              h.level === 1 ? 'var(--text-primary)' : 'var(--text-secondary)'
             e.currentTarget.style.background = 'transparent'
           }}
         >

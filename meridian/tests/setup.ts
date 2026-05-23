@@ -15,11 +15,11 @@ vi.mock('react-i18next', () => ({
     },
     i18n: {
       changeLanguage: () => Promise.resolve(),
-      language: 'en',
-    },
+      language: 'en'
+    }
   }),
   initReactI18next: {
     type: '3rdParty',
-    init: () => {},
-  },
+    init: () => {}
+  }
 }))

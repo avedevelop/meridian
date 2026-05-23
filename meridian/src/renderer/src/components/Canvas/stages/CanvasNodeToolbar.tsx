@@ -109,16 +109,17 @@ export function CanvasNodeToolbar({
         <>
           <button
             onClick={async () => {
-              const name = prompt(t('canvas.nodeToolbar.enterFilename'), t('canvas.nodeToolbar.defaultFilename'))
+              const name = prompt(
+                t('canvas.nodeToolbar.enterFilename'),
+                t('canvas.nodeToolbar.defaultFilename')
+              )
               if (!name) return
               const fileName = name.endsWith('.md') ? name : `${name}.md`
               if (!vault) return
               try {
                 const filePath = await window.vault.createFile(vault.path, fileName)
                 await window.vault.writeFile(filePath, node.text)
-                const relativePath = filePath
-                  .replace(vault.path + '/', '')
-                  .replace(vault.path, '')
+                const relativePath = filePath.replace(vault.path + '/', '').replace(vault.path, '')
 
                 mutate((prev) => ({
                   ...prev,
@@ -154,9 +155,7 @@ export function CanvasNodeToolbar({
               fontWeight: 600
             }}
             title={t('canvas.nodeToolbar.createNoteFromText')}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = 'rgba(124, 106, 247, 0.1)')
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(124, 106, 247, 0.1)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             <NoteConvertIcon size={14} />
@@ -168,9 +167,7 @@ export function CanvasNodeToolbar({
         onClick={() => {
           mutate((prev) => ({
             nodes: prev.nodes.filter((n) => n.id !== node.id),
-            edges: prev.edges.filter(
-              (ed) => ed.fromNode !== node.id && ed.toNode !== node.id
-            )
+            edges: prev.edges.filter((ed) => ed.fromNode !== node.id && ed.toNode !== node.id)
           }))
           setSelectedNodeId(null)
         }}
@@ -187,9 +184,7 @@ export function CanvasNodeToolbar({
           justifyContent: 'center'
         }}
         title={t('canvas.nodeToolbar.deleteCard')}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)')
-        }
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)')}
         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         <TrashIcon size={14} />

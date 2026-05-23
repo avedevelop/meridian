@@ -181,9 +181,12 @@ export function GraphSidebar(props: GraphSidebarProps) {
               padding: '10px 0',
               border: 'none',
               background: activeSidebarTab === 'filters' ? 'rgba(255,255,255,0.03)' : 'transparent',
-              color: activeSidebarTab === 'filters' ? 'var(--accent-color)' : 'var(--text-secondary)',
+              color:
+                activeSidebarTab === 'filters' ? 'var(--accent-color)' : 'var(--text-secondary)',
               borderBottom:
-                activeSidebarTab === 'filters' ? '2px solid var(--accent-color)' : '2px solid transparent',
+                activeSidebarTab === 'filters'
+                  ? '2px solid var(--accent-color)'
+                  : '2px solid transparent',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
@@ -198,10 +201,14 @@ export function GraphSidebar(props: GraphSidebarProps) {
               flex: 1,
               padding: '10px 0',
               border: 'none',
-              background: activeSidebarTab === 'analytics' ? 'rgba(255,255,255,0.03)' : 'transparent',
-              color: activeSidebarTab === 'analytics' ? 'var(--accent-color)' : 'var(--text-secondary)',
+              background:
+                activeSidebarTab === 'analytics' ? 'rgba(255,255,255,0.03)' : 'transparent',
+              color:
+                activeSidebarTab === 'analytics' ? 'var(--accent-color)' : 'var(--text-secondary)',
               borderBottom:
-                activeSidebarTab === 'analytics' ? '2px solid var(--accent-color)' : '2px solid transparent',
+                activeSidebarTab === 'analytics'
+                  ? '2px solid var(--accent-color)'
+                  : '2px solid transparent',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',

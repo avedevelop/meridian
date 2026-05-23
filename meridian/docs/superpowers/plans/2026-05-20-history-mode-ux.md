@@ -13,6 +13,7 @@
 ### Task 1: Fix timeline bar left offset when sidebar is open
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Graph/GraphView.tsx:1608-1719`
 
 The timeline bar at line 1608 uses `padding: '0 16px'`. When `isSettingsOpen` is true, the GRAPH ANALYSIS sidebar (width 320, left 12) overlaps the left side of the bar and hides the date label (minWidth 136). Fix: add `paddingLeft` dynamically based on `isSettingsOpen`.
@@ -20,11 +21,13 @@ The timeline bar at line 1608 uses `padding: '0 16px'`. When `isSettingsOpen` is
 - [ ] **Step 1: Add paddingLeft to timeline bar**
 
 Find this block (line ~1618):
+
 ```tsx
 padding: '0 16px',
 ```
 
 Replace with:
+
 ```tsx
 padding: '0 16px',
 paddingLeft: isSettingsOpen ? 348 : 16,
@@ -49,6 +52,7 @@ git commit -m "fix: offset history timeline bar when graph analysis sidebar is o
 ### Task 2: Add date tick marks above the timeline scrubber
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Graph/GraphView.tsx:1608-1719`
 
 Display ~5–7 evenly-spaced year labels above the scrubber so users can see the temporal scale at a glance. These are absolutely-positioned inside the timeline bar container (make the bar `position: relative`).
@@ -75,25 +79,29 @@ const historyTicks = useMemo(() => {
 The timeline bar div (line ~1609) needs `position: 'relative'`. Then add ticks as absolutely-positioned elements inside it, overlaid above the range input. Insert after the opening `<div style={{ height: 60, ... }}>`:
 
 ```tsx
-{/* Date ticks */}
-{historyTicks.map(({ frac, year }) => (
-  <div
-    key={year}
-    style={{
-      position: 'absolute',
-      left: `calc(${isSettingsOpen ? 348 : 16}px + (100% - ${isSettingsOpen ? 348 : 16}px - 16px) * ${frac})`,
-      top: 6,
-      fontSize: 10,
-      color: 'rgba(255,255,255,0.3)',
-      transform: 'translateX(-50%)',
-      pointerEvents: 'none',
-      userSelect: 'none',
-      whiteSpace: 'nowrap'
-    }}
-  >
-    {year}
-  </div>
-))}
+{
+  /* Date ticks */
+}
+{
+  historyTicks.map(({ frac, year }) => (
+    <div
+      key={year}
+      style={{
+        position: 'absolute',
+        left: `calc(${isSettingsOpen ? 348 : 16}px + (100% - ${isSettingsOpen ? 348 : 16}px - 16px) * ${frac})`,
+        top: 6,
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.3)',
+        transform: 'translateX(-50%)',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        whiteSpace: 'nowrap'
+      }}
+    >
+      {year}
+    </div>
+  ))
+}
 ```
 
 - [ ] **Step 3: Verify ticks are visible and positioned correctly**
@@ -112,6 +120,7 @@ git commit -m "feat: add year tick marks to history timeline bar"
 ### Task 3: Keyboard shortcuts for playback (Space, ←, →)
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Graph/GraphView.tsx` — add a `useEffect` for `keydown` events near line ~993 (after the play animation effect)
 
 - [ ] **Step 1: Add keyboard handler effect**
@@ -168,6 +177,7 @@ git commit -m "feat: add Space/ArrowLeft/ArrowRight keyboard shortcuts in Histor
 ### Task 4: Note activity minimap above the scrubber
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Graph/GraphView.tsx:1608-1719`
 
 Show a small bar chart (sparkline) above the scrubber that visualises how many notes were created in each time bucket. This gives users a sense of activity density before they scrub.
@@ -195,8 +205,10 @@ const activityBuckets = useMemo(() => {
 The minimap should sit above the range input. Make the timeline bar container `position: relative` (already done in Task 2). Add the SVG inside the timeline bar div, before the date label:
 
 ```tsx
-{/* Activity minimap — rendered as absolute overlay above scrubber */}
-<svg
+{
+  /* Activity minimap — rendered as absolute overlay above scrubber */
+}
+;<svg
   style={{
     position: 'absolute',
     left: isSettingsOpen ? 348 : 16,
@@ -210,14 +222,7 @@ The minimap should sit above the range input. Make the timeline bar container `p
   viewBox={`0 0 ${activityBuckets.length} 1`}
 >
   {activityBuckets.map((h, i) => (
-    <rect
-      key={i}
-      x={i}
-      y={1 - h}
-      width={0.85}
-      height={h}
-      fill="var(--accent-color)"
-    />
+    <rect key={i} x={i} y={1 - h} width={0.85} height={h} fill="var(--accent-color)" />
   ))}
   {/* Playhead indicator */}
   <line
@@ -237,11 +242,13 @@ The minimap should sit above the range input. Make the timeline bar container `p
 Change `height: 60` to `height: 72` on the timeline bar container so there's room for the minimap above the controls row. Shift the controls row to the bottom by wrapping the existing controls (date span, range, buttons) in a flex div with `alignItems: 'center'` and `marginTop: 'auto'`.
 
 Before (the timeline bar's inner contents start directly):
+
 ```tsx
 <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 136, flexShrink: 0 }}>
 ```
 
 Wrap all controls in:
+
 ```tsx
 <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', marginTop: 'auto' }}>
   {/* ... all existing controls: date span, range input, play button, select, record button, hint ... */}
@@ -249,6 +256,7 @@ Wrap all controls in:
 ```
 
 Also update the bottom offset for legend/HUD from `80` to `96`:
+
 ```tsx
 bottom: viewMode === 'history' ? 96 : 24,
 ```
@@ -269,6 +277,7 @@ git commit -m "feat: add note activity minimap to history timeline bar"
 ## Self-Review
 
 **Spec coverage:**
+
 - ✅ Sidebar overlapping timeline bar → Task 1 (paddingLeft offset)
 - ✅ Date context while scrubbing → Task 2 (year tick marks)
 - ✅ Better playback UX → Task 3 (keyboard shortcuts)

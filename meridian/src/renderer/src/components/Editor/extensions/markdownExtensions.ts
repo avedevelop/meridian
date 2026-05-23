@@ -24,7 +24,12 @@ import {
 } from '@codemirror/language'
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search'
 import { lintKeymap } from '@codemirror/lint'
-import { completionKeymap, closeBrackets, closeBracketsKeymap, autocompletion } from '@codemirror/autocomplete'
+import {
+  completionKeymap,
+  closeBrackets,
+  closeBracketsKeymap,
+  autocompletion
+} from '@codemirror/autocomplete'
 import { markdownKeymap } from './markdownKeymap'
 import { wikiLinkExtension } from './wikiLinkExtension'
 import { makeWikiLinkSource, makeWikiLinkTriggerListener } from './wikiLinkCompletion'
@@ -126,7 +131,14 @@ export function createMarkdownExtensions(
   return [
     ...(vimModeEnabled ? [vim()] : []),
     oneDark,
-    createMeridianTheme(fontSize, lineWidth, readableLineLength, fontFamily, fontWeight, lineHeight),
+    createMeridianTheme(
+      fontSize,
+      lineWidth,
+      readableLineLength,
+      fontFamily,
+      fontWeight,
+      lineHeight
+    ),
     lineWrapping ? EditorView.lineWrapping : [],
     lineNumbersEnabled ? lineNumbers() : [],
     highlightActiveLineGutter(),

@@ -31,7 +31,9 @@ export function useGit() {
   const [commitMessage, setCommitMessage] = useState('')
   const [committing, setCommitting] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [syncConfirm, setSyncConfirm] = useState<{ isEmpty: boolean; localCommits: number } | null>(null)
+  const [syncConfirm, setSyncConfirm] = useState<{ isEmpty: boolean; localCommits: number } | null>(
+    null
+  )
   const [checkingSync, setCheckingSync] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)

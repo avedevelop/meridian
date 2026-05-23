@@ -36,16 +36,17 @@ export function collectCmDecorations(view: EditorView): CmEntry[]
 
 ### Built-in formatters (registered in `markdownCore.ts` at module load)
 
-| Name | preprocessMd | postprocessHtml | cmDecorations |
-|------|-------------|-----------------|---------------|
-| `callouts` | `> [!NOTE]` → `<div class="callout ...">` | — | Line class + title widget for callout blocks |
-| `highlights` | `==text==` → `<mark>` | — | `Decoration.mark` class, replace `==` markers off-cursor |
-| `wikiLinks` | — | `[[link]]` → `<span class="wiki-link">` | `Decoration.mark` class on `[[...]]` spans |
-| `taskList` | — | — | Replace `[ ]`/`[x]` with checkbox widget |
+| Name         | preprocessMd                              | postprocessHtml                         | cmDecorations                                            |
+| ------------ | ----------------------------------------- | --------------------------------------- | -------------------------------------------------------- |
+| `callouts`   | `> [!NOTE]` → `<div class="callout ...">` | —                                       | Line class + title widget for callout blocks             |
+| `highlights` | `==text==` → `<mark>`                     | —                                       | `Decoration.mark` class, replace `==` markers off-cursor |
+| `wikiLinks`  | —                                         | `[[link]]` → `<span class="wiki-link">` | `Decoration.mark` class on `[[...]]` spans               |
+| `taskList`   | —                                         | —                                       | Replace `[ ]`/`[x]` with checkbox widget                 |
 
 ### Updated consumers
 
 **`MarkdownPreview.tsx`** — replace local `preProcessCallouts`, `preProcessHighlights` with:
+
 ```ts
 import { applyPreprocessors, applyPostprocessors } from '../../lib/markdownCore'
 // In useMemo:
@@ -54,6 +55,7 @@ const html = applyPostprocessors(String(processor.processSync(preprocessed)), fi
 ```
 
 **`livePreviewExtension.ts`** — replace local switch/case with:
+
 ```ts
 import { collectCmDecorations } from '../../lib/markdownCore'
 // In buildDecos():
@@ -64,21 +66,25 @@ const entries = collectCmDecorations(view)
 ### Formatter details
 
 **Callouts formatter (cmDecorations):**
+
 - Detect lines matching `^> \[!([\w]+)\](.*)` using the document text (not syntax tree, since callouts are custom syntax)
 - For the first line: apply `Decoration.line({ class: 'cm-lp-callout cm-lp-callout-{type}' })` + a widget showing the icon+title
 - For continuation lines (`^> `): apply `Decoration.line({ class: 'cm-lp-callout-body' })`
 - When cursor is on any callout line: show raw syntax (same cursor-on-line logic as existing decorations)
 
 **Highlights formatter (cmDecorations):**
+
 - Regex scan: `==([^=\n]{1,300})==`
 - Apply `Decoration.mark({ class: 'cm-lp-highlight' })` on full match
 - Apply `Decoration.replace({})` on `==` markers when cursor not on same line
 
 **WikiLinks formatter (cmDecorations):**
+
 - Regex scan: `\[\[([^\]]+)\]\]`
 - Apply `Decoration.mark({ class: 'cm-lp-wikilink' })` on full `[[...]]`
 
 **TaskList formatter (cmDecorations):**
+
 - Detect `- [ ] ` and `- [x] ` at line start (using syntax tree: `ListItem > TaskMarker`)
 - Replace `[ ]` with unchecked checkbox widget
 - Replace `[x]` with checked checkbox widget
@@ -86,10 +92,27 @@ const entries = collectCmDecorations(view)
 ### CSS additions (meridian.css)
 
 ```css
-.cm-lp-highlight { background: rgba(255,220,0,0.28); border-radius: 2px; padding: 0 2px; }
-.cm-lp-wikilink { color: var(--accent-color); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.cm-lp-callout { border-left: 3px solid var(--callout-color, #6b7280); padding-left: 12px; border-radius: 0 4px 4px 0; }
-.cm-lp-callout-body { border-left: 3px solid var(--callout-color, #6b7280); padding-left: 12px; opacity: 0.85; }
+.cm-lp-highlight {
+  background: rgba(255, 220, 0, 0.28);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.cm-lp-wikilink {
+  color: var(--accent-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.cm-lp-callout {
+  border-left: 3px solid var(--callout-color, #6b7280);
+  padding-left: 12px;
+  border-radius: 0 4px 4px 0;
+}
+.cm-lp-callout-body {
+  border-left: 3px solid var(--callout-color, #6b7280);
+  padding-left: 12px;
+  opacity: 0.85;
+}
 ```
 
 ## What stays the same

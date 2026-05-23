@@ -15,13 +15,43 @@ export function RightPanel() {
   const [activeTab, setActiveTab] = useState<RightTab>('properties')
   const plugins = useSettingsStore((s) => s.pluginsEnabled)
 
-  const tabs = ([
-    { id: 'properties', label: t('rightPanel.properties'), Icon: (props: any) => <SlidersIcon size={15} {...props} /> },
-    plugins.backlinksPanel ? { id: 'backlinks', label: t('rightPanel.backlinks'), Icon: (props: any) => <LinkIcon size={15} {...props} /> } : null,
-    plugins.tagsPanel ? { id: 'tags', label: t('rightPanel.tags'), Icon: (props: any) => <TagIcon size={15} {...props} /> } : null,
-    plugins.tocPanel ? { id: 'toc', label: t('rightPanel.toc'), Icon: (props: any) => <OutlineIcon size={15} {...props} /> } : null,
-    { id: 'local-graph', label: t('rightPanel.localGraph'), Icon: (props: any) => <WebIcon size={15} {...props} /> }
-  ].filter((t) => t !== null) as { id: RightTab; label: string; Icon: (props: any) => React.ReactElement }[])
+  const tabs = [
+    {
+      id: 'properties',
+      label: t('rightPanel.properties'),
+      Icon: (props: any) => <SlidersIcon size={15} {...props} />
+    },
+    plugins.backlinksPanel
+      ? {
+          id: 'backlinks',
+          label: t('rightPanel.backlinks'),
+          Icon: (props: any) => <LinkIcon size={15} {...props} />
+        }
+      : null,
+    plugins.tagsPanel
+      ? {
+          id: 'tags',
+          label: t('rightPanel.tags'),
+          Icon: (props: any) => <TagIcon size={15} {...props} />
+        }
+      : null,
+    plugins.tocPanel
+      ? {
+          id: 'toc',
+          label: t('rightPanel.toc'),
+          Icon: (props: any) => <OutlineIcon size={15} {...props} />
+        }
+      : null,
+    {
+      id: 'local-graph',
+      label: t('rightPanel.localGraph'),
+      Icon: (props: any) => <WebIcon size={15} {...props} />
+    }
+  ].filter((t) => t !== null) as {
+    id: RightTab
+    label: string
+    Icon: (props: any) => React.ReactElement
+  }[]
 
   const activeTabExists = tabs.some((t) => t.id === activeTab)
   const effectiveTab = activeTabExists ? activeTab : tabs[0]?.id || 'local-graph'
@@ -29,7 +59,9 @@ export function RightPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {tabs.length > 0 && (
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+        <div
+          style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}
+        >
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -55,7 +87,9 @@ export function RightPanel() {
                 background: effectiveTab === tab.id ? 'var(--bg-primary)' : 'transparent',
                 color: effectiveTab === tab.id ? 'var(--accent-color)' : 'var(--text-secondary)',
                 borderBottom:
-                  effectiveTab === tab.id ? '3px solid var(--accent-color)' : '3px solid transparent',
+                  effectiveTab === tab.id
+                    ? '3px solid var(--accent-color)'
+                    : '3px solid transparent',
                 transition: 'all 0.15s ease',
                 display: 'flex',
                 alignItems: 'center',

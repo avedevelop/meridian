@@ -23,13 +23,15 @@ export function processCallouts(html: string): string {
   // Two-step: first capture each blockquote, then check if it's a callout
   return html.replace(/<blockquote>([\s\S]*?)<\/blockquote>/gi, (fullMatch, inner) => {
     // Accept [!TYPE] at start of first <p>, with optional title, optional <br> variant, newline
-    const m = inner.match(/^\s*<p>\[!([\w]+)\]([^<\n]*?)(?:<br\s*\/?>)?\n?([\s\S]*?)<\/p>([\s\S]*)$/i)
+    const m = inner.match(
+      /^\s*<p>\[!([\w]+)\]([^<\n]*?)(?:<br\s*\/?>)?\n?([\s\S]*?)<\/p>([\s\S]*)$/i
+    )
     if (!m) return fullMatch
 
     const [, type, titleRest, firstParaRest, rest] = m
     const typeKey = type.toLowerCase()
     const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
-    const displayTitle = titleRest.trim() || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1))
+    const displayTitle = titleRest.trim() || typeKey.charAt(0).toUpperCase() + typeKey.slice(1)
     const body = (firstParaRest + rest).trim()
     return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
   })
@@ -88,11 +90,14 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
     return fullMatch
   })
 
-  return processed.replace(/(?<!!)(\[\[([^\]|]+)(?:\|([^\]]+))?\]\])/g, (_fullMatch, _bracket, link, alias) => {
-    const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
-    const linkAttr = link.trim().replace(/"/g, '&quot;')
-    return `<span class="wiki-link" data-link="${linkAttr}" style="color:var(--accent-color);text-decoration:underline;cursor:pointer">${label}</span>`
-  })
+  return processed.replace(
+    /(?<!!)(\[\[([^\]|]+)(?:\|([^\]]+))?\]\])/g,
+    (_fullMatch, _bracket, link, alias) => {
+      const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
+      const linkAttr = link.trim().replace(/"/g, '&quot;')
+      return `<span class="wiki-link" data-link="${linkAttr}" style="color:var(--accent-color);text-decoration:underline;cursor:pointer">${label}</span>`
+    }
+  )
 }
 
 export function processHighlights(html: string): string {

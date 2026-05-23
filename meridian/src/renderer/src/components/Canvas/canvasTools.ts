@@ -117,7 +117,9 @@ export function getEdgePoints(
   return { points: [p1.x, p1.y, p2.x, p2.y] }
 }
 
-export function computeMindMapLayout(canvasData: CanvasData): Map<string, { x: number; y: number }> {
+export function computeMindMapLayout(
+  canvasData: CanvasData
+): Map<string, { x: number; y: number }> {
   const { nodes, edges } = canvasData
   const positions = new Map<string, { x: number; y: number }>()
   if (nodes.length === 0) return positions
@@ -135,8 +137,8 @@ export function computeMindMapLayout(canvasData: CanvasData): Map<string, { x: n
   const roots = nodes.filter((n) => !hasParent.has(n.id)).map((n) => n.id)
   if (roots.length === 0) roots.push(nodes[0].id) // fallback: first node
 
-  const H_GAP = 80   // horizontal gap between nodes
-  const V_GAP = 60   // vertical gap between rows
+  const H_GAP = 80 // horizontal gap between nodes
+  const V_GAP = 60 // vertical gap between rows
 
   // Compute subtree height (in rows) for a node, preventing infinite loops
   const heightCache = new Map<string, number>()
@@ -162,7 +164,12 @@ export function computeMindMapLayout(canvasData: CanvasData): Map<string, { x: n
   // Place a subtree rooted at `id`, top-left corner at (x, startY)
   // Returns the total height consumed
   const placed = new Set<string>()
-  function place(id: string, x: number, startY: number, pathStack: Set<string> = new Set()): number {
+  function place(
+    id: string,
+    x: number,
+    startY: number,
+    pathStack: Set<string> = new Set()
+  ): number {
     if (placed.has(id) || pathStack.has(id)) return 0
     placed.add(id)
     pathStack.add(id)

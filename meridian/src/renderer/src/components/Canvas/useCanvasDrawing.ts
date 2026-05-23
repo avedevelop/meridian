@@ -1,13 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import type Konva from 'konva'
 import { CanvasData, CanvasNodeData, CanvasEdgeData } from './canvasTypes'
-import {
-  MAX_SCALE,
-  MIN_SCALE,
-  SCALE_BY,
-  DEFAULT_NODE_W,
-  DEFAULT_NODE_H
-} from './canvasTools'
+import { MAX_SCALE, MIN_SCALE, SCALE_BY, DEFAULT_NODE_W, DEFAULT_NODE_H } from './canvasTools'
 
 interface UseCanvasDrawingProps {
   stageRef: React.RefObject<Konva.Stage | null>
@@ -142,22 +136,25 @@ export function useCanvasDrawing({
     [canvasData.nodes]
   )
 
-  const handleNodeDragMove = useCallback((nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
-    const x = e.target.x()
-    const y = e.target.y()
-    const isFrame = frameChildrenRef.current.length > 0
-    setCanvasData((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) => {
-        if (n.id === nodeId) return { ...n, x, y }
-        if (isFrame) {
-          const child = frameChildrenRef.current.find((c) => c.id === n.id)
-          if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
-        }
-        return n
-      })
-    }))
-  }, [setCanvasData])
+  const handleNodeDragMove = useCallback(
+    (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {
+      const x = e.target.x()
+      const y = e.target.y()
+      const isFrame = frameChildrenRef.current.length > 0
+      setCanvasData((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) => {
+          if (n.id === nodeId) return { ...n, x, y }
+          if (isFrame) {
+            const child = frameChildrenRef.current.find((c) => c.id === n.id)
+            if (child) return { ...n, x: x + child.offsetX, y: y + child.offsetY }
+          }
+          return n
+        })
+      }))
+    },
+    [setCanvasData]
+  )
 
   const handleNodeDragEnd = useCallback(
     (nodeId: string, e: Konva.KonvaEventObject<DragEvent>) => {

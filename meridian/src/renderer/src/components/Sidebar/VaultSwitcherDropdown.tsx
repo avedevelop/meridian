@@ -136,7 +136,17 @@ export function VaultSwitcherDropdown({
 
       <div style={{ padding: '6px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '75%'
+            }}
+          >
             {activeVaultName}
           </span>
           <span
@@ -190,11 +200,20 @@ export function VaultSwitcherDropdown({
 
       <div className="vs-menu-section">{t('sidebar.recentProjects')}</div>
       {otherVaults.length === 0 ? (
-        <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+        <div
+          style={{
+            padding: '6px 12px',
+            fontSize: 11,
+            color: 'var(--text-secondary)',
+            fontStyle: 'italic'
+          }}
+        >
           {t('sidebar.noOtherVaults')}
         </div>
       ) : (
-        <div style={{ maxHeight: 150, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{ maxHeight: 150, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
+        >
           {otherVaults.map((v) => (
             <button
               key={v.path}
@@ -204,10 +223,25 @@ export function VaultSwitcherDropdown({
                 onOpenVaultByPath(v.path)
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <div
+                style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}
+              >
                 <span>{v.name}</span>
-                <span className="vs-subtext" title={v.path}>{v.path}</span>
+                <span className="vs-subtext" title={v.path}>
+                  {v.path}
+                </span>
               </div>
             </button>
           ))}
@@ -224,7 +258,20 @@ export function VaultSwitcherDropdown({
           onOpenVault()
         }}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M12 11v6"></path><path d="M9 14h6"></path></svg>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          <path d="M12 11v6"></path>
+          <path d="M9 14h6"></path>
+        </svg>
         <span>{t('sidebar.openFolder')}</span>
       </button>
       <button
@@ -234,7 +281,21 @@ export function VaultSwitcherDropdown({
           onCreateNewVault()
         }}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="12" y1="18" x2="12" y2="12"></line>
+          <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
         <span>{t('sidebar.createNewVault')}</span>
       </button>
     </div>

@@ -17,7 +17,10 @@ export function applyPreprocessors(md: string): string {
 }
 
 export function applyPostprocessors(html: string, files: VaultFile[]): string {
-  return registry.reduce((acc, f) => (f.postprocessHtml ? f.postprocessHtml(acc, files) : acc), html)
+  return registry.reduce(
+    (acc, f) => (f.postprocessHtml ? f.postprocessHtml(acc, files) : acc),
+    html
+  )
 }
 
 import { calloutsFormatter } from './markdownCoreFormatters/calloutsFormatter'

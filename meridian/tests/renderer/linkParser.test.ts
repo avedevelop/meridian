@@ -57,7 +57,7 @@ describe('parseLinks', () => {
   it('deduplicates tags from frontmatter and inline', () => {
     const content = '---\ntags: [work]\n---\n\nHello #work and #extra'
     const { tags } = parseLinks(content)
-    const workCount = tags.filter(t => t === 'work').length
+    const workCount = tags.filter((t) => t === 'work').length
     expect(workCount).toBe(1)
     expect(tags).toContain('extra')
   })

@@ -4,5 +4,5 @@ import { postprocessWikiLinks } from '../../components/Editor/markdownUtils'
 
 export const wikiLinksFormatter: MarkdownFormatter = {
   name: 'wikiLinks',
-  postprocessHtml: (html: string, files: VaultFile[]) => postprocessWikiLinks(html, files),
+  postprocessHtml: (html: string, files: VaultFile[]) => postprocessWikiLinks(html, files)
 }

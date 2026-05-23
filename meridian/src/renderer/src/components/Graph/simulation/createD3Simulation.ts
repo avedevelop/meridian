@@ -112,11 +112,7 @@ export function createD3Simulation({
 
     grad.append('stop').attr('offset', '0%').attr('stop-color', color).attr('stop-opacity', 0.7)
 
-    grad
-      .append('stop')
-      .attr('offset', '100%')
-      .attr('stop-color', color)
-      .attr('stop-opacity', 0)
+    grad.append('stop').attr('offset', '100%').attr('stop-color', color).attr('stop-opacity', 0)
   })
 
   // Grid background
@@ -126,7 +122,12 @@ export function createD3Simulation({
     .attr('width', 28)
     .attr('height', 28)
     .attr('patternUnits', 'userSpaceOnUse')
-  pattern.append('circle').attr('cx', 14).attr('cy', 14).attr('r', 0.75).attr('fill', 'var(--border-color)')
+  pattern
+    .append('circle')
+    .attr('cx', 14)
+    .attr('cy', 14)
+    .attr('r', 0.75)
+    .attr('fill', 'var(--border-color)')
 
   svg.append('rect').attr('width', width).attr('height', height).attr('fill', 'var(--bg-secondary)')
   svg.append('rect').attr('width', width).attr('height', height).attr('fill', 'url(#dotgrid)')
@@ -261,4 +262,3 @@ export function createD3Simulation({
     buildResult
   }
 }
-

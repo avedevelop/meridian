@@ -58,7 +58,7 @@ export function SearchPanel() {
               padding: '8px 12px',
               cursor: 'pointer',
               borderBottom: '1px solid var(--border-color)',
-              background: hoveredPath === result.path ? 'var(--bg-surface)' : 'transparent',
+              background: hoveredPath === result.path ? 'var(--bg-surface)' : 'transparent'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
@@ -68,22 +68,34 @@ export function SearchPanel() {
               </span>
             </div>
             {result.snippet && (
-              <div style={{
-                fontSize: 11,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.5,
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-              } as React.CSSProperties}>
+              <div
+                style={
+                  {
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical'
+                  } as React.CSSProperties
+                }
+              >
                 {result.snippet}
               </div>
             )}
           </div>
         ))}
         {query && searchResults.length === 0 && (
-          <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
+          <div
+            style={{
+              padding: '24px 12px',
+              textAlign: 'center',
+              color: 'var(--text-secondary)',
+              fontSize: 12,
+              opacity: 0.6
+            }}
+          >
             {t('search.noMatch', { query })}
           </div>
         )}

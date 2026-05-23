@@ -28,9 +28,7 @@ export function TabBar({ paneId }: TabBarProps) {
   const { t } = useTranslation()
 
   const alwaysShowTabBar = useSettingsStore((s) => s.alwaysShowTabBar)
-  const openTabsForPane = useVaultStore((s) =>
-    s.panes.find((p) => p.id === paneId)?.openTabs ?? []
-  )
+  const openTabsForPane = useVaultStore((s) => s.panes.find((p) => p.id === paneId)?.openTabs ?? [])
 
   const pane = panes.find((p) => p.id === paneId) || panes[0]
   const { openTabs, activeTabPath } = pane
@@ -186,7 +184,14 @@ export function TabBar({ paneId }: TabBarProps) {
             e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
             <rect x="2" y="2" width="12" height="12" rx="1.5" />
             <line x1="8" y1="2" x2="8" y2="14" />
           </svg>
@@ -215,7 +220,14 @@ export function TabBar({ paneId }: TabBarProps) {
             e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
             <rect x="2" y="2" width="12" height="12" rx="1.5" />
             <line x1="2" y1="8" x2="14" y2="8" />
           </svg>
@@ -245,7 +257,14 @@ export function TabBar({ paneId }: TabBarProps) {
               e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <line x1="4" y1="4" x2="12" y2="12" />
               <line x1="12" y1="4" x2="4" y2="12" />
             </svg>

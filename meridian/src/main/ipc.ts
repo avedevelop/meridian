@@ -247,56 +247,72 @@ export function registerIpcHandlers(settings: AppSettings): void {
     }
   })
 
-  ipcMain.handle(IPC.VAULT_EXPORT_HTML, async (_event, suggestedName: string, html: string, customCSS: string = '') => {
-    const result = await dialog.showSaveDialog({
-      title: 'Export Note as HTML',
-      defaultPath: suggestedName,
-      filters: [{ name: 'HTML Files', extensions: ['html'] }],
-      buttonLabel: 'Export'
-    })
-    if (result.canceled || !result.filePath) return null
-    const finalHtml = customCSS
-      ? html.replace('</head>', `<style>${customCSS}</style></head>`)
-      : html
-    const { writeFile } = await import('fs/promises')
-    await writeFile(result.filePath, finalHtml, 'utf-8')
-    return result.filePath
-  })
-
-  ipcMain.handle(IPC.VAULT_EXPORT_PDF, async (_event, suggestedName: string, html: string, pageSize: 'A4' | 'Letter' = 'A4', customCSS: string = '') => {
-    const { filePath } = await dialog.showSaveDialog({
-      title: 'Export Note as PDF',
-      defaultPath: suggestedName,
-      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
-      buttonLabel: 'Export'
-    })
-    if (!filePath) return null
-
-    const { tmpdir } = await import('os')
-    const { join: joinPath } = await import('path')
-    const { writeFile: wf, unlink } = await import('fs/promises')
-    const tmpHtml = joinPath(tmpdir(), `meridian-pdf-${Date.now()}.html`)
-
-    const finalHtml = customCSS
-      ? html.replace('</head>', `<style>${customCSS}</style></head>`)
-      : html
-
-    try {
-      await wf(tmpHtml, finalHtml, 'utf-8')
-      const { BrowserWindow: BW } = await import('electron')
-      const win = new BW({ show: false, webPreferences: { javascript: false, sandbox: true } })
-      await win.loadFile(tmpHtml)
-      const pdfData = await win.webContents.printToPDF({
-        printBackground: true,
-        pageSize: pageSize
+  ipcMain.handle(
+    IPC.VAULT_EXPORT_HTML,
+    async (_event, suggestedName: string, html: string, customCSS: string = '') => {
+      const result = await dialog.showSaveDialog({
+        title: 'Export Note as HTML',
+        defaultPath: suggestedName,
+        filters: [{ name: 'HTML Files', extensions: ['html'] }],
+        buttonLabel: 'Export'
       })
-      win.close()
-      await wf(filePath, pdfData)
-      return filePath
-    } finally {
-      try { await unlink(tmpHtml) } catch { /* ignore */ }
+      if (result.canceled || !result.filePath) return null
+      const finalHtml = customCSS
+        ? html.replace('</head>', `<style>${customCSS}</style></head>`)
+        : html
+      const { writeFile } = await import('fs/promises')
+      await writeFile(result.filePath, finalHtml, 'utf-8')
+      return result.filePath
     }
-  })
+  )
+
+  ipcMain.handle(
+    IPC.VAULT_EXPORT_PDF,
+    async (
+      _event,
+      suggestedName: string,
+      html: string,
+      pageSize: 'A4' | 'Letter' = 'A4',
+      customCSS: string = ''
+    ) => {
+      const { filePath } = await dialog.showSaveDialog({
+        title: 'Export Note as PDF',
+        defaultPath: suggestedName,
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+        buttonLabel: 'Export'
+      })
+      if (!filePath) return null
+
+      const { tmpdir } = await import('os')
+      const { join: joinPath } = await import('path')
+      const { writeFile: wf, unlink } = await import('fs/promises')
+      const tmpHtml = joinPath(tmpdir(), `meridian-pdf-${Date.now()}.html`)
+
+      const finalHtml = customCSS
+        ? html.replace('</head>', `<style>${customCSS}</style></head>`)
+        : html
+
+      try {
+        await wf(tmpHtml, finalHtml, 'utf-8')
+        const { BrowserWindow: BW } = await import('electron')
+        const win = new BW({ show: false, webPreferences: { javascript: false, sandbox: true } })
+        await win.loadFile(tmpHtml)
+        const pdfData = await win.webContents.printToPDF({
+          printBackground: true,
+          pageSize: pageSize
+        })
+        win.close()
+        await wf(filePath, pdfData)
+        return filePath
+      } finally {
+        try {
+          await unlink(tmpHtml)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  )
 
   ipcMain.handle(IPC.VAULT_SAVE_VIDEO, async (_event, data: Uint8Array) => {
     const { filePath } = await dialog.showSaveDialog({
@@ -366,7 +382,8 @@ export function registerIpcHandlers(settings: AppSettings): void {
 
   ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string) => {
     const https = await import('https')
-    const { createWriteStream, createReadStream, mkdirSync, rmSync, renameSync, existsSync } = await import('fs')
+    const { createWriteStream, createReadStream, mkdirSync, rmSync, renameSync, existsSync } =
+      await import('fs')
     const { join } = await import('path')
     const { tmpdir } = await import('os')
     const unzipper = await import('unzipper')
@@ -378,16 +395,18 @@ export function registerIpcHandlers(settings: AppSettings): void {
     // Download ZIP
     await new Promise<void>((resolve, reject) => {
       const follow = (url: string) => {
-        https.get(url, (res) => {
-          if (res.statusCode === 301 || res.statusCode === 302) {
-            follow(res.headers.location!)
-            return
-          }
-          const file = createWriteStream(tmpZip)
-          res.pipe(file)
-          file.on('finish', () => file.close(() => resolve()))
-          file.on('error', reject)
-        }).on('error', reject)
+        https
+          .get(url, (res) => {
+            if (res.statusCode === 301 || res.statusCode === 302) {
+              follow(res.headers.location!)
+              return
+            }
+            const file = createWriteStream(tmpZip)
+            res.pipe(file)
+            file.on('finish', () => file.close(() => resolve()))
+            file.on('error', reject)
+          })
+          .on('error', reject)
       }
       follow(zipUrl)
     })
@@ -410,8 +429,16 @@ export function registerIpcHandlers(settings: AppSettings): void {
     renameSync(extractedPath, destPath)
 
     // Cleanup
-    try { rmSync(tmpZip) } catch { /* ignore */ }
-    try { rmSync(tmpExtract, { recursive: true }) } catch { /* ignore */ }
+    try {
+      rmSync(tmpZip)
+    } catch {
+      /* ignore */
+    }
+    try {
+      rmSync(tmpExtract, { recursive: true })
+    } catch {
+      /* ignore */
+    }
 
     return destPath
   })
@@ -444,7 +471,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
       const changes = lines.map((line) => {
         const status = line.slice(0, 2)
         const path = line.slice(2).trim()
-        
+
         let type: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown' = 'unknown'
         if (status.includes('M')) type = 'modified'
         else if (status.includes('A')) type = 'added'
@@ -500,7 +527,9 @@ export function registerIpcHandlers(settings: AppSettings): void {
     try {
       await execFileAsync('git', ['add', '.'], { cwd })
       // Check if there are staged changes to commit
-      const { stdout: diffOut } = await execFileAsync('git', ['diff', '--cached', '--name-only'], { cwd })
+      const { stdout: diffOut } = await execFileAsync('git', ['diff', '--cached', '--name-only'], {
+        cwd
+      })
       if (!diffOut.trim()) {
         return { success: true, message: 'Nothing to commit' }
       }
@@ -524,12 +553,20 @@ export function registerIpcHandlers(settings: AppSettings): void {
       const hasRemote = remoteStdout.trim().length > 0
 
       if (hasRemote) {
-        const { stdout: branchOut } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd })
+        const { stdout: branchOut } = await execFileAsync(
+          'git',
+          ['rev-parse', '--abbrev-ref', 'HEAD'],
+          { cwd }
+        )
         const branch = branchOut.trim() || defaultBranch
         const { githubToken } = settings.get()
 
         // Get remote URL and temporarily embed token for auth
-        const { stdout: remoteUrlOut } = await execFileAsync('git', ['remote', 'get-url', 'origin'], { cwd })
+        const { stdout: remoteUrlOut } = await execFileAsync(
+          'git',
+          ['remote', 'get-url', 'origin'],
+          { cwd }
+        )
         const remoteUrl = remoteUrlOut.trim()
         let authUrl = remoteUrl
 
@@ -540,12 +577,18 @@ export function registerIpcHandlers(settings: AppSettings): void {
             u.password = githubToken
             authUrl = u.toString()
             await execFileAsync('git', ['remote', 'set-url', 'origin', authUrl], { cwd })
-          } catch { /* leave URL unchanged */ }
+          } catch {
+            /* leave URL unchanged */
+          }
         }
 
         try {
           // Check if remote has any refs (empty repo on first push)
-          const { stdout: lsRemote } = await execFileAsync('git', ['ls-remote', '--heads', 'origin'], { cwd }).catch(() => ({ stdout: '' }))
+          const { stdout: lsRemote } = await execFileAsync(
+            'git',
+            ['ls-remote', '--heads', 'origin'],
+            { cwd }
+          ).catch(() => ({ stdout: '' }))
           if (lsRemote.trim().length > 0) {
             await execFileAsync('git', ['pull', '--rebase', 'origin', branch], { cwd })
           }
@@ -553,7 +596,9 @@ export function registerIpcHandlers(settings: AppSettings): void {
         } finally {
           // Always restore clean URL (no token in git config)
           if (authUrl !== remoteUrl) {
-            await execFileAsync('git', ['remote', 'set-url', 'origin', remoteUrl], { cwd }).catch(() => {})
+            await execFileAsync('git', ['remote', 'set-url', 'origin', remoteUrl], { cwd }).catch(
+              () => {}
+            )
           }
         }
         return { success: true }
@@ -613,11 +658,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
 
     try {
       const normalizedPath = relativePath.replace(/\\/g, '/')
-      const { stdout } = await execFileAsync(
-        'git',
-        ['show', `HEAD:${normalizedPath}`],
-        { cwd }
-      )
+      const { stdout } = await execFileAsync('git', ['show', `HEAD:${normalizedPath}`], { cwd })
       return { success: true, content: stdout }
     } catch (e: any) {
       return { success: true, content: '' }
@@ -651,10 +692,10 @@ export function registerIpcHandlers(settings: AppSettings): void {
     try {
       const res = await fetch('https://github.com/login/device/code', {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo' })
       })
-      const data = await res.json() as {
+      const data = (await res.json()) as {
         device_code: string
         user_code: string
         verification_uri: string
@@ -671,14 +712,14 @@ export function registerIpcHandlers(settings: AppSettings): void {
     try {
       const res = await fetch('https://github.com/login/oauth/access_token', {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client_id: GITHUB_CLIENT_ID,
           device_code: deviceCode,
           grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
         })
       })
-      const data = await res.json() as {
+      const data = (await res.json()) as {
         access_token?: string
         error?: string
         token_type?: string
@@ -686,13 +727,16 @@ export function registerIpcHandlers(settings: AppSettings): void {
       if (data.access_token) {
         // Fetch GitHub username
         const userRes = await fetch('https://api.github.com/user', {
-          headers: { 'Authorization': `token ${data.access_token}`, 'Accept': 'application/json' }
+          headers: { Authorization: `token ${data.access_token}`, Accept: 'application/json' }
         })
-        const user = await userRes.json() as { login?: string }
+        const user = (await userRes.json()) as { login?: string }
         settings.setGithubToken(data.access_token, user.login ?? '')
         return { success: true, username: user.login ?? '' }
       }
-      return { success: false, pending: data.error === 'authorization_pending' || data.error === 'slow_down' }
+      return {
+        success: false,
+        pending: data.error === 'authorization_pending' || data.error === 'slow_down'
+      }
     } catch (e: any) {
       return { success: false, error: e.message || String(e) }
     }
@@ -715,6 +759,30 @@ export function registerIpcHandlers(settings: AppSettings): void {
   ipcMain.handle(IPC.GET_CONFIG_PATH, async () => {
     const { app } = await import('electron')
     return app.getPath('userData')
+  })
+
+  ipcMain.handle(IPC.PLUGIN_LIST, async () => {
+    if (!vaultManager) return []
+    return vaultManager.listPluginManifests()
+  })
+
+  ipcMain.handle(IPC.PLUGIN_LOAD, async (_event, id: string) => {
+    if (!vaultManager) throw new Error('No vault open')
+    const manifests = await vaultManager.listPluginManifests()
+    const manifest = manifests.find((m) => m.id === id)
+    if (!manifest) throw new Error(`Plugin not found: ${id}`)
+    const mainFile = manifest.main || 'main.js'
+    const { join } = await import('path')
+    const { stat } = await import('fs/promises')
+    const pluginsDir = join(vaultManager.vaultPath, '.meridian', 'plugins')
+    const mainFilePath = join(pluginsDir, id, mainFile)
+    try {
+      const stats = await stat(mainFilePath)
+      if (!stats.isFile()) throw new Error(`Main file is not a file: ${mainFile}`)
+    } catch (err) {
+      throw new Error(`Failed to access plugin main file: ${mainFile}. ${err}`)
+    }
+    return `meridian-plugin://${id}/${mainFile}`
   })
 }
 

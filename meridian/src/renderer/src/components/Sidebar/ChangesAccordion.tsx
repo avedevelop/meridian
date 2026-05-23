@@ -66,7 +66,13 @@ export function ChangesAccordion({
       </div>
 
       {expanded && (
-        <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border-color)' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            borderBottom: '1px solid var(--border-color)'
+          }}
+        >
           {changes.length === 0 ? (
             <div
               style={{

@@ -55,7 +55,7 @@ export function imagePasteExtension(
 
           const pos = view.posAtCoords({ x: event.clientX, y: event.clientY })
           const insertPos = pos !== null ? pos : view.state.selection.main.head
-          
+
           const relativePath = await onImagePaste(base64, ext)
           if (!relativePath) return
 

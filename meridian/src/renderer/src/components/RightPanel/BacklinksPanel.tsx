@@ -28,7 +28,15 @@ export function BacklinksPanel() {
         {t('backlinks.title')}
       </div>
       {backlinks.length === 0 ? (
-        <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
+        <div
+          style={{
+            padding: '24px 16px',
+            textAlign: 'center',
+            color: 'var(--text-secondary)',
+            fontSize: 12,
+            opacity: 0.6
+          }}
+        >
           {t('backlinks.empty')}
         </div>
       ) : (

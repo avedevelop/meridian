@@ -326,9 +326,7 @@ export function CanvasNode({
                   ? `2px solid ${NODE_SELECTED_STROKE}`
                   : `1px solid ${NODE_STROKE}`,
                 borderRadius: '8px',
-                boxShadow: isSelected
-                  ? '0 6px 12px rgba(0,0,0,0.4)'
-                  : '0 2px 4px rgba(0,0,0,0.2)'
+                boxShadow: isSelected ? '0 6px 12px rgba(0,0,0,0.4)' : '0 2px 4px rgba(0,0,0,0.2)'
               }}
             >
               <div

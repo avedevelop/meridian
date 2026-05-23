@@ -13,6 +13,7 @@
 ## File Map
 
 **Modified:**
+
 - `src/renderer/src/components/Editor/MarkdownPreview.tsx` — Tasks 1, 2
 - `src/renderer/src/components/Sidebar/FileTree.tsx` — Task 3
 - `src/renderer/src/components/Sidebar/Sidebar.tsx` — Task 4
@@ -25,6 +26,7 @@
 - `src/main/index.ts` — Task 8
 
 **Created:**
+
 - `src/renderer/src/components/Editor/extensions/slashCommands.ts` — Task 5
 - `src/renderer/src/components/RightPanel/PropertiesPanel.tsx` — Task 7
 
@@ -35,6 +37,7 @@
 **Context:** `MarkdownPreview.tsx` already handles `![[*.excalidraw]]` embeds and converts `<img src="relative">` to `vault:///relative`. But `![[photo.png]]` (Obsidian-style image embed) is silently dropped. The vault:// protocol handler in `src/main/index.ts` is fully working — it serves files by relative path from vault root.
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/MarkdownPreview.tsx`
 
 - [ ] **Step 1: Write the failing test**
@@ -49,14 +52,18 @@ import { describe, it, expect } from 'vitest'
 
 const IMAGE_EXTS = /\.(png|jpg|jpeg|gif|webp|svg|bmp|tiff)$/i
 
-function postprocessWikiLinksTestable(html: string, files: Array<{name: string, relativePath: string}>): string {
+function postprocessWikiLinksTestable(
+  html: string,
+  files: Array<{ name: string; relativePath: string }>
+): string {
   let processed = html.replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, link, alias) => {
     const linkText = link.trim()
     if (linkText.endsWith('.excalidraw')) return _match // leave for useEffect
     if (IMAGE_EXTS.test(linkText)) {
-      const match = files.find(f =>
-        f.name.toLowerCase() === linkText.toLowerCase() ||
-        f.relativePath.toLowerCase() === linkText.toLowerCase()
+      const match = files.find(
+        (f) =>
+          f.name.toLowerCase() === linkText.toLowerCase() ||
+          f.relativePath.toLowerCase() === linkText.toLowerCase()
       )
       const src = match ? `vault:///${match.relativePath}` : `vault:///${linkText}`
       const alt = (alias?.trim() ?? linkText).replace(/"/g, '&quot;')
@@ -132,10 +139,7 @@ const IMAGE_EXTS = /\.(png|jpg|jpeg|gif|webp|svg|bmp|tiff)$/i
 Replace the existing function signature and the `![[...]]` handling block:
 
 ```typescript
-function postprocessWikiLinks(
-  html: string,
-  files: import('@shared/types').VaultFile[]
-): string {
+function postprocessWikiLinks(html: string, files: import('@shared/types').VaultFile[]): string {
   const flatFiles = flattenVaultFiles(files)
 
   // 1. Process ![[...]] embeds
@@ -209,6 +213,7 @@ git commit -m "feat: render ![[image.png]] wiki embeds in markdown preview"
 **Context:** Obsidian-style callouts use the syntax `> [!NOTE]` inside blockquotes. remark-gfm parses them as plain blockquotes. We need to post-process the generated HTML to convert these into styled callout divs.
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/MarkdownPreview.tsx`
 
 - [ ] **Step 1: Write the test**
@@ -239,7 +244,7 @@ function processCalloutsTestable(html: string): string {
     (_match, type, titleRest, _br, firstParaRest, bodyRest) => {
       const typeKey = type.toLowerCase()
       const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
-      const displayTitle = titleRest.trim() || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1))
+      const displayTitle = titleRest.trim() || typeKey.charAt(0).toUpperCase() + typeKey.slice(1)
       const body = (firstParaRest + bodyRest).trim()
       return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
     }
@@ -313,7 +318,7 @@ function processCallouts(html: string): string {
     (_match, type, titleRest, _br, firstParaRest, bodyRest) => {
       const typeKey = type.toLowerCase()
       const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
-      const displayTitle = titleRest.trim() || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1))
+      const displayTitle = titleRest.trim() || typeKey.charAt(0).toUpperCase() + typeKey.slice(1)
       const body = (firstParaRest + bodyRest).trim()
       return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
     }
@@ -367,6 +372,7 @@ git commit -m "feat: render Obsidian-style callout blocks in markdown preview"
 **Context:** In `FileTree.tsx`, `draggable={!file.isDirectory}` prevents folders from being dragged. The drop handler already calls `onMove?.(dragPath, file.path)` when a drop lands on a directory. `vault.ts`'s `moveFile` uses `fs.rename` which works for directories too. We just need to make directories draggable and guard against dropping a folder into its own descendant.
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Sidebar/FileTree.tsx`
 
 - [ ] **Step 1: Write the test**
@@ -495,6 +501,7 @@ git commit -m "feat: make folders draggable in file tree for folder reorganizati
 **Context:** `vault.ts` sorts files alphabetically with folders first (server-side, not configurable). We add client-side sorting in `Sidebar.tsx` with a cycle button that goes: Name A→Z → Name Z→A → Modified (newest first) → back to A→Z.
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Sidebar/Sidebar.tsx`
 
 - [ ] **Step 1: Write the test**
@@ -575,7 +582,10 @@ Add the `sortFiles` helper and sort state to `src/renderer/src/components/Sideba
 ```typescript
 type SortOrder = 'name-asc' | 'name-desc' | 'modified'
 
-function sortFiles(files: import('@shared/types').VaultFile[], order: SortOrder): import('@shared/types').VaultFile[] {
+function sortFiles(
+  files: import('@shared/types').VaultFile[],
+  order: SortOrder
+): import('@shared/types').VaultFile[] {
   const sorted = [...files].sort((a, b) => {
     if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
     if (order === 'name-asc') return a.name.localeCompare(b.name)
@@ -591,7 +601,7 @@ function sortFiles(files: import('@shared/types').VaultFile[], order: SortOrder)
 const SORT_LABELS: Record<SortOrder, string> = {
   'name-asc': 'A→Z',
   'name-desc': 'Z→A',
-  'modified': '🕐'
+  modified: '🕐'
 }
 
 const SORT_CYCLE: SortOrder[] = ['name-asc', 'name-desc', 'modified']
@@ -608,10 +618,12 @@ const sortedFiles = useMemo(() => sortFiles(files, sortOrder), [files, sortOrder
 
 ```tsx
 <button
-  onClick={() => setSortOrder(o => {
-    const idx = SORT_CYCLE.indexOf(o)
-    return SORT_CYCLE[(idx + 1) % SORT_CYCLE.length]
-  })}
+  onClick={() =>
+    setSortOrder((o) => {
+      const idx = SORT_CYCLE.indexOf(o)
+      return SORT_CYCLE[(idx + 1) % SORT_CYCLE.length]
+    })
+  }
   title={`Sort: ${SORT_LABELS[sortOrder]} (click to change)`}
   style={{
     background: 'transparent',
@@ -626,7 +638,10 @@ const sortedFiles = useMemo(() => sortFiles(files, sortOrder), [files, sortOrder
     minWidth: 24
   }}
   onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-  onMouseLeave={(e) => (e.currentTarget.style.color = sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)')}
+  onMouseLeave={(e) =>
+    (e.currentTarget.style.color =
+      sortOrder !== 'name-asc' ? 'var(--accent-color)' : 'var(--text-secondary)')
+  }
 >
   {SORT_LABELS[sortOrder]}
 </button>
@@ -666,6 +681,7 @@ git commit -m "feat: add sort toggle in sidebar (A-Z, Z-A, by modified date)"
 **Context:** `useSettingsStore` already has `pluginsEnabled.slashCommands`. When the user types `/` at the start of a line (or after only whitespace), a completion popup should appear with common markdown insertions. We use CodeMirror's `autocompletion` API — the same infrastructure already used for wiki link completions.
 
 **Files:**
+
 - Create: `src/renderer/src/components/Editor/extensions/slashCommands.ts`
 - Modify: `src/renderer/src/components/Editor/extensions/markdownExtensions.ts`
 
@@ -673,10 +689,14 @@ git commit -m "feat: add sort toggle in sidebar (A-Z, Z-A, by modified date)"
 
 Create `tests/renderer/slashCommands.test.ts`:
 
-```typescript
+````typescript
 import { describe, it, expect } from 'vitest'
 
-interface SlashCommand { label: string; apply: string; detail: string }
+interface SlashCommand {
+  label: string
+  apply: string
+  detail: string
+}
 
 const SLASH_COMMANDS: SlashCommand[] = [
   { label: '/Heading 1', apply: '# ', detail: 'H1 heading' },
@@ -689,18 +709,22 @@ const SLASH_COMMANDS: SlashCommand[] = [
   { label: '/Bullet List', apply: '- ', detail: 'unordered list' },
   { label: '/Numbered List', apply: '1. ', detail: 'ordered list' },
   { label: '/Task List', apply: '- [ ] ', detail: 'task checkbox' },
-  { label: '/Table', apply: '| Col 1 | Col 2 |\n|---|---|\n| Cell | Cell |', detail: 'markdown table' },
+  {
+    label: '/Table',
+    apply: '| Col 1 | Col 2 |\n|---|---|\n| Cell | Cell |',
+    detail: 'markdown table'
+  },
   { label: '/Divider', apply: '\n---\n', detail: 'horizontal rule' },
   { label: '/Quote', apply: '> ', detail: 'blockquote' },
   { label: '/Callout Note', apply: '> [!NOTE]\n> ', detail: 'info callout' },
   { label: '/Callout Warning', apply: '> [!WARNING]\n> ', detail: 'warning callout' },
-  { label: '/Callout Tip', apply: '> [!TIP]\n> ', detail: 'tip callout' },
+  { label: '/Callout Tip', apply: '> [!TIP]\n> ', detail: 'tip callout' }
 ]
 
 function filterCommands(query: string): SlashCommand[] {
   if (!query) return SLASH_COMMANDS
   const q = query.toLowerCase()
-  return SLASH_COMMANDS.filter(c => c.label.toLowerCase().includes(q))
+  return SLASH_COMMANDS.filter((c) => c.label.toLowerCase().includes(q))
 }
 
 describe('slash command filtering', () => {
@@ -722,7 +746,7 @@ describe('slash command filtering', () => {
     expect(filterCommands('xyznonexistent')).toHaveLength(0)
   })
 })
-```
+````
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -735,8 +759,12 @@ npm run test -- tests/renderer/slashCommands.test.ts 2>&1 | tail -10
 
 Create `src/renderer/src/components/Editor/extensions/slashCommands.ts`:
 
-```typescript
-import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
+````typescript
+import {
+  autocompletion,
+  type CompletionContext,
+  type CompletionResult
+} from '@codemirror/autocomplete'
 
 interface SlashCommand {
   label: string
@@ -755,12 +783,16 @@ const SLASH_COMMANDS: SlashCommand[] = [
   { label: '/Bullet List', apply: '- ', detail: 'unordered list' },
   { label: '/Numbered List', apply: '1. ', detail: 'ordered list' },
   { label: '/Task List', apply: '- [ ] ', detail: 'task checkbox' },
-  { label: '/Table', apply: '| Col 1 | Col 2 |\n|---|---|\n| Cell | Cell |', detail: 'markdown table' },
+  {
+    label: '/Table',
+    apply: '| Col 1 | Col 2 |\n|---|---|\n| Cell | Cell |',
+    detail: 'markdown table'
+  },
   { label: '/Divider', apply: '\n---\n', detail: 'horizontal rule' },
   { label: '/Quote', apply: '> ', detail: 'blockquote' },
   { label: '/Callout Note', apply: '> [!NOTE]\n> ', detail: 'info callout' },
   { label: '/Callout Warning', apply: '> [!WARNING]\n> ', detail: 'warning callout' },
-  { label: '/Callout Tip', apply: '> [!TIP]\n> ', detail: 'tip callout' },
+  { label: '/Callout Tip', apply: '> [!TIP]\n> ', detail: 'tip callout' }
 ]
 
 function slashCompletion(context: CompletionContext): CompletionResult | null {
@@ -806,7 +838,7 @@ export function slashCommandExtension() {
     activateOnTyping: true
   })
 }
-```
+````
 
 - [ ] **Step 4: Update markdownExtensions.ts**
 
@@ -866,7 +898,7 @@ const {
   fontFamily,
   fontWeight,
   lineHeight,
-  pluginsEnabled    // ← add this
+  pluginsEnabled // ← add this
 } = useSettingsStore()
 ```
 
@@ -920,6 +952,7 @@ git commit -m "feat: slash commands in editor — type / at line start for markd
 **Context:** Templates are `.md` files stored in a `_templates/` folder at the vault root. The user inserts a template via command palette ("Insert Template"). The template content replaces `{{date}}` and `{{title}}` placeholders and is prepended to the active note.
 
 **Files:**
+
 - Modify: `src/renderer/src/hooks/useVaultBridge.ts`
 - Modify: `src/renderer/src/components/CommandPalette/CommandPalette.tsx`
 
@@ -931,9 +964,7 @@ Create `tests/renderer/templates.test.ts`:
 import { describe, it, expect } from 'vitest'
 
 function applyTemplatePlaceholders(template: string, title: string, date: string): string {
-  return template
-    .replace(/\{\{date\}\}/gi, date)
-    .replace(/\{\{title\}\}/gi, title)
+  return template.replace(/\{\{date\}\}/gi, date).replace(/\{\{title\}\}/gi, title)
 }
 
 function prependTemplate(templateContent: string, existingContent: string): string {
@@ -1004,35 +1035,30 @@ const listTemplates = useCallback(async (): Promise<Array<{ name: string; path: 
   return findTemplates(allFiles)
 }, [])
 
-const applyTemplate = useCallback(
-  async (templatePath: string) => {
-    try {
-      const templateContent = await window.vault.readFile(templatePath)
-      const { panes, activePaneId } = useVaultStore.getState()
-      const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0]
-      const activeTab = activePane?.openTabs.find((t) => t.path === activePane.activeTabPath)
-      if (!activeTab) return
+const applyTemplate = useCallback(async (templatePath: string) => {
+  try {
+    const templateContent = await window.vault.readFile(templatePath)
+    const { panes, activePaneId } = useVaultStore.getState()
+    const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0]
+    const activeTab = activePane?.openTabs.find((t) => t.path === activePane.activeTabPath)
+    if (!activeTab) return
 
-      const d = new Date()
-      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      const title = activeTab.name.replace(/\.md$/i, '')
+    const d = new Date()
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const title = activeTab.name.replace(/\.md$/i, '')
 
-      const processed = templateContent
-        .replace(/\{\{date\}\}/gi, date)
-        .replace(/\{\{title\}\}/gi, title)
+    const processed = templateContent
+      .replace(/\{\{date\}\}/gi, date)
+      .replace(/\{\{title\}\}/gi, title)
 
-      const newContent = activeTab.content.trim()
-        ? processed + '\n\n' + activeTab.content
-        : processed
+    const newContent = activeTab.content.trim() ? processed + '\n\n' + activeTab.content : processed
 
-      useVaultStore.getState().setTabContent(activeTab.path, newContent)
-      useVaultStore.getState().markTabDirty(activeTab.path, true)
-    } catch (e) {
-      console.error('[Bridge] applyTemplate error', e)
-    }
-  },
-  []
-)
+    useVaultStore.getState().setTabContent(activeTab.path, newContent)
+    useVaultStore.getState().markTabDirty(activeTab.path, true)
+  } catch (e) {
+    console.error('[Bridge] applyTemplate error', e)
+  }
+}, [])
 ```
 
 Also add `listTemplates` and `applyTemplate` to the return object:
@@ -1056,8 +1082,8 @@ return {
   saveImage,
   exportNote,
   createNewVault,
-  listTemplates,    // ← add
-  applyTemplate     // ← add
+  listTemplates, // ← add
+  applyTemplate // ← add
 }
 ```
 
@@ -1268,6 +1294,7 @@ git commit -m "feat: templates — insert from _templates/ folder via command pa
 **Context:** Obsidian shows YAML frontmatter as structured editable fields. We add a "Props" tab to `RightPanel.tsx` and a new `PropertiesPanel.tsx` that parses `---\nkey: value\n---` from the active note, displays each field as an editable input, and saves back on change.
 
 **Files:**
+
 - Create: `src/renderer/src/components/RightPanel/PropertiesPanel.tsx`
 - Modify: `src/renderer/src/components/RightPanel/RightPanel.tsx`
 
@@ -1293,7 +1320,11 @@ function parseFrontmatter(content: string): Frontmatter | null {
     if (!key) continue
     const rawVal = line.slice(colonIdx + 1).trim()
     if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
-      result[key] = rawVal.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean)
+      result[key] = rawVal
+        .slice(1, -1)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
     } else {
       result[key] = rawVal
     }
@@ -1543,7 +1574,7 @@ type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties'
 
 ```typescript
 const tabs: { id: RightTab; label: string }[] = [
-  { id: 'properties', label: 'Props' },     // ← add at start
+  { id: 'properties', label: 'Props' }, // ← add at start
   plugins.backlinksPanel ? { id: 'backlinks', label: 'Links' } : null,
   plugins.tagsPanel ? { id: 'tags', label: 'Tags' } : null,
   plugins.tocPanel ? { id: 'toc', label: 'ToC' } : null,
@@ -1554,11 +1585,21 @@ const tabs: { id: RightTab; label: string }[] = [
 **4d.** Add the panel render in the content div:
 
 ```tsx
-{effectiveTab === 'properties' && <PropertiesPanel />}
-{effectiveTab === 'backlinks' && <BacklinksPanel />}
-{effectiveTab === 'tags' && <TagsPanel />}
-{effectiveTab === 'toc' && <TocPanel />}
-{effectiveTab === 'local-graph' && <LocalGraphView />}
+{
+  effectiveTab === 'properties' && <PropertiesPanel />
+}
+{
+  effectiveTab === 'backlinks' && <BacklinksPanel />
+}
+{
+  effectiveTab === 'tags' && <TagsPanel />
+}
+{
+  effectiveTab === 'toc' && <TocPanel />
+}
+{
+  effectiveTab === 'local-graph' && <LocalGraphView />
+}
 ```
 
 - [ ] **Step 5: Run tests and typecheck**
@@ -1588,6 +1629,7 @@ git commit -m "feat: frontmatter properties panel in right sidebar"
 **Context:** HTML export already works (`VAULT_EXPORT_HTML` IPC). For PDF we use Electron's `webContents.printToPDF()` — write HTML to a temp file, load it in a hidden BrowserWindow, print to PDF, save via dialog.
 
 **Files:**
+
 - Modify: `src/shared/types.ts`
 - Modify: `src/main/ipc.ts`
 - Modify: `src/main/index.ts`
@@ -1635,7 +1677,11 @@ ipcMain.handle(IPC.VAULT_EXPORT_PDF, async (_event, suggestedName: string, html:
     await wf(filePath, pdfData)
     return filePath
   } finally {
-    try { await unlink(tmpHtml) } catch { /* ignore */ }
+    try {
+      await unlink(tmpHtml)
+    } catch {
+      /* ignore */
+    }
   }
 })
 ```
@@ -1761,6 +1807,7 @@ git commit -m "feat: export notes to PDF (Cmd+Shift+E)"
 ## Self-Review
 
 **Spec coverage:**
+
 1. ✅ Task 1 — Wiki image embeds `![[image.png]]`
 2. ✅ Task 2 — Callout blocks `> [!NOTE]`
 3. ✅ Task 3 — Folder drag-drop in file tree
@@ -1773,6 +1820,7 @@ git commit -m "feat: export notes to PDF (Cmd+Shift+E)"
 **Placeholder scan:** No TBD items. All code blocks are complete and runnable.
 
 **Type consistency:**
+
 - `FrontmatterValue` defined once in PropertiesPanel.tsx, referenced only there ✅
 - `SlashCommand` interface in slashCommands.ts, used only there ✅
 - `SortOrder` type defined in Sidebar.tsx, used only there ✅

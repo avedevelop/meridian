@@ -49,7 +49,9 @@ export function VaultPicker() {
       }}
     >
       <div style={{ fontSize: 48 }}>📓</div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>{t('vaultPicker.title')}</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>
+        {t('vaultPicker.title')}
+      </h1>
       <p style={{ color: '#666', margin: 0 }}>{t('vaultPicker.tagline')}</p>
 
       {/* Welcome vault — prominent on first start */}
@@ -115,8 +117,12 @@ export function VaultPicker() {
             cursor: 'pointer',
             fontWeight: 600
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,106,247,0.1)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(124,106,247,0.1)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+          }}
         >
           {t('vaultPicker.newVault')}
         </button>
@@ -132,8 +138,12 @@ export function VaultPicker() {
             cursor: 'pointer',
             fontWeight: 600
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '0.9'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '1'
+          }}
         >
           {t('vaultPicker.openVault')}
         </button>
@@ -193,8 +203,12 @@ export function VaultPicker() {
                 cursor: downloading ? 'default' : 'pointer',
                 textDecoration: 'underline'
               }}
-              onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.color = '#888' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#555' }}
+              onMouseEnter={(e) => {
+                if (!downloading) e.currentTarget.style.color = '#888'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#555'
+              }}
             >
               {downloading ? t('common.downloading') : t('vaultPicker.resetSampleVault')}
             </button>
@@ -202,9 +216,7 @@ export function VaultPicker() {
         </div>
       )}
 
-      <p style={{ color: '#444', fontSize: 13, marginTop: 4 }}>
-        {t('vaultPicker.vaultHint')}
-      </p>
+      <p style={{ color: '#444', fontSize: 13, marginTop: 4 }}>{t('vaultPicker.vaultHint')}</p>
     </div>
   )
 }

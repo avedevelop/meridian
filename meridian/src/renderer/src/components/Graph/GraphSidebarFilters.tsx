@@ -263,7 +263,9 @@ export function GraphSidebarFilters({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color }} />
+                  <span
+                    style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color }}
+                  />
                   <span>{cat.label}</span>
                 </div>
                 <span

@@ -74,11 +74,7 @@ describe('buildGraphData truncation and capping', () => {
   it('falls back to mtime when degrees are equal', () => {
     // 3 files, all degree 0: A (mtime 100), B (mtime 300), C (mtime 200)
     // If capped at 2, we expect B and C (most recent mtimes)
-    const files = [
-      makeFile('A.md', 100),
-      makeFile('B.md', 300),
-      makeFile('C.md', 200)
-    ]
+    const files = [makeFile('A.md', 100), makeFile('B.md', 300), makeFile('C.md', 200)]
     const outlinks = () => []
     const options = {
       disabledCategories: new Set<string>(),

@@ -5,9 +5,9 @@ import { useVaultStore } from '../store/useVaultStore'
 const COMMIT_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
 export function useGitSync() {
-  const gitBackup = useSettingsStore(s => s.pluginsEnabled.gitBackup)
-  const gitDefaultBranch = useSettingsStore(s => s.gitDefaultBranch)
-  const vault = useVaultStore(s => s.vault)
+  const gitBackup = useSettingsStore((s) => s.pluginsEnabled.gitBackup)
+  const gitDefaultBranch = useSettingsStore((s) => s.gitDefaultBranch)
+  const vault = useVaultStore((s) => s.vault)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isSyncingRef = useRef(false)
 
@@ -33,7 +33,9 @@ export function useGitSync() {
 
     runCommit()
     timerRef.current = setInterval(runCommit, COMMIT_INTERVAL_MS)
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
   }, [gitBackup, vault, runCommit])
 
   // Commit on window blur (when user switches apps)

@@ -29,7 +29,7 @@ beforeEach(() => {
     activeTabPath: null,
     vault: null,
     panes: [{ id: 'pane-main', openTabs: [], activeTabPath: null }],
-    activePaneId: 'pane-main',
+    activePaneId: 'pane-main'
   })
 })
 

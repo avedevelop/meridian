@@ -6,13 +6,7 @@ interface TextInputProps {
   onChange: (s: string) => void
 }
 
-export function TextInput({
-  label,
-  description,
-  value,
-  placeholder,
-  onChange
-}: TextInputProps) {
+export function TextInput({ label, description, value, placeholder, onChange }: TextInputProps) {
   return (
     <div
       style={{

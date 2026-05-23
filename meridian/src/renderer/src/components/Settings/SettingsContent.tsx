@@ -19,10 +19,7 @@ export function SettingsContent({ activeCategory, searchQuery, isOpen }: Setting
   const store = useSettingsStore()
 
   // Definitions for all settings for search and tab rendering
-  const settingsDefinitions = useMemo<SettingDefinition[]>(
-    () => buildSettingsDefinitions(t),
-    [t]
-  )
+  const settingsDefinitions = useMemo<SettingDefinition[]>(() => buildSettingsDefinitions(t), [t])
 
   // Filtered settings based on search query
   const filteredSettings = useMemo(() => {
@@ -51,7 +48,14 @@ export function SettingsContent({ activeCategory, searchQuery, isOpen }: Setting
         {/* SEARCH RESULTS MODE */}
         {searchQuery ? (
           <div>
-            <div style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+            <div
+              style={{
+                color: 'var(--text-primary)',
+                fontSize: 16,
+                fontWeight: 600,
+                marginBottom: 4
+              }}
+            >
               {t('settings.searchResults')}
             </div>
             <div style={{ color: 'var(--text-secondary)', fontSize: 11, marginBottom: 20 }}>

@@ -190,7 +190,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
 
-
   /* --- Inline editing --------------------------------------------- */
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
@@ -226,8 +225,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     window.addEventListener('canvas:center-node', handleCenter)
     return () => window.removeEventListener('canvas:center-node', handleCenter)
   }, [canvasData.nodes, stageScale])
-
-
 
   /* --- Toolbar actions -------------------------------------------- */
   const addNodeAtCenter = useCallback(() => {
@@ -347,7 +344,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
     requestAnimationFrame(animate)
   }, [canvasData, mutateWithUndo, fitToContent])
 
-
   /* --- Drop handler for files from sidebar ------------------------ */
   const handleContainerDragOver = useCallback((e: React.DragEvent) => {
     // Must call preventDefault to allow drop
@@ -393,8 +389,6 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
 
   /* --- Zoom percentage label -------------------------------------- */
   const zoomPct = Math.round(stageScale * 100)
-
-
 
   /* --- Render ----------------------------------------------------- */
   return (

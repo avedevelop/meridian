@@ -94,7 +94,12 @@ export interface SettingsState {
   updateSetting: <
     K extends keyof Omit<
       SettingsState,
-      'setFontSize' | 'setLineWidth' | 'updateSetting' | 'resetToDefault' | 'togglePlugin' | 'loadFromDisk'
+      | 'setFontSize'
+      | 'setLineWidth'
+      | 'updateSetting'
+      | 'resetToDefault'
+      | 'togglePlugin'
+      | 'loadFromDisk'
     >
   >(
     key: K,
@@ -107,7 +112,12 @@ export interface SettingsState {
 
 const DEFAULTS: Omit<
   SettingsState,
-  'setFontSize' | 'setLineWidth' | 'updateSetting' | 'resetToDefault' | 'togglePlugin' | 'loadFromDisk'
+  | 'setFontSize'
+  | 'setLineWidth'
+  | 'updateSetting'
+  | 'resetToDefault'
+  | 'togglePlugin'
+  | 'loadFromDisk'
 > = {
   fontSize: 15,
   lineWidth: 720,

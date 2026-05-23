@@ -84,20 +84,15 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     onFileOpen
   })
 
-  const {
-    canvasRef,
-    isRecording,
-    startRecording,
-    stopRecording,
-    cancelRecording
-  } = useGraphRecording({
-    d3Ref,
-    containerRef,
-    progress,
-    isPlaying,
-    setIsPlaying,
-    setProgress
-  })
+  const { canvasRef, isRecording, startRecording, stopRecording, cancelRecording } =
+    useGraphRecording({
+      d3Ref,
+      containerRef,
+      progress,
+      isPlaying,
+      setIsPlaying,
+      setProgress
+    })
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -138,7 +133,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     }
   }, [buildResult, graphMaxNodes, updateSetting, t])
 
-
   const graphStats = useMemo(() => {
     const allFiles = flattenFiles(files)
       .filter((f) => !f.isDirectory && (f.name.endsWith('.md') || f.name.endsWith('.canvas')))
@@ -164,7 +158,11 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     const hubs = allFiles
       .map((path) => ({
         id: path,
-        name: path.split('/').pop()?.replace(/\.(md|canvas)$/, '') ?? '',
+        name:
+          path
+            .split('/')
+            .pop()
+            ?.replace(/\.(md|canvas)$/, '') ?? '',
         degree: degree[path] ?? 0
       }))
       .filter((h) => h.degree > 0)
@@ -174,7 +172,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     const totalNodes = allFiles.length
     const totalLinks = linksCount.length
     const orphans = allFiles.filter((p) => !degree[p]).length
-    const density = totalNodes > 1 ? (totalLinks / (totalNodes * (totalNodes - 1) / 2)) * 100 : 0
+    const density = totalNodes > 1 ? (totalLinks / ((totalNodes * (totalNodes - 1)) / 2)) * 100 : 0
 
     return {
       totalNodes,
@@ -197,39 +195,40 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     })
   }
 
-  const focusNode = useCallback((nodeId: string) => {
-    const state = d3Ref.current
-    if (!state || !zoomBehaviorRef.current) return
+  const focusNode = useCallback(
+    (nodeId: string) => {
+      const state = d3Ref.current
+      if (!state || !zoomBehaviorRef.current) return
 
-    const node = state.nodes.find((n) => n.id === nodeId)
-    if (!node) return
+      const node = state.nodes.find((n) => n.id === nodeId)
+      if (!node) return
 
-    const svg = d3.select(state.svgEl)
-    const scale = 1.5
-    const tx = state.width / 2 - node.x! * scale
-    const ty = state.height / 2 - node.y! * scale
+      const svg = d3.select(state.svgEl)
+      const scale = 1.5
+      const tx = state.width / 2 - node.x! * scale
+      const ty = state.height / 2 - node.y! * scale
 
-    svg
-      .transition()
-      .duration(800)
-      .call(
-        zoomBehaviorRef.current.transform,
-        d3.zoomIdentity.translate(tx, ty).scale(scale)
-      )
+      svg
+        .transition()
+        .duration(800)
+        .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
 
-    const nodeG = state.nodeG
-    if (!nodeG) return
-    const nodeEl = nodeG.filter((d) => d.id === nodeId)
-    if (nodeEl.empty()) return
+      const nodeG = state.nodeG
+      if (!nodeG) return
+      const nodeEl = nodeG.filter((d) => d.id === nodeId)
+      if (nodeEl.empty()) return
 
-    nodeEl.selectAll('circle.vis')
-      .transition()
-      .duration(200)
-      .attr('r', (d) => nodeR(d as GNode) * 2.2)
-      .transition()
-      .duration(500)
-      .attr('r', (d) => nodeR(d as GNode))
-  }, [d3Ref, zoomBehaviorRef])
+      nodeEl
+        .selectAll('circle.vis')
+        .transition()
+        .duration(200)
+        .attr('r', (d) => nodeR(d as GNode) * 2.2)
+        .transition()
+        .duration(500)
+        .attr('r', (d) => nodeR(d as GNode))
+    },
+    [d3Ref, zoomBehaviorRef]
+  )
 
   const handleZoomIn = useCallback(() => {
     const state = d3Ref.current
@@ -242,7 +241,10 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     const state = d3Ref.current
     if (!state || !zoomBehaviorRef.current) return
     const svg = d3.select(state.svgEl)
-    svg.transition().duration(250).call(zoomBehaviorRef.current.scaleBy, 1 / 1.3)
+    svg
+      .transition()
+      .duration(250)
+      .call(zoomBehaviorRef.current.scaleBy, 1 / 1.3)
   }, [d3Ref, zoomBehaviorRef])
 
   const handleRecenter = useCallback(() => {
@@ -250,7 +252,10 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     if (!state || !zoomBehaviorRef.current || state.nodes.length === 0) return
     const svg = d3.select(state.svgEl)
 
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity
     state.nodes.forEach((n) => {
       if (n.x !== undefined && n.y !== undefined) {
         if (n.x < minX) minX = n.x
@@ -268,14 +273,17 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     const y = (minY + maxY) / 2
 
     const padding = 60
-    const scale = Math.max(0.2, Math.min(2, 0.95 / Math.max(dx / (state.width - padding), dy / (state.height - padding))))
+    const scale = Math.max(
+      0.2,
+      Math.min(2, 0.95 / Math.max(dx / (state.width - padding), dy / (state.height - padding)))
+    )
     const tx = state.width / 2 - x * scale
     const ty = state.height / 2 - y * scale
 
-    svg.transition().duration(600).call(
-      zoomBehaviorRef.current.transform,
-      d3.zoomIdentity.translate(tx, ty).scale(scale)
-    )
+    svg
+      .transition()
+      .duration(600)
+      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
   }, [d3Ref, zoomBehaviorRef])
 
   const handleToggleMode = (mode: 'live' | 'history') => {
@@ -392,8 +400,12 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                   outline: 'none',
                   transition: 'background 0.2s ease'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')
+                }
               >
                 {t('graph.truncation.increaseLimit')}
               </button>

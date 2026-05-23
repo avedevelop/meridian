@@ -33,7 +33,12 @@ const vaultAPI = {
   exportHtml: (name: string, html: string, customCSS?: string): Promise<string | null> =>
     ipcRenderer.invoke(IPC.VAULT_EXPORT_HTML, name, html, customCSS ?? ''),
 
-  exportPdf: (name: string, html: string, pageSize?: string, customCSS?: string): Promise<string | null> =>
+  exportPdf: (
+    name: string,
+    html: string,
+    pageSize?: string,
+    customCSS?: string
+  ): Promise<string | null> =>
     ipcRenderer.invoke(IPC.VAULT_EXPORT_PDF, name, html, pageSize ?? 'A4', customCSS ?? ''),
 
   saveVideo: (data: Uint8Array): Promise<string | null> =>
@@ -61,17 +66,17 @@ const vaultAPI = {
 
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.VAULT_OPEN_EXTERNAL, url),
 
-  gitStatus: (): Promise<any> =>
-    ipcRenderer.invoke(IPC.GIT_STATUS),
+  gitStatus: (): Promise<any> => ipcRenderer.invoke(IPC.GIT_STATUS),
 
   gitCommit: (message?: string): Promise<{ success: boolean; error?: string; message?: string }> =>
     ipcRenderer.invoke(IPC.GIT_COMMIT, message),
 
-  gitSync: (defaultBranch?: string): Promise<{ success: boolean; error?: string; noRemote?: boolean }> =>
+  gitSync: (
+    defaultBranch?: string
+  ): Promise<{ success: boolean; error?: string; noRemote?: boolean }> =>
     ipcRenderer.invoke(IPC.GIT_SYNC, defaultBranch ?? 'main'),
 
-  gitInit: (): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke(IPC.GIT_INIT),
+  gitInit: (): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke(IPC.GIT_INIT),
 
   gitLog: (): Promise<{ success: boolean; error?: string; commits?: any[] }> =>
     ipcRenderer.invoke(IPC.GIT_LOG),
@@ -82,14 +87,12 @@ const vaultAPI = {
   gitSetRemote: (url: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC.GIT_SET_REMOTE, url),
 
-  githubDeviceCode: (): Promise<any> =>
-    ipcRenderer.invoke(IPC.GIT_GITHUB_DEVICE_CODE),
+  githubDeviceCode: (): Promise<any> => ipcRenderer.invoke(IPC.GIT_GITHUB_DEVICE_CODE),
 
   githubPollToken: (deviceCode: string): Promise<any> =>
     ipcRenderer.invoke(IPC.GIT_GITHUB_POLL_TOKEN, deviceCode),
 
-  githubLogout: (): Promise<{ success: boolean }> =>
-    ipcRenderer.invoke(IPC.GIT_GITHUB_LOGOUT),
+  githubLogout: (): Promise<{ success: boolean }> => ipcRenderer.invoke(IPC.GIT_GITHUB_LOGOUT),
 
   githubStatus: (): Promise<{ connected: boolean; username: string }> =>
     ipcRenderer.invoke(IPC.GIT_GITHUB_STATUS),
@@ -104,7 +107,9 @@ const vaultAPI = {
   setSpellLanguage: (lang: string) => ipcRenderer.invoke(IPC.SPELL_SET_LANGUAGE, lang),
   getConfigPath: () => ipcRenderer.invoke(IPC.GET_CONFIG_PATH),
   openPath: (filePath: string) => ipcRenderer.invoke(IPC.OPEN_PATH, filePath),
-  downloadWelcomeVault: (destPath: string) => ipcRenderer.invoke(IPC.WELCOME_DOWNLOAD, destPath)
+  downloadWelcomeVault: (destPath: string) => ipcRenderer.invoke(IPC.WELCOME_DOWNLOAD, destPath),
+  listPlugins: (): Promise<any[]> => ipcRenderer.invoke(IPC.PLUGIN_LIST),
+  loadPlugin: (id: string): Promise<string> => ipcRenderer.invoke(IPC.PLUGIN_LOAD, id)
 }
 
 const settingsAPI = {

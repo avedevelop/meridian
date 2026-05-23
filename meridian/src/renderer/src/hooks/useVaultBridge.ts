@@ -38,8 +38,17 @@ declare global {
       openByPath: (path: string) => Promise<VaultConfig | null>
       onFileChanged: (cb: (event: VaultFileChangeEvent) => void) => () => void
       writeBinary: (filePath: string, base64: string) => Promise<string>
-      exportHtml: (suggestedName: string, html: string, customCSS?: string) => Promise<string | null>
-      exportPdf: (suggestedName: string, html: string, pageSize?: string, customCSS?: string) => Promise<string | null>
+      exportHtml: (
+        suggestedName: string,
+        html: string,
+        customCSS?: string
+      ) => Promise<string | null>
+      exportPdf: (
+        suggestedName: string,
+        html: string,
+        pageSize?: string,
+        customCSS?: string
+      ) => Promise<string | null>
       saveVideo: (data: Uint8Array) => Promise<string | null>
       fetchUrlMetadata: (
         url: string
@@ -50,10 +59,17 @@ declare global {
         clean?: boolean
         changesCount?: number
         hasRemote?: boolean
-        changes?: { path: string; status: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown' }[]
+        changes?: {
+          path: string
+          status: 'modified' | 'added' | 'deleted' | 'untracked' | 'unknown'
+        }[]
       }>
-      gitCommit: (message?: string) => Promise<{ success: boolean; error?: string; message?: string }>
-      gitSync: (defaultBranch?: string) => Promise<{ success: boolean; error?: string; noRemote?: boolean }>
+      gitCommit: (
+        message?: string
+      ) => Promise<{ success: boolean; error?: string; message?: string }>
+      gitSync: (
+        defaultBranch?: string
+      ) => Promise<{ success: boolean; error?: string; noRemote?: boolean }>
       getConfigPath: () => Promise<string>
       setSpellLanguage: (lang: string) => Promise<void>
       gitInit: () => Promise<{ success: boolean; error?: string }>
@@ -70,10 +86,21 @@ declare global {
       }>
       gitShowHead: (relativePath: string) => Promise<{ success: boolean; content: string }>
       gitSetRemote: (url: string) => Promise<{ success: boolean; error?: string }>
-      githubDeviceCode: () => Promise<{ success: boolean; device_code?: string; user_code?: string; verification_uri?: string; interval?: number; error?: string }>
-      githubPollToken: (deviceCode: string) => Promise<{ success: boolean; username?: string; pending?: boolean; error?: string }>
+      githubDeviceCode: () => Promise<{
+        success: boolean
+        device_code?: string
+        user_code?: string
+        verification_uri?: string
+        interval?: number
+        error?: string
+      }>
+      githubPollToken: (
+        deviceCode: string
+      ) => Promise<{ success: boolean; username?: string; pending?: boolean; error?: string }>
       githubLogout: () => Promise<{ success: boolean }>
       githubStatus: () => Promise<{ connected: boolean; username: string }>
+      listPlugins: () => Promise<any[]>
+      loadPlugin: (id: string) => Promise<string>
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>
@@ -354,10 +381,7 @@ export function useVaultBridge() {
     const Y = String(d.getFullYear())
     const M = String(d.getMonth() + 1).padStart(2, '0')
     const D = String(d.getDate()).padStart(2, '0')
-    const today = dailyNoteDateFormat
-      .replace('YYYY', Y)
-      .replace('MM', M)
-      .replace('DD', D)
+    const today = dailyNoteDateFormat.replace('YYYY', Y).replace('MM', M).replace('DD', D)
     const fileName = `${today}.md`
     const dailyDir = `${vault.path}/Daily`
     const fullPath = `${dailyDir}/${fileName}`
@@ -397,7 +421,11 @@ export function useVaultBridge() {
       const fileName = `image-${timestamp}.${ext}`
       const filePath = `${vault.path}/${folder}/${fileName}`
       try {
-        try { await window.vault.createDir(vault.path, folder) } catch { /* may already exist */ }
+        try {
+          await window.vault.createDir(vault.path, folder)
+        } catch {
+          /* may already exist */
+        }
         await window.vault.writeBinary(filePath, base64)
         await refreshFiles()
         return `${folder}/${fileName}`
@@ -539,7 +567,12 @@ ${bodyHtml}
 <body>${bodyHtml}</body>
 </html>`
 
-      const result = await window.vault.exportPdf(`${title}.pdf`, fullHtml, pdfPageSize, exportCustomCSS)
+      const result = await window.vault.exportPdf(
+        `${title}.pdf`,
+        fullHtml,
+        pdfPageSize,
+        exportCustomCSS
+      )
       if (result) console.log('[Bridge] PDF exported to', result)
     } catch (e) {
       console.error('[Bridge] exportPdf error', e)

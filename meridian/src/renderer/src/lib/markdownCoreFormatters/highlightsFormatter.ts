@@ -9,5 +9,5 @@ function preprocessMd(md: string): string {
 
 export const highlightsFormatter: MarkdownFormatter = {
   name: 'highlights',
-  preprocessMd,
+  preprocessMd
 }

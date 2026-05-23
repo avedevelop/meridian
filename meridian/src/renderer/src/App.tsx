@@ -86,34 +86,48 @@ export default function App() {
   const vaultFiles = useVaultStore((s) => s.files)
   const allFiles = useLinkStore((s) => s.allFiles)
   const indexVersion = useLinkStore((s) => s.indexVersion)
-  const { openFile, openVault, openDailyNote, exportNote, exportPdf, createFile, saveFile, listTemplates, applyTemplate } = useVaultBridge()
+  const {
+    openFile,
+    openVault,
+    openDailyNote,
+    exportNote,
+    exportPdf,
+    createFile,
+    saveFile,
+    listTemplates,
+    applyTemplate
+  } = useVaultBridge()
   const pluginsEnabled = useSettingsStore((s) => s.pluginsEnabled)
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Initialize core plugins API
-  const pluginAPI = useMemo(() => ({
-    vault: window.vault,
-    settings: {
-      get: <T,>(key: string) => useSettingsStore.getState()[key] as T,
-      set: (key: string, value: unknown) => useSettingsStore.getState().updateSetting(key as any, value as any)
-    },
-    ui: {
-      toast: (msg: string) => {
-        console.log(`[Toast] ${msg}`)
+  const pluginAPI = useMemo(
+    () => ({
+      vault: window.vault,
+      settings: {
+        get: <T,>(key: string) => useSettingsStore.getState()[key] as T,
+        set: (key: string, value: unknown) =>
+          useSettingsStore.getState().updateSetting(key as any, value as any)
       },
-      openSettings: () => {
-        setSettingsOpen(true)
-      }
-    },
-    app: {
-      openDailyNote: async () => {
-        await openDailyNote()
-      }
-    },
-    registerCommand: () => {}
-  }), [openDailyNote])
+      ui: {
+        toast: (msg: string) => {
+          console.log(`[Toast] ${msg}`)
+        },
+        openSettings: () => {
+          setSettingsOpen(true)
+        }
+      },
+      app: {
+        openDailyNote: async () => {
+          await openDailyNote()
+        }
+      },
+      registerCommand: () => {}
+    }),
+    [openDailyNote]
+  )
 
   // Initialize Core Plugins list once
   useEffect(() => {
@@ -137,7 +151,9 @@ export default function App() {
     }
   }, [vault, pluginsEnabled])
 
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'>('files')
+  const [activeSidebarTab, setActiveSidebarTab] = useState<
+    'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
+  >('files')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('layout-sidebar-collapsed') === 'true'
   })
@@ -374,7 +390,8 @@ export default function App() {
     const unsub = window.menuAPI.onAction(async (action) => {
       switch (action) {
         case 'new-file':
-          if (vault) createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', vaultFiles))
+          if (vault)
+            createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', vaultFiles))
           break
         case 'daily-note':
           openDailyNote()
@@ -467,11 +484,7 @@ export default function App() {
           />
         }
         sidebar={
-          <Sidebar
-            key={vault.path}
-            activeTab={activeSidebarTab}
-            onTabChange={handleTabChange}
-          />
+          <Sidebar key={vault.path} activeTab={activeSidebarTab} onTabChange={handleTabChange} />
         }
         editor={<EditorArea />}
         rightPanel={<RightPanel />}
@@ -491,7 +504,9 @@ export default function App() {
             onSelect: async () => {
               const templates = await listTemplates()
               if (templates.length === 0) {
-                window.alert('No templates found.\n\nCreate .md files in a _templates/ folder in your vault root.')
+                window.alert(
+                  'No templates found.\n\nCreate .md files in a _templates/ folder in your vault root.'
+                )
                 return
               }
               const names = templates.map((t, i) => `${i + 1}. ${t.name}`).join('\n')

@@ -22,12 +22,7 @@ export function CanvasToolbar({
 
   const sep = <div style={{ width: 1, height: 20, background: '#2a2a35', flexShrink: 0 }} />
 
-  const btn = (
-    onClick: () => void,
-    title: string,
-    content: React.ReactNode,
-    accent = false
-  ) => (
+  const btn = (onClick: () => void, title: string, content: React.ReactNode, accent = false) => (
     <button
       key={title}
       onClick={onClick}
@@ -145,7 +140,12 @@ export function CanvasToolbar({
             <circle cx="8" cy="3" r="2" stroke="currentColor" strokeWidth="1.4" />
             <circle cx="3" cy="12" r="2" stroke="currentColor" strokeWidth="1.4" />
             <circle cx="13" cy="12" r="2" stroke="currentColor" strokeWidth="1.4" />
-            <path d="M8 5v2M6.5 7.5L4 10M9.5 7.5L12 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <path
+              d="M8 5v2M6.5 7.5L4 10M9.5 7.5L12 10"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
           </svg>
           <span>{t('canvas.label.autoLayout')}</span>
         </>

@@ -9,17 +9,16 @@ interface UseTabDragProps {
   paneId: string
   openTabs: Tab[]
   vault: VaultInfo | null
-  moveTab: (sourcePaneId: string, targetPaneId: string, tabPath: string, targetIndex: number) => void
+  moveTab: (
+    sourcePaneId: string,
+    targetPaneId: string,
+    tabPath: string,
+    targetIndex: number
+  ) => void
   reorderTabs: (tabs: Tab[], paneId: string) => void
 }
 
-export function useTabDrag({
-  paneId,
-  openTabs,
-  vault,
-  moveTab,
-  reorderTabs
-}: UseTabDragProps) {
+export function useTabDrag({ paneId, openTabs, vault, moveTab, reorderTabs }: UseTabDragProps) {
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null)
   const [hoveredDragIndex, setHoveredDragIndex] = useState<number | null>(null)
   const [isDraggingActive, setIsDraggingActive] = useState<boolean>(false)
@@ -78,7 +77,6 @@ export function useTabDrag({
     setTimeout(() => {
       setIsDraggingActive(true)
     }, 0)
-
     ;(window as any).__meridianDragPath = tabPath
     ;(window as any).__meridianDragSourcePaneId = paneId
 
@@ -115,8 +113,7 @@ export function useTabDrag({
   const handleContainerDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     const isExternalDrag =
-      (window as any).__meridianDragPath &&
-      (window as any).__meridianDragSourcePaneId !== paneId
+      (window as any).__meridianDragPath && (window as any).__meridianDragSourcePaneId !== paneId
     const isInternalDrag = activeDragIndex !== null
 
     if (!isInternalDrag && !isExternalDrag) return
@@ -149,8 +146,7 @@ export function useTabDrag({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const sourcePaneId =
-      e.dataTransfer.getData('text/meridian-pane-id') ||
-      (window as any).__meridianDragSourcePaneId
+      e.dataTransfer.getData('text/meridian-pane-id') || (window as any).__meridianDragSourcePaneId
     const tabPath =
       e.dataTransfer.getData('text/meridian-tab-path') || (window as any).__meridianDragPath
 

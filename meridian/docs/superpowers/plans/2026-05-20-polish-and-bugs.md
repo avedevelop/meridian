@@ -15,6 +15,7 @@
 ### Task 1: Fix handleToggleMode stale closure in GraphView
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Graph/GraphView.tsx:1119-1143`
 
 The `graph:set-mode` event listener is set up in a `useEffect` with `[]` deps, capturing a stale `handleToggleMode`. Fix by storing `handleToggleMode` in a ref so the listener always calls the current version.
@@ -34,6 +35,7 @@ modeHandlerRef.current = handleToggleMode
 - [ ] **Step 3: Update the useEffect to use the ref**
 
 Find the useEffect at line ~1120 and replace:
+
 ```tsx
 useEffect(() => {
   const handler = (e: Event) => {
@@ -49,6 +51,7 @@ useEffect(() => {
 - [ ] **Step 4: Verify — switch to History and back to Network, all nodes should reappear**
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/renderer/src/components/Graph/GraphView.tsx
 git commit -m "fix: stale closure in graph mode event listener via ref"
@@ -59,6 +62,7 @@ git commit -m "fix: stale closure in graph mode event listener via ref"
 ### Task 2: Expose app version from main process
 
 **Files:**
+
 - Modify: `src/preload/index.ts`
 - Modify: `src/renderer/src/components/Settings/SettingsModal.tsx:1614`
 
@@ -67,6 +71,7 @@ Currently hardcoded as `"1.0.0 Stable Build"`. Should read from Electron's `app.
 - [ ] **Step 1: Add version to preload (find the contextBridge.exposeInMainWorld calls, ~line 91)**
 
 In `src/preload/index.ts`, add before the existing `contextBridge` calls:
+
 ```ts
 import { contextBridge, ipcRenderer } from 'electron'
 
@@ -79,6 +84,7 @@ contextBridge.exposeInMainWorld('appInfo', {
 - [ ] **Step 2: Declare type in shared types or directly in the component**
 
 In `src/renderer/src/components/Settings/SettingsModal.tsx`, add at the top:
+
 ```ts
 declare global {
   interface Window {
@@ -90,20 +96,25 @@ declare global {
 - [ ] **Step 3: Replace hardcoded version string (line ~1614)**
 
 Find:
+
 ```tsx
 <span style={{ color: '#eee' }}>1.0.0 Stable Build</span>
 ```
+
 Replace with:
+
 ```tsx
 <span style={{ color: '#eee' }}>v{window.appInfo?.version ?? '1.0.0'}</span>
 ```
 
 Also find line ~1380 where `v1.0.0` appears and replace similarly:
+
 ```tsx
 v{window.appInfo?.version ?? '1.0.0'}
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add src/preload/index.ts src/renderer/src/components/Settings/SettingsModal.tsx
 git commit -m "fix: read app version from electron instead of hardcoded string"
@@ -114,6 +125,7 @@ git commit -m "fix: read app version from electron instead of hardcoded string"
 ### Task 3: Fix critical silent error catches
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/EditorPane.tsx`
 - Modify: `src/renderer/src/components/Sidebar/GitPanel.tsx`
 - Modify: `src/renderer/src/components/Editor/MarkdownPreview.tsx`
@@ -127,28 +139,34 @@ Read `src/renderer/src/components/StatusBar.tsx` to understand if it accepts err
 - [ ] **Step 2: In EditorPane.tsx line ~76, replace bare catch**
 
 Find:
+
 ```tsx
 } catch (err) {
   console.error('Clipboard paste failed:', err)
 }
 ```
+
 Replace with:
+
 ```tsx
 } catch (err) {
   console.error('Clipboard paste failed:', err)
   // Show in status bar if paste fails silently
 }
 ```
+
 (Minimal change — at least ensure console.error has context. Full status integration deferred to UX layer.)
 
 - [ ] **Step 3: In MarkdownPreview.tsx, ensure preview error is visible**
 
 Find `return '<p>Preview error</p>'` — wrap in styled div so it's visible:
+
 ```tsx
 return '<div style="padding:16px;color:#f66;font-size:13px">⚠ Preview rendering error — check your markdown syntax</div>'
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add src/renderer/src/components/Editor/EditorPane.tsx src/renderer/src/components/Editor/MarkdownPreview.tsx
 git commit -m "fix: improve error visibility in editor and preview"
@@ -161,6 +179,7 @@ git commit -m "fix: improve error visibility in editor and preview"
 ### Task 4: Polish empty pane state
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/EditorPane.tsx:546-573`
 
 The current "Pane is empty" text is plain and doesn't guide the user.
@@ -171,7 +190,9 @@ The current "Pane is empty" text is plain and doesn't guide the user.
 if (openTabs.length === 0) {
   return (
     <div
-      onClick={() => { if (!isActive) setActivePane(paneId) }}
+      onClick={() => {
+        if (!isActive) setActivePane(paneId)
+      }}
       style={{
         flex: 1,
         display: 'flex',
@@ -185,7 +206,14 @@ if (openTabs.length === 0) {
         <div style={{ marginBottom: 12, opacity: 0.2 }}>
           <FileIcon size={40} color="var(--text-primary)" />
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 6px', fontWeight: 500 }}>
+        <p
+          style={{
+            color: 'var(--text-secondary)',
+            fontSize: 14,
+            margin: '0 0 6px',
+            fontWeight: 500
+          }}
+        >
           No file open
         </p>
         <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0, opacity: 0.6 }}>
@@ -198,6 +226,7 @@ if (openTabs.length === 0) {
 ```
 
 - [ ] **Step 2: Commit**
+
 ```bash
 git add src/renderer/src/components/Editor/EditorPane.tsx
 git commit -m "polish: improve empty pane placeholder with helpful hint"
@@ -208,6 +237,7 @@ git commit -m "polish: improve empty pane placeholder with helpful hint"
 ### Task 5: Polish empty states in right panel
 
 **Files:**
+
 - Modify: `src/renderer/src/components/RightPanel/BacklinksPanel.tsx:28-31`
 - Modify: `src/renderer/src/components/RightPanel/TocPanel.tsx`
 - Modify: `src/renderer/src/components/RightPanel/TagsPanel.tsx`
@@ -215,6 +245,7 @@ git commit -m "polish: improve empty pane placeholder with helpful hint"
 - [ ] **Step 1: Read BacklinksPanel.tsx to find empty state**
 
 Current "No backlinks" is plain text. Replace with:
+
 ```tsx
 {backlinks.length === 0 ? (
   <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
@@ -226,8 +257,17 @@ Current "No backlinks" is plain text. Replace with:
 - [ ] **Step 2: Read TocPanel.tsx and fix its empty state similarly**
 
 Find where "No headings" or similar appears and replace with:
+
 ```tsx
-<div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
+<div
+  style={{
+    padding: '24px 16px',
+    textAlign: 'center',
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    opacity: 0.6
+  }}
+>
   No headings in this file
 </div>
 ```
@@ -235,12 +275,21 @@ Find where "No headings" or similar appears and replace with:
 - [ ] **Step 3: Read TagsPanel.tsx and fix its empty state**
 
 ```tsx
-<div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
+<div
+  style={{
+    padding: '24px 16px',
+    textAlign: 'center',
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    opacity: 0.6
+  }}
+>
   No tags found in this file
 </div>
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add src/renderer/src/components/RightPanel/BacklinksPanel.tsx src/renderer/src/components/RightPanel/TocPanel.tsx src/renderer/src/components/RightPanel/TagsPanel.tsx
 git commit -m "polish: consistent empty states in right panel"
@@ -251,6 +300,7 @@ git commit -m "polish: consistent empty states in right panel"
 ### Task 6: Polish Git panel error display
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Sidebar/GitPanel.tsx`
 
 Errors currently show raw technical messages. Make them human-readable with better styling.
@@ -258,29 +308,35 @@ Errors currently show raw technical messages. Make them human-readable with bett
 - [ ] **Step 1: Read GitPanel.tsx to find error display blocks (lines ~197, ~325)**
 
 Find the error display div and replace:
+
 ```tsx
-{error && (
-  <div style={{
-    margin: '8px 12px',
-    padding: '8px 12px',
-    background: 'rgba(246,70,70,0.08)',
-    border: '1px solid rgba(246,70,70,0.2)',
-    borderRadius: 6,
-    fontSize: 12,
-    color: '#f66',
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 8
-  }}>
-    <span style={{ flexShrink: 0 }}>⚠</span>
-    <span>{error}</span>
-  </div>
-)}
+{
+  error && (
+    <div
+      style={{
+        margin: '8px 12px',
+        padding: '8px 12px',
+        background: 'rgba(246,70,70,0.08)',
+        border: '1px solid rgba(246,70,70,0.2)',
+        borderRadius: 6,
+        fontSize: 12,
+        color: '#f66',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8
+      }}
+    >
+      <span style={{ flexShrink: 0 }}>⚠</span>
+      <span>{error}</span>
+    </div>
+  )
+}
 ```
 
 Apply this style to ALL error display locations in GitPanel (there are two).
 
 - [ ] **Step 2: Commit**
+
 ```bash
 git add src/renderer/src/components/Sidebar/GitPanel.tsx
 git commit -m "polish: styled error display in git panel"
@@ -291,17 +347,29 @@ git commit -m "polish: styled error display in git panel"
 ### Task 7: Polish search empty state
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Sidebar/SearchPanel.tsx:58`
 
 - [ ] **Step 1: Replace "No results" text (line ~58)**
 
 Find:
+
 ```tsx
 <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 12 }}>No results</div>
 ```
+
 Replace with:
+
 ```tsx
-<div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
+<div
+  style={{
+    padding: '24px 12px',
+    textAlign: 'center',
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    opacity: 0.6
+  }}
+>
   No notes match "{query}"
 </div>
 ```
@@ -309,6 +377,7 @@ Replace with:
 Where `query` is the current search string (read from local state in the component).
 
 - [ ] **Step 2: Commit**
+
 ```bash
 git add src/renderer/src/components/Sidebar/SearchPanel.tsx
 git commit -m "polish: contextual no-results message in search"
@@ -321,6 +390,7 @@ git commit -m "polish: contextual no-results message in search"
 ### Task 8: Extract HistoryTimelineBar component
 
 **Files:**
+
 - Create: `src/renderer/src/components/Graph/HistoryTimelineBar.tsx`
 - Modify: `src/renderer/src/components/Graph/GraphView.tsx` — remove inline timeline JSX, import component
 
@@ -329,6 +399,7 @@ GraphView.tsx is 2132 lines. The history timeline bar (lines ~1668-1870) is self
 - [ ] **Step 1: Read GraphView.tsx lines 1668-1870 to get full timeline bar JSX and identify all props needed**
 
 Props the component needs:
+
 - `progress: number`
 - `setProgress: (p: number) => void`
 - `isPlaying: boolean`
@@ -365,9 +436,19 @@ interface Props {
 }
 
 export function HistoryTimelineBar({
-  progress, setProgress, isPlaying, setIsPlaying,
-  playDuration, setPlayDuration, isRecording, startRecording, stopRecording,
-  isSettingsOpen, formattedDate, activityBuckets, historyTicks
+  progress,
+  setProgress,
+  isPlaying,
+  setIsPlaying,
+  playDuration,
+  setPlayDuration,
+  isRecording,
+  startRecording,
+  stopRecording,
+  isSettingsOpen,
+  formattedDate,
+  activityBuckets,
+  historyTicks
 }: Props) {
   const scrubberRef = useRef<HTMLDivElement>(null)
   const [hoveredTick, setHoveredTick] = useState<number | null>(null)
@@ -408,29 +489,33 @@ Remove the wrapping `{viewMode === 'history' && (` — caller handles visibility
 - [ ] **Step 4: In GraphView.tsx, import and use the component**
 
 At the top of GraphView.tsx add:
+
 ```tsx
 import { HistoryTimelineBar } from './HistoryTimelineBar'
 ```
 
 Where the timeline bar was, add:
+
 ```tsx
-{viewMode === 'history' && (
-  <HistoryTimelineBar
-    progress={progress}
-    setProgress={setProgress}
-    isPlaying={isPlaying}
-    setIsPlaying={setIsPlaying}
-    playDuration={playDuration}
-    setPlayDuration={setPlayDuration}
-    isRecording={isRecording}
-    startRecording={startRecording}
-    stopRecording={stopRecording}
-    isSettingsOpen={isSettingsOpen}
-    formattedDate={formattedDate}
-    activityBuckets={activityBuckets}
-    historyTicks={historyTicks}
-  />
-)}
+{
+  viewMode === 'history' && (
+    <HistoryTimelineBar
+      progress={progress}
+      setProgress={setProgress}
+      isPlaying={isPlaying}
+      setIsPlaying={setIsPlaying}
+      playDuration={playDuration}
+      setPlayDuration={setPlayDuration}
+      isRecording={isRecording}
+      startRecording={startRecording}
+      stopRecording={stopRecording}
+      isSettingsOpen={isSettingsOpen}
+      formattedDate={formattedDate}
+      activityBuckets={activityBuckets}
+      historyTicks={historyTicks}
+    />
+  )
+}
 ```
 
 Also move `scrubberRef`, `hoveredTick`, `handleScrubberMouseDown` OUT of GraphView (they move into HistoryTimelineBar).
@@ -442,6 +527,7 @@ cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npm run typecheck 2>&1
 ```
 
 - [ ] **Step 6: Commit**
+
 ```bash
 git add src/renderer/src/components/Graph/HistoryTimelineBar.tsx src/renderer/src/components/Graph/GraphView.tsx
 git commit -m "refactor: extract HistoryTimelineBar from GraphView into own component"
@@ -452,6 +538,7 @@ git commit -m "refactor: extract HistoryTimelineBar from GraphView into own comp
 ### Task 9: Extract GraphSidebar component
 
 **Files:**
+
 - Create: `src/renderer/src/components/Graph/GraphSidebar.tsx`
 - Modify: `src/renderer/src/components/Graph/GraphView.tsx`
 
@@ -470,11 +557,13 @@ Define the Props interface with all needed state, create the component, paste th
 Replace the inline sidebar JSX with `<GraphSidebar ... />`.
 
 - [ ] **Step 4: Typecheck**
+
 ```bash
 npm run typecheck 2>&1 | tail -20
 ```
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/renderer/src/components/Graph/GraphSidebar.tsx src/renderer/src/components/Graph/GraphView.tsx
 git commit -m "refactor: extract GraphSidebar from GraphView into own component"
@@ -485,6 +574,7 @@ git commit -m "refactor: extract GraphSidebar from GraphView into own component"
 ## Self-Review
 
 **Spec coverage:**
+
 - ✅ Stale closure bug → Task 1
 - ✅ Hardcoded version → Task 2
 - ✅ Silent error catches → Task 3

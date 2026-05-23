@@ -15,7 +15,11 @@ function parseFrontmatter(content: string): Frontmatter | null {
     if (!key) continue
     const rawVal = line.slice(colonIdx + 1).trim()
     if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
-      result[key] = rawVal.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean)
+      result[key] = rawVal
+        .slice(1, -1)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
     } else {
       result[key] = rawVal
     }

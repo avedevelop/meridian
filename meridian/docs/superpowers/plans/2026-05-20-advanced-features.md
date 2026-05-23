@@ -13,12 +13,14 @@
 ## File Map
 
 **Modified:**
+
 - `src/renderer/src/components/Editor/markdownUtils.ts` — Tasks 1, 3
 - `src/renderer/src/components/Editor/MarkdownPreview.tsx` — Tasks 1, 2, 3
 - `src/renderer/src/lib/linkParser.ts` — Task 4
 - `src/renderer/src/App.tsx` — Task 5
 
 **Tests:**
+
 - `tests/renderer/markdownUtils.test.ts` — Tasks 1, 3
 - `tests/renderer/linkParser.test.ts` — Task 4
 
@@ -29,6 +31,7 @@
 **Context:** `postprocessWikiLinks` in `markdownUtils.ts` currently returns `fullMatch` unchanged for non-image, non-excalidraw embeds. `![[Note.md]]` should render an inline preview of the linked note's content. The approach mirrors how excalidraw embeds work: create a placeholder div in `postprocessWikiLinks`, then in a `useEffect` in `MarkdownPreview` load the actual content and render it.
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/markdownUtils.ts`
 - Modify: `src/renderer/src/components/Editor/MarkdownPreview.tsx`
 - Modify: `tests/renderer/markdownUtils.test.ts`
@@ -117,6 +120,7 @@ if (mdMatch) {
 ```
 
 The full updated `![[...]]` handler is now:
+
 1. excalidraw → excalidraw-embed div
 2. IMAGE_EXTS → img tag
 3. .md match → note-embed div
@@ -181,6 +185,7 @@ git commit -m "feat: render ![[Note.md]] as inline note embeds in preview"
 **Context:** Mermaid is NOT yet installed. remark-gfm renders fenced ` ```mermaid ` blocks as `<pre><code class="language-mermaid">...</code></pre>` in HTML. A `useEffect` in `MarkdownPreview` detects these, calls `mermaid.render()`, and replaces the `<pre>` with the generated SVG.
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/MarkdownPreview.tsx`
 
 - [ ] **Step 1: Install mermaid**
@@ -219,7 +224,8 @@ useEffect(() => {
       try {
         const { svg } = await mermaid.render(id, code)
         const wrapper = document.createElement('div')
-        wrapper.style.cssText = 'overflow-x:auto;margin:12px 0;background:var(--bg-secondary);border-radius:6px;padding:16px;text-align:center'
+        wrapper.style.cssText =
+          'overflow-x:auto;margin:12px 0;background:var(--bg-secondary);border-radius:6px;padding:16px;text-align:center'
         wrapper.innerHTML = svg
         pre.replaceWith(wrapper)
       } catch {
@@ -228,7 +234,9 @@ useEffect(() => {
     }
   })()
 
-  return () => { cancelled = true }
+  return () => {
+    cancelled = true
+  }
 }, [html])
 ```
 
@@ -256,6 +264,7 @@ git commit -m "feat: render Mermaid diagrams in markdown preview"
 **Context:** Obsidian renders `==text==` as highlighted (yellow background). remark doesn't support this syntax, so the `==text==` literal appears unchanged in the HTML output. We post-process the HTML to convert it, skipping content inside `<code>` and `<pre>` tags.
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/markdownUtils.ts`
 - Modify: `src/renderer/src/components/Editor/MarkdownPreview.tsx`
 - Modify: `tests/renderer/markdownUtils.test.ts`
@@ -336,6 +345,7 @@ export function processHighlights(html: string): string {
 - [ ] **Step 4: Wire processHighlights into MarkdownPreview.tsx useMemo**
 
 Read `MarkdownPreview.tsx`. Find the `useMemo` pipeline. The current order is:
+
 1. `sanitized` = processor.processSync(content)
 2. `withLinks` = postprocessWikiLinks(sanitized, files)
 3. `withCallouts` = processCallouts(withLinks)
@@ -344,7 +354,12 @@ Read `MarkdownPreview.tsx`. Find the `useMemo` pipeline. The current order is:
 Add `processHighlights` after `processCallouts`:
 
 ```typescript
-import { flattenVaultFiles, postprocessWikiLinks, processCallouts, processHighlights } from './markdownUtils'
+import {
+  flattenVaultFiles,
+  postprocessWikiLinks,
+  processCallouts,
+  processHighlights
+} from './markdownUtils'
 ```
 
 And update the useMemo:
@@ -384,6 +399,7 @@ git commit -m "feat: render ==highlighted text== as <mark> in preview"
 **Context:** `linkParser.ts` extracts tags using `#tag` regex. YAML frontmatter `tags: [work, ideas]` or the list format is ignored. The Tags Panel uses `linkIndex.getAllTags()` which is built from what `linkParser.ts` returns. Fix: update `parseLinks` to also extract frontmatter tags before scanning inline text.
 
 **Files:**
+
 - Modify: `src/renderer/src/lib/linkParser.ts`
 - Modify: `tests/renderer/linkParser.test.ts` (create if missing)
 
@@ -420,7 +436,7 @@ describe('parseLinks', () => {
   it('deduplicates tags from frontmatter and inline', () => {
     const content = '---\ntags: [work]\n---\n\nHello #work and #extra'
     const { tags } = parseLinks(content)
-    const workCount = tags.filter(t => t === 'work').length
+    const workCount = tags.filter((t) => t === 'work').length
     expect(workCount).toBe(1)
     expect(tags).toContain('extra')
   })
@@ -458,7 +474,7 @@ Expected: FAIL on frontmatter tag tests (inline tags pass, frontmatter ones fail
 
 Replace the entire content of `src/renderer/src/lib/linkParser.ts`:
 
-```typescript
+````typescript
 export interface ParseResult {
   links: string[]
   tags: string[]
@@ -518,7 +534,7 @@ export function parseLinks(content: string): ParseResult {
 
   return { links: Array.from(linkSet), tags: Array.from(tagSet) }
 }
-```
+````
 
 - [ ] **Step 4: Run tests and typecheck**
 
@@ -545,6 +561,7 @@ git commit -m "feat: extract frontmatter tags into Tags Panel"
 **Context:** The command palette shows all files, newest first by default. When the query is empty it should show the 5 most recently opened files at the top with a "Recent" section header, making the most used notes instantly accessible.
 
 **Files:**
+
 - Modify: `src/renderer/src/App.tsx`
 - Modify: `src/renderer/src/components/CommandPalette/CommandPalette.tsx`
 
@@ -573,6 +590,7 @@ const handlePaletteFileSelect = useCallback(
 **1c.** Pass `recentPaths` to `CommandPalette` and use `handlePaletteFileSelect` instead of directly calling `openFile`.
 
 Find the `<CommandPalette` JSX and update `onFileSelect`:
+
 ```tsx
 <CommandPalette
   ...existing props...
@@ -622,88 +640,129 @@ const filteredFiles = useMemo(() => {
     const recentSet = new Set(recentPaths)
     return files.filter((f) => !recentSet.has(f.path)).slice(0, 8)
   }
-  return files.filter((f) => f.name.toLowerCase().replace(/\.md$/, '').includes(cleanQuery)).slice(0, 10)
+  return files
+    .filter((f) => f.name.toLowerCase().replace(/\.md$/, '').includes(cleanQuery))
+    .slice(0, 10)
 }, [isCommandMode, query, cleanQuery, files, recentPaths])
 ```
 
 **2d.** Update the render to show recent files section when not in command mode and no query. Replace the file list render with:
 
 ```tsx
-{items.length === 0 && recentFiles.length === 0 ? (
-  <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>No results</div>
-) : isCommandMode ? (
-  filteredCommands.map((cmd, i) => (
-    <div
-      key={cmd.id}
-      onClick={() => { cmd.onSelect(); onClose() }}
-      style={{
-        padding: '10px 16px', cursor: 'pointer', fontSize: 14,
-        color: i === activeIndex ? '#fff' : '#aaa',
-        background: i === activeIndex ? '#2a2a3a' : 'transparent',
-        display: 'flex', alignItems: 'center', gap: 10
-      }}
-    >
-      <span style={{ fontSize: 16 }}>{cmd.icon ?? '⚡'}</span>
-      <span>{cmd.label}</span>
-    </div>
-  ))
-) : (
-  <>
-    {recentFiles.length > 0 && !query.trim() && (
-      <>
-        <div style={{ padding: '6px 16px 2px', fontSize: 10, color: '#444', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          Recent
-        </div>
-        {recentFiles.map((f, i) => (
+{
+  items.length === 0 && recentFiles.length === 0 ? (
+    <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>No results</div>
+  ) : isCommandMode ? (
+    filteredCommands.map((cmd, i) => (
+      <div
+        key={cmd.id}
+        onClick={() => {
+          cmd.onSelect()
+          onClose()
+        }}
+        style={{
+          padding: '10px 16px',
+          cursor: 'pointer',
+          fontSize: 14,
+          color: i === activeIndex ? '#fff' : '#aaa',
+          background: i === activeIndex ? '#2a2a3a' : 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10
+        }}
+      >
+        <span style={{ fontSize: 16 }}>{cmd.icon ?? '⚡'}</span>
+        <span>{cmd.label}</span>
+      </div>
+    ))
+  ) : (
+    <>
+      {recentFiles.length > 0 && !query.trim() && (
+        <>
           <div
-            key={f.path}
-            onClick={() => { onFileSelect(f.path, f.name); onClose() }}
             style={{
-              padding: '8px 16px', cursor: 'pointer', fontSize: 14,
-              color: i === activeIndex ? '#fff' : '#ccc',
-              background: i === activeIndex ? '#2a2a3a' : 'transparent',
-              display: 'flex', alignItems: 'center', gap: 10
+              padding: '6px 16px 2px',
+              fontSize: 10,
+              color: '#444',
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase'
             }}
           >
-            <span style={{ fontSize: 12 }}>🕐</span>
+            Recent
+          </div>
+          {recentFiles.map((f, i) => (
+            <div
+              key={f.path}
+              onClick={() => {
+                onFileSelect(f.path, f.name)
+                onClose()
+              }}
+              style={{
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontSize: 14,
+                color: i === activeIndex ? '#fff' : '#ccc',
+                background: i === activeIndex ? '#2a2a3a' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10
+              }}
+            >
+              <span style={{ fontSize: 12 }}>🕐</span>
+              <span>{f.name.replace(/\.md$/, '')}</span>
+            </div>
+          ))}
+          {filteredFiles.length > 0 && (
+            <div
+              style={{
+                padding: '6px 16px 2px',
+                fontSize: 10,
+                color: '#444',
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase'
+              }}
+            >
+              All Notes
+            </div>
+          )}
+        </>
+      )}
+      {filteredFiles.map((f, i) => {
+        const idx = recentFiles.length + i
+        return (
+          <div
+            key={f.path}
+            onClick={() => {
+              onFileSelect(f.path, f.name)
+              onClose()
+            }}
+            style={{
+              padding: '10px 16px',
+              cursor: 'pointer',
+              fontSize: 14,
+              color: idx === activeIndex ? '#fff' : '#aaa',
+              background: idx === activeIndex ? '#2a2a3a' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10
+            }}
+          >
+            <FileIcon size={14} color="#7c6af7" />
             <span>{f.name.replace(/\.md$/, '')}</span>
           </div>
-        ))}
-        {filteredFiles.length > 0 && (
-          <div style={{ padding: '6px 16px 2px', fontSize: 10, color: '#444', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            All Notes
-          </div>
-        )}
-      </>
-    )}
-    {filteredFiles.map((f, i) => {
-      const idx = recentFiles.length + i
-      return (
-        <div
-          key={f.path}
-          onClick={() => { onFileSelect(f.path, f.name); onClose() }}
-          style={{
-            padding: '10px 16px', cursor: 'pointer', fontSize: 14,
-            color: idx === activeIndex ? '#fff' : '#aaa',
-            background: idx === activeIndex ? '#2a2a3a' : 'transparent',
-            display: 'flex', alignItems: 'center', gap: 10
-          }}
-        >
-          <FileIcon size={14} color="#7c6af7" />
-          <span>{f.name.replace(/\.md$/, '')}</span>
-        </div>
-      )
-    })}
-  </>
-)}
+        )
+      })}
+    </>
+  )
+}
 ```
 
 **2e.** Update the `items` and keyboard navigation to account for both recent + filtered sections. Update `items` to be the combined list for arrow navigation:
 
 ```typescript
-const items = isCommandMode
-  ? filteredCommands
-  : [...recentFiles, ...filteredFiles]
+const items = isCommandMode ? filteredCommands : [...recentFiles, ...filteredFiles]
 ```
 
 And update `handleKey` to use `items.length - 1` as the max index (already does this via `items.length - 1`, just ensure `items` is the combined list above).
@@ -731,6 +790,7 @@ git commit -m "feat: show recently opened files in command palette"
 ## Self-Review
 
 **Spec coverage:**
+
 1. ✅ Task 1 — Note embeds `![[Note.md]]`
 2. ✅ Task 2 — Mermaid diagrams
 3. ✅ Task 3 — ==Highlighted text==
@@ -740,6 +800,7 @@ git commit -m "feat: show recently opened files in command palette"
 **Placeholder scan:** No TBD items. All code blocks are complete and runnable.
 
 **Type consistency:**
+
 - `processHighlights` exported from `markdownUtils.ts`, imported in `MarkdownPreview.tsx` ✅
 - `extractFrontmatterTags` is internal to `linkParser.ts` (not exported) ✅
 - `recentPaths?: string[]` added to `CommandPaletteProps`, destructured with default `[]` ✅

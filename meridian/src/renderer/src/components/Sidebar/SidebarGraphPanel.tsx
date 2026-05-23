@@ -85,8 +85,12 @@ export function SidebarGraphPanel({ onTabChange }: SidebarGraphPanelProps) {
               gap: 6,
               flexShrink: 0
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+            }}
           >
             {t('sidebar.graph.back')}
           </button>
@@ -94,19 +98,21 @@ export function SidebarGraphPanel({ onTabChange }: SidebarGraphPanelProps) {
           {/* Graph Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <circle cx="6" cy="6" r="2.5" stroke="var(--accent-color)" strokeWidth="1.5"/>
-              <circle cx="18" cy="6" r="2.5" stroke="#f5c2e7" strokeWidth="1.5"/>
-              <circle cx="12" cy="18" r="2.5" stroke="#a6e3a1" strokeWidth="1.5"/>
-              <line x1="8" y1="7" x2="16" y2="7" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-              <line x1="7" y1="8" x2="11" y2="16" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-              <line x1="17" y1="8" x2="13" y2="16" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
+              <circle cx="6" cy="6" r="2.5" stroke="var(--accent-color)" strokeWidth="1.5" />
+              <circle cx="18" cy="6" r="2.5" stroke="#f5c2e7" strokeWidth="1.5" />
+              <circle cx="12" cy="18" r="2.5" stroke="#a6e3a1" strokeWidth="1.5" />
+              <line x1="8" y1="7" x2="16" y2="7" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+              <line x1="7" y1="8" x2="11" y2="16" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+              <line x1="17" y1="8" x2="13" y2="16" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
             </svg>
             <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
               {t('sidebar.graph.title')}
             </span>
           </div>
 
-          <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+          <div
+            style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }}
+          />
 
           {/* Compact Search */}
           <div style={{ position: 'relative', width: 180, flexShrink: 0 }}>
@@ -125,18 +131,36 @@ export function SidebarGraphPanel({ onTabChange }: SidebarGraphPanelProps) {
                 fontFamily: 'Inter, -apple-system, sans-serif',
                 boxSizing: 'border-box'
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)' }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-color)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+              }}
             />
             <svg
               width="11"
               height="11"
               viewBox="0 0 24 24"
               fill="none"
-              style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              style={{
+                position: 'absolute',
+                left: 7,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none'
+              }}
             >
-              <circle cx="11" cy="11" r="7" stroke="var(--text-secondary)" strokeWidth="2"/>
-              <line x1="16" y1="16" x2="21" y2="21" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="11" cy="11" r="7" stroke="var(--text-secondary)" strokeWidth="2" />
+              <line
+                x1="16"
+                y1="16"
+                x2="21"
+                y2="21"
+                stroke="var(--text-secondary)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
 
@@ -155,10 +179,12 @@ export function SidebarGraphPanel({ onTabChange }: SidebarGraphPanelProps) {
               flexShrink: 0
             }}
           >
-            {([
-              { key: 'network', label: t('sidebar.graph.network') },
-              { key: 'history', label: t('sidebar.graph.history') }
-            ] as const).map(({ key, label }) => {
+            {(
+              [
+                { key: 'network', label: t('sidebar.graph.network') },
+                { key: 'history', label: t('sidebar.graph.history') }
+              ] as const
+            ).map(({ key, label }) => {
               const mode = key === 'network' ? 'live' : 'history'
               const isActive = graphMode === mode
               return (

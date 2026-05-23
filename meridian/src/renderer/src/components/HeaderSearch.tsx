@@ -100,7 +100,11 @@ export function HeaderSearch() {
         }}
         onClick={() => inputRef.current?.focus()}
       >
-        <SearchIcon size={14} color="var(--text-secondary)" style={{ marginRight: 8, flexShrink: 0 }} />
+        <SearchIcon
+          size={14}
+          color="var(--text-secondary)"
+          style={{ marginRight: 8, flexShrink: 0 }}
+        />
         <input
           ref={inputRef}
           value={query}
@@ -179,22 +183,44 @@ export function HeaderSearch() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  borderLeft: isSelected ? '3px solid var(--accent-color)' : '3px solid transparent',
+                  borderLeft: isSelected
+                    ? '3px solid var(--accent-color)'
+                    : '3px solid transparent',
                   transition: 'background 0.15s, color 0.15s'
                 }}
               >
-                <FileIcon size={12} color={isSelected ? 'var(--accent-color)' : 'var(--text-secondary)'} />
+                <FileIcon
+                  size={12}
+                  color={isSelected ? 'var(--accent-color)' : 'var(--text-secondary)'}
+                />
                 <span style={{ fontWeight: isSelected ? 500 : 'normal' }}>
                   {result.name.replace(/\.md$/, '')}
                 </span>
-                <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.5, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    fontSize: 10,
+                    opacity: 0.5,
+                    maxWidth: '45%',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
                   {result.path.split('/').slice(0, -1).join('/')}
                 </span>
               </div>
             )
           })}
           {searchResults.length === 0 && (
-            <div style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: 11, textAlign: 'center' }}>
+            <div
+              style={{
+                padding: '8px 12px',
+                color: 'var(--text-secondary)',
+                fontSize: 11,
+                textAlign: 'center'
+              }}
+            >
               {t('layout.noResults')}
             </div>
           )}

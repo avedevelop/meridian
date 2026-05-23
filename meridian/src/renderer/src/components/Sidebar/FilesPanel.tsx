@@ -37,7 +37,11 @@ export function FilesPanel() {
   const [vaultMenuOpen, setVaultMenuOpen] = useState(false)
 
   const excludedList = useMemo(
-    () => excludedFolders.split(',').map((s) => s.trim()).filter(Boolean),
+    () =>
+      excludedFolders
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
     [excludedFolders]
   )
 
@@ -284,7 +288,9 @@ export function FilesPanel() {
         }}
       >
         <button
-          onClick={() => createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', files))}
+          onClick={() =>
+            createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', files))
+          }
           style={{
             flex: 1,
             padding: '6px 0',
@@ -313,7 +319,14 @@ export function FilesPanel() {
             cursor: 'pointer'
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
             <path d="M8 2a6 6 0 1 0 6 6c0-.8-.6-1.5-1.5-1.5h-1c-.8 0-1.5-.7-1.5-1.5v-1C10 3 9 2 8 2z" />
             <circle cx="5.5" cy="6.5" r="1" fill="currentColor" />
             <circle cx="8" cy="5" r="1" fill="currentColor" />

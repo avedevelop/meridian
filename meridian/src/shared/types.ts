@@ -68,5 +68,7 @@ export const IPC = {
   SPELL_SET_LANGUAGE: 'spell:set-language',
   GET_CONFIG_PATH: 'config:get-path',
   OPEN_PATH: 'shell:open-path',
-  WELCOME_DOWNLOAD: 'welcome:download'
+  WELCOME_DOWNLOAD: 'welcome:download',
+  PLUGIN_LIST: 'plugin:list',
+  PLUGIN_LOAD: 'plugin:load'
 } as const

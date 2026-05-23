@@ -28,16 +28,10 @@ interface SinglePaneAreaProps {
 
 export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const { t } = useTranslation()
-  const {
-    panes,
-    setActivePane,
-    setTabContent,
-    markTabDirty,
-    files: vaultFiles
-  } = useVaultStore()
+  const { panes, setActivePane, setTabContent, markTabDirty, files: vaultFiles } = useVaultStore()
   const vault = useVaultStore((s) => s.vault)
   const { saveFile, openFile, saveImage } = useVaultBridge()
-  
+
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -62,7 +56,11 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
       const rect = container.getBoundingClientRect()
       const newRatio = Math.max(0.2, Math.min(0.8, (mv.clientX - rect.left) / rect.width))
       setSplitRatio(newRatio)
-      try { localStorage.setItem(SPLIT_KEY, String(newRatio)) } catch { /* ignore */ }
+      try {
+        localStorage.setItem(SPLIT_KEY, String(newRatio))
+      } catch {
+        /* ignore */
+      }
     }
     const onUp = () => {
       window.removeEventListener('mousemove', onMove)
@@ -72,18 +70,15 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     window.addEventListener('mouseup', onUp)
   }, [])
 
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      if (!containerRef.current) return
-      const rect = containerRef.current.getBoundingClientRect()
-      setContextMenu({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      })
-    },
-    []
-  )
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    setContextMenu({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    })
+  }, [])
 
   const pane = panes.find((p) => p.id === paneId) || panes[0]
   const { openTabs, activeTabPath } = pane
@@ -228,26 +223,28 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
               useEditorStore.getState().setActiveHeading(activeHeading)
             }
           }),
-          ...(typingMode !== 'normal' ? [
-            EditorView.updateListener.of((update) => {
-              if (!update.selectionSet && !update.docChanged) return
-              const view = update.view
-              if (typingMode === 'typewriter') {
-                const { head } = update.state.selection.main
-                const line = view.lineBlockAt(head)
-                const target = line.top - view.scrollDOM.clientHeight / 2 + line.height / 2
-                view.scrollDOM.scrollTop = Math.max(0, target)
-              }
-              if (typingMode === 'focus') {
-                const { head } = update.state.selection.main
-                const activeLine = update.state.doc.lineAt(head).number
-                view.dom.querySelectorAll('.cm-line').forEach((el, i) => {
-                  ;(el as HTMLElement).style.opacity = i + 1 === activeLine ? '1' : '0.25'
-                  ;(el as HTMLElement).style.transition = 'opacity 0.15s'
+          ...(typingMode !== 'normal'
+            ? [
+                EditorView.updateListener.of((update) => {
+                  if (!update.selectionSet && !update.docChanged) return
+                  const view = update.view
+                  if (typingMode === 'typewriter') {
+                    const { head } = update.state.selection.main
+                    const line = view.lineBlockAt(head)
+                    const target = line.top - view.scrollDOM.clientHeight / 2 + line.height / 2
+                    view.scrollDOM.scrollTop = Math.max(0, target)
+                  }
+                  if (typingMode === 'focus') {
+                    const { head } = update.state.selection.main
+                    const activeLine = update.state.doc.lineAt(head).number
+                    view.dom.querySelectorAll('.cm-line').forEach((el, i) => {
+                      ;(el as HTMLElement).style.opacity = i + 1 === activeLine ? '1' : '0.25'
+                      ;(el as HTMLElement).style.transition = 'opacity 0.15s'
+                    })
+                  }
                 })
-              }
-            })
-          ] : [])
+              ]
+            : [])
         ]
       }),
       parent: editorRef.current
@@ -314,15 +311,20 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
       const ratio = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight)
       scrollSyncRef.current = true
       preview.scrollTop = ratio * Math.max(1, preview.scrollHeight - preview.clientHeight)
-      rafId = requestAnimationFrame(() => { scrollSyncRef.current = false })
+      rafId = requestAnimationFrame(() => {
+        scrollSyncRef.current = false
+      })
     }
 
     const onPreviewScroll = () => {
       if (scrollSyncRef.current) return
       const ratio = preview.scrollTop / Math.max(1, preview.scrollHeight - preview.clientHeight)
       scrollSyncRef.current = true
-      view.scrollDOM.scrollTop = ratio * Math.max(1, view.scrollDOM.scrollHeight - view.scrollDOM.clientHeight)
-      rafId = requestAnimationFrame(() => { scrollSyncRef.current = false })
+      view.scrollDOM.scrollTop =
+        ratio * Math.max(1, view.scrollDOM.scrollHeight - view.scrollDOM.clientHeight)
+      rafId = requestAnimationFrame(() => {
+        scrollSyncRef.current = false
+      })
     }
 
     view.scrollDOM.addEventListener('scroll', onEditorScroll, { passive: true })
@@ -376,7 +378,14 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
           <div style={{ marginBottom: 12, opacity: 0.2 }}>
             <FileIcon size={40} color="var(--text-primary)" />
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 6px', fontWeight: 500 }}>
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: 14,
+              margin: '0 0 6px',
+              fontWeight: 500
+            }}
+          >
             {t('editor.noFileOpen')}
           </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0, opacity: 0.6 }}>
@@ -397,7 +406,7 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
         flexDirection: 'column',
         flex: 1,
         overflow: 'hidden',
-        
+
         boxSizing: 'border-box'
       }}
     >
@@ -435,14 +444,16 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
           <div
             ref={editorRef}
             onContextMenu={handleContextMenu}
-            style={{
-              '--paragraph-spacing': `${paragraphSpacing}em`,
-              width: activeTab ? `${splitRatio * 100}%` : '100%',
-              flexShrink: 0,
-              overflow: 'auto',
-              height: '100%',
-              background: 'var(--bg-tertiary)'
-            } as React.CSSProperties}
+            style={
+              {
+                '--paragraph-spacing': `${paragraphSpacing}em`,
+                width: activeTab ? `${splitRatio * 100}%` : '100%',
+                flexShrink: 0,
+                overflow: 'auto',
+                height: '100%',
+                background: 'var(--bg-tertiary)'
+              } as React.CSSProperties
+            }
           />
           {activeTab && (
             <>

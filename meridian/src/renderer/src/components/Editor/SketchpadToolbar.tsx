@@ -80,26 +80,32 @@ export function SketchpadToolbar({
 
       {/* Color pickers */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('sketchpad.stroke')}</label>
-        {['#7c6af7', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#f3f4f6', '#9ca3af'].map((color) => (
-          <button
-            key={color}
-            onClick={() => setStrokeColor(color)}
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: '50%',
-              background: color,
-              border: strokeColor === color ? '2px solid #fff' : '1px solid var(--border-color)',
-              cursor: 'pointer',
-              padding: 0
-            }}
-          />
-        ))}
+        <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+          {t('sketchpad.stroke')}
+        </label>
+        {['#7c6af7', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#f3f4f6', '#9ca3af'].map(
+          (color) => (
+            <button
+              key={color}
+              onClick={() => setStrokeColor(color)}
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                background: color,
+                border: strokeColor === color ? '2px solid #fff' : '1px solid var(--border-color)',
+                cursor: 'pointer',
+                padding: 0
+              }}
+            />
+          )
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('sketchpad.width')}</label>
+        <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+          {t('sketchpad.width')}
+        </label>
         <select
           value={strokeWidth}
           onChange={(e) => setStrokeWidth(Number(e.target.value))}

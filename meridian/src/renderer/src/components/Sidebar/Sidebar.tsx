@@ -17,7 +17,15 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative'
+        }}
+      >
         {activeTab === 'files' && <FilesPanel />}
         {activeTab === 'git' && <GitPanel />}
         {activeTab === 'graph' && <SidebarGraphPanel onTabChange={onTabChange} />}

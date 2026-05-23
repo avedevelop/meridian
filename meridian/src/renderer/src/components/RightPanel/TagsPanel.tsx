@@ -16,7 +16,15 @@ export function TagsPanel() {
 
   if (tags.length === 0) {
     return (
-      <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, opacity: 0.6 }}>
+      <div
+        style={{
+          padding: '24px 16px',
+          textAlign: 'center',
+          color: 'var(--text-secondary)',
+          fontSize: 12,
+          opacity: 0.6
+        }}
+      >
         {t('tags.empty')}
       </div>
     )
@@ -42,7 +50,9 @@ export function TagsPanel() {
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             <span style={{ color: 'var(--accent-color)', fontWeight: 500 }}>#{tag}</span>
-            <span style={{ color: 'var(--text-secondary)', opacity: 0.7, fontSize: 12 }}>{files.length}</span>
+            <span style={{ color: 'var(--text-secondary)', opacity: 0.7, fontSize: 12 }}>
+              {files.length}
+            </span>
           </summary>
           <div style={{ paddingBottom: 6 }}>
             {files.map((filePath) => {

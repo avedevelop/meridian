@@ -44,7 +44,9 @@ export function SetupWizard({
       }}
     >
       <div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+        <div
+          style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}
+        >
           ☁️ {t('gitPanel.setupTitle')}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
@@ -75,7 +77,11 @@ export function SetupWizard({
                   height: 22,
                   borderRadius: '50%',
                   flexShrink: 0,
-                  background: isDone ? '#4ade80' : isActive ? 'var(--accent-color)' : 'var(--bg-surface)',
+                  background: isDone
+                    ? '#4ade80'
+                    : isActive
+                      ? 'var(--accent-color)'
+                      : 'var(--bg-surface)',
                   color: isDone || isActive ? '#fff' : 'var(--text-secondary)',
                   display: 'flex',
                   alignItems: 'center',
@@ -118,7 +124,9 @@ export function SetupWizard({
                 {isActive && i === 1 && (
                   <button
                     onClick={() => {
-                      window.dispatchEvent(new CustomEvent('meridian:open-settings', { detail: 'sync' }))
+                      window.dispatchEvent(
+                        new CustomEvent('meridian:open-settings', { detail: 'sync' })
+                      )
                     }}
                     style={{
                       marginTop: 8,

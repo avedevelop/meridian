@@ -199,8 +199,12 @@ export function LocalGraphView() {
     node
       .append('circle')
       .attr('r', (d) => (d.isCenter ? 10 : 6.5))
-      .attr('fill', (d) => (d.isCenter ? 'var(--accent-color)' : GROUP_COLORS[getNodeGroup(d.id, d.name)]))
-      .attr('stroke', (d) => (d.isCenter ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)'))
+      .attr('fill', (d) =>
+        d.isCenter ? 'var(--accent-color)' : GROUP_COLORS[getNodeGroup(d.id, d.name)]
+      )
+      .attr('stroke', (d) =>
+        d.isCenter ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.15)'
+      )
       .attr('stroke-width', (d) => (d.isCenter ? 2.5 : 1.2))
 
     // Labels
@@ -251,7 +255,15 @@ export function LocalGraphView() {
 
   if (!activeTabPath) {
     return (
-      <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)', opacity: 0.5 }}>
+      <div
+        style={{
+          padding: 24,
+          textAlign: 'center',
+          fontSize: 13,
+          color: 'var(--text-secondary)',
+          opacity: 0.5
+        }}
+      >
         {t('localGraph.empty')}
       </div>
     )

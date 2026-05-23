@@ -8,15 +8,7 @@ interface SliderProps {
   onChange: (n: number) => void
 }
 
-export function Slider({
-  label,
-  description,
-  value,
-  min,
-  max,
-  unit,
-  onChange
-}: SliderProps) {
+export function Slider({ label, description, value, min, max, unit, onChange }: SliderProps) {
   return (
     <div
       style={{

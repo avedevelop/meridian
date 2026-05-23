@@ -45,9 +45,7 @@ export function TabItem({
   const isDragged = activeDragIndex === index
   const isDropTargetLeft = activeDragIndex !== null && hoveredDragIndex === index
   const isDropTargetRight =
-    activeDragIndex !== null &&
-    hoveredDragIndex === openTabsLength &&
-    index === openTabsLength - 1
+    activeDragIndex !== null && hoveredDragIndex === openTabsLength && index === openTabsLength - 1
 
   return (
     <div

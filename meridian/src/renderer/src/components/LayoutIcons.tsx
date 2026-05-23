@@ -1,4 +1,3 @@
-
 export const PlusIcon = ({
   size = 14,
   color = 'currentColor',
@@ -117,7 +116,15 @@ export const SidebarLeftIcon = ({ active }: { active: boolean }) => (
     <rect x="2" y="2" width="12" height="12" rx="1.5" />
     <path d="M6 2v12" strokeWidth="1.2" />
     {active && (
-      <rect x="2.5" y="2.5" width="3" height="11" fill="currentColor" opacity="0.15" stroke="none" />
+      <rect
+        x="2.5"
+        y="2.5"
+        width="3"
+        height="11"
+        fill="currentColor"
+        opacity="0.15"
+        stroke="none"
+      />
     )}
   </svg>
 )

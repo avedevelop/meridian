@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 function applyTemplatePlaceholders(template: string, title: string, date: string): string {
-  return template
-    .replace(/\{\{date\}\}/gi, date)
-    .replace(/\{\{title\}\}/gi, title)
+  return template.replace(/\{\{date\}\}/gi, date).replace(/\{\{title\}\}/gi, title)
 }
 
 function prependTemplate(templateContent: string, existingContent: string): string {

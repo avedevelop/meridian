@@ -96,9 +96,7 @@ export function SettingsAboutSection() {
             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>
               {t('settings.about.version')}
             </span>
-            <span style={{ color: '#eee' }}>
-              v{(window as any).appInfo?.version ?? '1.0.0'}
-            </span>
+            <span style={{ color: '#eee' }}>v{(window as any).appInfo?.version ?? '1.0.0'}</span>
           </div>
           <div style={{ display: 'flex' }}>
             <span style={{ color: '#555', width: 100, fontWeight: 600 }}>

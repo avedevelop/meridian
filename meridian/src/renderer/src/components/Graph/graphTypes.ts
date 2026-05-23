@@ -30,9 +30,8 @@ export interface D3State {
 export interface GraphBuildResult {
   nodes: GNode[]
   links: GLink[]
-  totalEligible: number      // after filters, before cap
+  totalEligible: number // after filters, before cap
   displayedCount: number
   truncated: boolean
   maxNodes: number
 }
-

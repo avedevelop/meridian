@@ -24,7 +24,14 @@ interface CommandPaletteProps {
   recentPaths?: string[]
 }
 
-export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands = [], recentPaths = [] }: CommandPaletteProps) {
+export function CommandPalette({
+  isOpen,
+  onClose,
+  files,
+  onFileSelect,
+  commands = [],
+  recentPaths = []
+}: CommandPaletteProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -42,7 +49,9 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
   }, [isOpen, search])
 
   useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
   }, [])
 
   const isCommandMode = query.startsWith('>')
@@ -66,7 +75,10 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
     if (isCommandMode) return []
     if (!query.trim()) {
       const recentSet = new Set(recentPaths)
-      return files.filter((f) => !recentSet.has(f.path)).slice(0, 8).map((f) => ({ ...f, snippet: '' }))
+      return files
+        .filter((f) => !recentSet.has(f.path))
+        .slice(0, 8)
+        .map((f) => ({ ...f, snippet: '' }))
     }
     return searchResults.slice(0, 12)
   }, [isCommandMode, query, searchResults, files, recentPaths])
@@ -86,16 +98,31 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
   if (!isOpen) return null
 
   const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') { onClose(); return }
-    if (e.key === 'ArrowDown') { setActiveIndex((i) => Math.min(i + 1, items.length - 1)); return }
-    if (e.key === 'ArrowUp') { setActiveIndex((i) => Math.max(i - 1, 0)); return }
+    if (e.key === 'Escape') {
+      onClose()
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      setActiveIndex((i) => Math.min(i + 1, items.length - 1))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      setActiveIndex((i) => Math.max(i - 1, 0))
+      return
+    }
     if (e.key === 'Enter') {
       if (isCommandMode) {
         const cmd = filteredCommands[activeIndex]
-        if (cmd) { cmd.onSelect(); onClose() }
+        if (cmd) {
+          cmd.onSelect()
+          onClose()
+        }
       } else {
         const f = items[activeIndex] as FileItem | undefined
-        if (f) { onFileSelect(f.path, f.name); onClose() }
+        if (f) {
+          onFileSelect(f.path, f.name)
+          onClose()
+        }
       }
     }
   }
@@ -104,16 +131,25 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
         background: 'rgba(0,0,0,0.6)',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 120
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: 120
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 560, background: '#1e1e1e', borderRadius: 10,
-          border: '1px solid #333', boxShadow: '0 24px 64px rgba(0,0,0,0.8)', overflow: 'hidden'
+          width: 560,
+          background: '#1e1e1e',
+          borderRadius: 10,
+          border: '1px solid #333',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.8)',
+          overflow: 'hidden'
         }}
       >
         <input
@@ -121,27 +157,45 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
           value={query}
           onChange={handleQueryChange}
           onKeyDown={handleKey}
-          placeholder={isCommandMode ? t('commandPalette.searchCommandsPlaceholder') : t('commandPalette.searchNotesPlaceholder')}
+          placeholder={
+            isCommandMode
+              ? t('commandPalette.searchCommandsPlaceholder')
+              : t('commandPalette.searchNotesPlaceholder')
+          }
           style={{
-            width: '100%', padding: '14px 16px',
-            background: 'transparent', border: 'none', outline: 'none',
-            color: '#fff', fontSize: 15, borderBottom: '1px solid #2a2a2a'
+            width: '100%',
+            padding: '14px 16px',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: '#fff',
+            fontSize: 15,
+            borderBottom: '1px solid #2a2a2a'
           }}
         />
         <div style={{ maxHeight: 360, overflowY: 'auto' }}>
           {isCommandMode ? (
             filteredCommands.length === 0 ? (
-              <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>{t('commandPalette.noResults')}</div>
+              <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>
+                {t('commandPalette.noResults')}
+              </div>
             ) : (
               filteredCommands.map((cmd, i) => (
                 <div
                   key={cmd.id}
-                  onClick={() => { cmd.onSelect(); onClose() }}
+                  onClick={() => {
+                    cmd.onSelect()
+                    onClose()
+                  }}
                   style={{
-                    padding: '10px 16px', cursor: 'pointer', fontSize: 14,
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontSize: 14,
                     color: i === activeIndex ? '#fff' : '#aaa',
                     background: i === activeIndex ? '#2a2a3a' : 'transparent',
-                    display: 'flex', alignItems: 'center', gap: 10
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10
                   }}
                 >
                   <span style={{ fontSize: 16 }}>{cmd.icon ?? '⚡'}</span>
@@ -216,7 +270,7 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
                     style={{
                       padding: snippet ? '8px 16px' : '10px 16px',
                       cursor: 'pointer',
-                      background: idx === activeIndex ? '#2a2a3a' : 'transparent',
+                      background: idx === activeIndex ? '#2a2a3a' : 'transparent'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -226,15 +280,17 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
                       </span>
                     </div>
                     {snippet && (
-                      <div style={{
-                        fontSize: 11,
-                        color: idx === activeIndex ? 'rgba(255,255,255,0.55)' : '#555',
-                        marginTop: 3,
-                        marginLeft: 24,
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                        textOverflow: 'ellipsis',
-                      }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: idx === activeIndex ? 'rgba(255,255,255,0.55)' : '#555',
+                          marginTop: 3,
+                          marginLeft: 24,
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
                         {snippet}
                       </div>
                     )}
@@ -242,7 +298,9 @@ export function CommandPalette({ isOpen, onClose, files, onFileSelect, commands 
                 )
               })}
               {recentFiles.length === 0 && filteredFiles.length === 0 && (
-                <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>{t('commandPalette.noResults')}</div>
+                <div style={{ padding: '12px 16px', color: '#555', fontSize: 13 }}>
+                  {t('commandPalette.noResults')}
+                </div>
               )}
             </>
           )}

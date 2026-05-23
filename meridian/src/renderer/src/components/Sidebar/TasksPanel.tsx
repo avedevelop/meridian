@@ -156,7 +156,15 @@ export function TasksPanel() {
         />
 
         {/* Categories Tab Selector */}
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.2)', padding: 2, borderRadius: 6 }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 4,
+            background: 'rgba(0,0,0,0.2)',
+            padding: 2,
+            borderRadius: 6
+          }}
+        >
           {(['pending', 'completed', 'all'] as const).map((tab) => (
             <button
               key={tab}
@@ -183,8 +191,17 @@ export function TasksPanel() {
       {/* Task List Panel */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 4px' }}>
         {loading && tasks.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('tasks.scanning')}</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100px'
+            }}
+          >
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              {t('tasks.scanning')}
+            </span>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 8px' }}>
@@ -212,7 +229,9 @@ export function TasksPanel() {
                     accentColor: 'var(--accent-color)'
                   }}
                 />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}
+                >
                   <span
                     onClick={() => openFile(task.filePath, `${task.fileName}.md`)}
                     style={{
@@ -246,7 +265,14 @@ export function TasksPanel() {
               </div>
             ))}
             {filteredTasks.length === 0 && (
-              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12 }}>
+              <div
+                style={{
+                  padding: '24px 0',
+                  textAlign: 'center',
+                  color: 'var(--text-secondary)',
+                  fontSize: 12
+                }}
+              >
                 {t('tasks.noTasks')}
               </div>
             )}

@@ -117,4 +117,33 @@ export class VaultManager {
     await rename(resolvedSource, resolvedDest)
     return resolvedDest
   }
+
+  async listPluginManifests(): Promise<any[]> {
+    const pluginsDir = join(this.vaultPath, '.meridian', 'plugins')
+    try {
+      const stats = await stat(pluginsDir)
+      if (!stats.isDirectory()) return []
+    } catch {
+      return []
+    }
+
+    const entries = await readdir(pluginsDir)
+    const manifests: any[] = []
+
+    for (const entry of entries) {
+      if (entry.startsWith('.')) continue
+      const manifestPath = join(pluginsDir, entry, 'manifest.json')
+      try {
+        const manifestContent = await readFile(manifestPath, 'utf-8')
+        const manifestObj = JSON.parse(manifestContent)
+        if (manifestObj.id && manifestObj.name) {
+          manifests.push(manifestObj)
+        }
+      } catch (err) {
+        console.warn(`[VaultManager] Failed to read manifest for plugin ${entry}:`, err)
+      }
+    }
+
+    return manifests
+  }
 }

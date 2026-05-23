@@ -77,4 +77,20 @@ describe('VaultManager', () => {
     expect(dir!.children?.length).toBe(1)
     expect(dir!.children?.[0].name).toBe('Alpha.md')
   })
+
+  it('lists plugin manifests', async () => {
+    const pluginsDir = join(tmpDir, '.meridian', 'plugins')
+    mkdirSync(join(pluginsDir, 'my-plugin'), { recursive: true })
+    const manifest = {
+      id: 'my-plugin',
+      name: 'My Plugin',
+      version: '1.0.0',
+      main: 'main.js'
+    }
+    writeFileSync(join(pluginsDir, 'my-plugin', 'manifest.json'), JSON.stringify(manifest))
+
+    const manifests = await vault.listPluginManifests()
+    expect(manifests).toHaveLength(1)
+    expect(manifests[0]).toEqual(manifest)
+  })
 })

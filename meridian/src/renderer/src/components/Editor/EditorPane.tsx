@@ -36,7 +36,9 @@ export function EditorArea() {
             <FileIcon size={48} color="var(--border-color)" />
           </div>
           <p>{t('editor.openNoteFromSidebar')}</p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('editor.pressCmdKToSearch')}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {t('editor.pressCmdKToSearch')}
+          </p>
         </div>
       </div>
     )
@@ -48,7 +50,7 @@ export function EditorArea() {
     const startX = e.clientX
     const leftPaneId = panes[index].id
     const rightPaneId = panes[index + 1].id
-    
+
     const leftEl = paneRefs.current[leftPaneId]
     const rightEl = paneRefs.current[rightPaneId]
     if (!leftEl || !rightEl) return

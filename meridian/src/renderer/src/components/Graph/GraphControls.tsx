@@ -90,16 +90,20 @@ export function GraphControls({
           whiteSpace: 'nowrap'
         }}
       >
-        <span style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.5, marginRight: 2 }}>
+        <span
+          style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.5, marginRight: 2 }}
+        >
           ⬡
         </span>
-        {([
-          { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
-          { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
-          { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
-          { key: 'connected', label: 'Connected', color: GROUP_COLORS.connected },
-          { key: 'orphan', label: 'Orphans', color: GROUP_COLORS.orphan }
-        ] as const).map((cat) => {
+        {(
+          [
+            { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
+            { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
+            { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
+            { key: 'connected', label: 'Connected', color: GROUP_COLORS.connected },
+            { key: 'orphan', label: 'Orphans', color: GROUP_COLORS.orphan }
+          ] as const
+        ).map((cat) => {
           const isDisabled = disabledCategories.has(cat.key)
           return (
             <button
@@ -125,7 +129,13 @@ export function GraphControls({
               }}
             >
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color }} />
-              <span style={{ fontSize: 11, color: 'var(--text-primary)', textDecoration: isDisabled ? 'line-through' : 'none' }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-primary)',
+                  textDecoration: isDisabled ? 'line-through' : 'none'
+                }}
+              >
                 {cat.label}
               </span>
             </button>
@@ -232,12 +242,12 @@ export function GraphControls({
         >
           <span style={{ fontSize: 14 }}>⊙</span>
         </button>
-        
+
         <div style={{ width: 1, height: 14, background: 'rgba(255, 255, 255, 0.12)' }} />
 
         <button
           onClick={handleTogglePhysics}
-          title={isPhysicsRunning ? "Pause Physics Simulation" : "Resume Physics Simulation"}
+          title={isPhysicsRunning ? 'Pause Physics Simulation' : 'Resume Physics Simulation'}
           style={{
             background: 'transparent',
             border: 'none',

@@ -15,7 +15,10 @@ function extractSnippet(content: string, query: string): string {
   let bestPos = -1
   for (const word of sorted) {
     const idx = lower.indexOf(word)
-    if (idx !== -1) { bestPos = idx; break }
+    if (idx !== -1) {
+      bestPos = idx
+      break
+    }
   }
   if (bestPos === -1) return content.slice(0, 120).replace(/\n/g, ' ')
   const start = Math.max(0, bestPos - 80)

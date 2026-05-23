@@ -6,13 +6,7 @@ interface ColorPickerProps {
   onChange: (color: string) => void
 }
 
-export function ColorPicker({
-  label,
-  description,
-  value,
-  options,
-  onChange
-}: ColorPickerProps) {
+export function ColorPicker({ label, description, value, options, onChange }: ColorPickerProps) {
   return (
     <div
       style={{

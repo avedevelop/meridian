@@ -60,7 +60,9 @@ export function useGraphTimeline({ files, viewMode }: UseGraphTimelineOptions) {
         label = String(d.getDate())
       }
       return { frac, label }
-    }).filter((t, i, arr) => t.frac > 0.04 && t.frac < 0.96 && (i === 0 || t.label !== arr[i - 1].label))
+    }).filter(
+      (t, i, arr) => t.frac > 0.04 && t.frac < 0.96 && (i === 0 || t.label !== arr[i - 1].label)
+    )
   }, [minTime, maxTime])
 
   const activityBuckets = useMemo(() => {

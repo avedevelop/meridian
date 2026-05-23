@@ -147,7 +147,10 @@ export function buildAppearanceSettings(t: TFunction): SettingDefinition[] {
             { value: 'Georgia', label: t('settings.appearance.previewFontFamily.georgia') },
             { value: 'Inter', label: t('settings.appearance.previewFontFamily.inter') },
             { value: 'system-ui', label: t('settings.appearance.previewFontFamily.system') },
-            { value: 'JetBrains Mono', label: t('settings.appearance.previewFontFamily.jetbrainsMono') }
+            {
+              value: 'JetBrains Mono',
+              label: t('settings.appearance.previewFontFamily.jetbrainsMono')
+            }
           ]}
           onChange={(v) => s.updateSetting('previewFontFamily', v as any)}
         />

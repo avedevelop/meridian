@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { postprocessWikiLinks, processCallouts } from '../../src/renderer/src/components/Editor/markdownUtils'
+import {
+  postprocessWikiLinks,
+  processCallouts
+} from '../../src/renderer/src/components/Editor/markdownUtils'
 import type { VaultFile } from '../../src/shared/types'
 
 const makeFile = (name: string, relativePath: string): VaultFile => ({

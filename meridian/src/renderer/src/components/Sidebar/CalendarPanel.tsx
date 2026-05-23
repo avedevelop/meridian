@@ -148,7 +148,14 @@ export function CalendarPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
       {/* Calendar section */}
       <div style={{ padding: '16px 12px', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12
+          }}
+        >
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
             {monthNames[month]} {year}
           </span>
@@ -217,7 +224,10 @@ export function CalendarPanel() {
           }}
         >
           {weekdays.map((wd) => (
-            <div key={wd} style={{ color: 'var(--text-secondary)', fontWeight: 600, paddingBottom: 6 }}>
+            <div
+              key={wd}
+              style={{ color: 'var(--text-secondary)', fontWeight: 600, paddingBottom: 6 }}
+            >
               {wd}
             </div>
           ))}
@@ -244,9 +254,13 @@ export function CalendarPanel() {
                   borderRadius: 6,
                   color: existingPath ? 'var(--accent-color)' : 'var(--text-primary)',
                   fontWeight: existingPath ? '700' : 'normal',
-                  background: existingPath ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.12)' : 'transparent',
+                  background: existingPath
+                    ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.12)'
+                    : 'transparent',
                   border: isToday ? '1px solid var(--accent-color)' : '1px solid transparent',
-                  boxShadow: existingPath ? '0 0 8px rgba(var(--accent-rgb, 100, 108, 255), 0.2)' : 'none'
+                  boxShadow: existingPath
+                    ? '0 0 8px rgba(var(--accent-rgb, 100, 108, 255), 0.2)'
+                    : 'none'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = existingPath
@@ -312,8 +326,13 @@ export function CalendarPanel() {
             >
               <FileIcon size={12} color="var(--accent-color)" />
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                  {item.name.replace(/\.md$/, '').replace(/\.canvas$/, ' ⊞').replace(/\.excalidraw$/, ' ✎')}
+                <span
+                  style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                >
+                  {item.name
+                    .replace(/\.md$/, '')
+                    .replace(/\.canvas$/, ' ⊞')
+                    .replace(/\.excalidraw$/, ' ✎')}
                 </span>
               </div>
             </div>

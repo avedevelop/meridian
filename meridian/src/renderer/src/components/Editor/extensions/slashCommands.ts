@@ -17,12 +17,16 @@ const SLASH_COMMANDS: SlashCommand[] = [
   { label: '/Bullet List', apply: '- ', detail: 'unordered list' },
   { label: '/Numbered List', apply: '1. ', detail: 'ordered list' },
   { label: '/Task List', apply: '- [ ] ', detail: 'task checkbox' },
-  { label: '/Table', apply: '| Col 1 | Col 2 |\n|---|---|\n| Cell | Cell |', detail: 'markdown table' },
+  {
+    label: '/Table',
+    apply: '| Col 1 | Col 2 |\n|---|---|\n| Cell | Cell |',
+    detail: 'markdown table'
+  },
   { label: '/Divider', apply: '\n---\n', detail: 'horizontal rule' },
   { label: '/Quote', apply: '> ', detail: 'blockquote' },
   { label: '/Callout Note', apply: '> [!NOTE]\n> ', detail: 'info callout' },
   { label: '/Callout Warning', apply: '> [!WARNING]\n> ', detail: 'warning callout' },
-  { label: '/Callout Tip', apply: '> [!TIP]\n> ', detail: 'tip callout' },
+  { label: '/Callout Tip', apply: '> [!TIP]\n> ', detail: 'tip callout' }
 ]
 
 // Export source function — combined into one autocompletion in markdownExtensions.ts
@@ -48,7 +52,12 @@ export function makeSlashSource(context: CompletionContext): CompletionResult | 
       label: cmd.label,
       detail: cmd.detail,
       type: 'keyword',
-      apply: (view: import('@codemirror/view').EditorView, _completion: unknown, from: number, to: number) => {
+      apply: (
+        view: import('@codemirror/view').EditorView,
+        _completion: unknown,
+        from: number,
+        to: number
+      ) => {
         view.dispatch({
           changes: { from, to, insert: cmd.apply },
           selection: { anchor: from + cmd.apply.length }

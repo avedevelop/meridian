@@ -10,6 +10,10 @@ protocol.registerSchemesAsPrivileged([
   {
     scheme: 'vault',
     privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true }
+  },
+  {
+    scheme: 'meridian-plugin',
+    privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true }
   }
 ])
 
@@ -21,7 +25,11 @@ const MIME: Record<string, string> = {
   '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
   '.mp4': 'video/mp4',
-  '.pdf': 'application/pdf'
+  '.pdf': 'application/pdf',
+  '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json'
 }
 
 const settings = new AppSettings()
@@ -42,7 +50,11 @@ function buildMenu() {
         { type: 'separator' },
         { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => send('save') },
         { label: 'Export to HTML…', accelerator: 'CmdOrCtrl+E', click: () => send('export-html') },
-        { label: 'Export to PDF…', accelerator: 'CmdOrCtrl+Shift+E', click: () => send('export-pdf') },
+        {
+          label: 'Export to PDF…',
+          accelerator: 'CmdOrCtrl+Shift+E',
+          click: () => send('export-pdf')
+        },
         { type: 'separator' },
         { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send('close-tab') }
       ]
@@ -184,6 +196,33 @@ app.whenReady().then(() => {
     if (!fullPath.startsWith(vaultResolved + sep)) {
       return new Response('Forbidden', { status: 403 })
     }
+    try {
+      const data = await readFile(fullPath)
+      const contentType = MIME[extname(fullPath).toLowerCase()] ?? 'application/octet-stream'
+      return new Response(data, { headers: { 'Content-Type': contentType } })
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
+  })
+
+  protocol.handle('meridian-plugin', async (request) => {
+    const url = new URL(request.url)
+    const pluginId = url.hostname
+    const fileSubpath = decodeURIComponent(url.pathname).replace(/^\/+/, '')
+    if (!pluginId) return new Response('Invalid plugin ID', { status: 400 })
+
+    const vm = getVaultManager()
+    if (!vm) return new Response('No vault', { status: 503 })
+
+    const pluginsDir = resolve(vm.vaultPath, '.meridian', 'plugins')
+    const pluginRoot = resolve(pluginsDir, pluginId)
+    const fullPath = resolve(pluginRoot, fileSubpath)
+
+    // Security check: must be inside the specific plugin root directory
+    if (!fullPath.startsWith(pluginRoot + sep) && fullPath !== pluginRoot) {
+      return new Response('Forbidden', { status: 403 })
+    }
+
     try {
       const data = await readFile(fullPath)
       const contentType = MIME[extname(fullPath).toLowerCase()] ?? 'application/octet-stream'

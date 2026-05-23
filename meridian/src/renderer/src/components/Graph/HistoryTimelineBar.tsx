@@ -73,28 +73,61 @@ export function HistoryTimelineBar({
       }}
     >
       {/* Date */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0, justifyContent: 'center' }}>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', lineHeight: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{t('timeline.viewing')}</span>
-        <span style={{ fontSize: 12, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          flexShrink: 0,
+          justifyContent: 'center'
+        }}
+      >
+        <span
+          style={{
+            fontSize: 9,
+            color: 'rgba(255,255,255,0.2)',
+            lineHeight: 1,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase'
+          }}
+        >
+          {t('timeline.viewing')}
+        </span>
+        <span
+          style={{
+            fontSize: 12,
+            color: 'var(--text-primary)',
+            fontVariantNumeric: 'tabular-nums',
+            whiteSpace: 'nowrap'
+          }}
+        >
           {formattedDate}
         </span>
       </div>
 
       {/* Grouped: minimap + scrubber + ticks */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 8,
-        padding: '8px 14px',
-        background: 'rgba(255,255,255,0.03)',
-        overflow: 'visible'
-      }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 8,
+          padding: '8px 14px',
+          background: 'rgba(255,255,255,0.03)',
+          overflow: 'visible'
+        }}
+      >
         {/* Minimap */}
         <svg
-          style={{ display: 'block', width: '100%', height: 12, pointerEvents: 'none', opacity: 0.55 }}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: 12,
+            pointerEvents: 'none',
+            opacity: 0.55
+          }}
           preserveAspectRatio="none"
           viewBox={`0 0 ${activityBuckets.length} 1`}
         >
@@ -106,33 +139,58 @@ export function HistoryTimelineBar({
         <div
           ref={scrubberRef}
           onMouseDown={handleScrubberMouseDown}
-          style={{ position: 'relative', height: 16, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          style={{
+            position: 'relative',
+            height: 16,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center'
+          }}
         >
           {/* Track */}
-          <div style={{ width: '100%', height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-            <div style={{ width: `${progress * 100}%`, height: '100%', background: 'var(--accent-color)', borderRadius: 2 }} />
+          <div
+            style={{
+              width: '100%',
+              height: 3,
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: 2
+            }}
+          >
+            <div
+              style={{
+                width: `${progress * 100}%`,
+                height: '100%',
+                background: 'var(--accent-color)',
+                borderRadius: 2
+              }}
+            />
           </div>
           {/* Thumb */}
-          <div style={{
-            position: 'absolute',
-            left: `${progress * 100}%`,
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 13,
-            height: 13,
-            borderRadius: '50%',
-            background: 'var(--accent-color)',
-            boxShadow: '0 0 0 2px rgba(124,106,240,0.35)',
-            pointerEvents: 'none',
-            transition: 'box-shadow 0.15s ease'
-          }} />
+          <div
+            style={{
+              position: 'absolute',
+              left: `${progress * 100}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 13,
+              height: 13,
+              borderRadius: '50%',
+              background: 'var(--accent-color)',
+              boxShadow: '0 0 0 2px rgba(124,106,240,0.35)',
+              pointerEvents: 'none',
+              transition: 'box-shadow 0.15s ease'
+            }}
+          />
         </div>
         {/* Ticks */}
         <div style={{ position: 'relative', height: 12, flexShrink: 0 }}>
           {historyTicks.map(({ frac, label }) => (
             <span
               key={frac}
-              onClick={() => { setProgress(frac); setIsPlaying(false); }}
+              onClick={() => {
+                setProgress(frac)
+                setIsPlaying(false)
+              }}
               onMouseEnter={() => setHoveredTick(frac)}
               onMouseLeave={() => setHoveredTick(null)}
               style={{
@@ -144,7 +202,8 @@ export function HistoryTimelineBar({
                 alignItems: 'center',
                 fontSize: 9,
                 color: hoveredTick === frac ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.28)',
-                transform: frac <= 0.05 ? 'none' : frac >= 0.95 ? 'translateX(-100%)' : 'translateX(-50%)',
+                transform:
+                  frac <= 0.05 ? 'none' : frac >= 0.95 ? 'translateX(-100%)' : 'translateX(-50%)',
                 cursor: 'pointer',
                 userSelect: 'none' as const,
                 whiteSpace: 'nowrap' as const,
@@ -161,7 +220,15 @@ export function HistoryTimelineBar({
       </div>
 
       {/* Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, alignSelf: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          flexShrink: 0,
+          alignSelf: 'center'
+        }}
+      >
         <button
           onClick={() => {
             if (progress >= 1) setProgress(0)
@@ -225,7 +292,15 @@ export function HistoryTimelineBar({
               gap: 6
             }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#fff',
+                display: 'inline-block'
+              }}
+            />
             {t('timeline.stop')}
           </button>
         ) : (

@@ -10,8 +10,7 @@ function wrapSelection(view: EditorView, before: string, after: string): boolean
   const beforeStart = Math.max(0, sel.from - before.length)
   const afterEnd = Math.min(state.doc.length, sel.to + after.length)
   const already =
-    state.sliceDoc(beforeStart, sel.from) === before &&
-    state.sliceDoc(sel.to, afterEnd) === after
+    state.sliceDoc(beforeStart, sel.from) === before && state.sliceDoc(sel.to, afterEnd) === after
 
   if (already) {
     dispatch(
@@ -30,7 +29,10 @@ function wrapSelection(view: EditorView, before: string, after: string): boolean
     dispatch(
       state.update({
         changes: { from: sel.from, to: sel.to, insert },
-        selection: { anchor: sel.from + before.length, head: sel.from + before.length + selectedText.length },
+        selection: {
+          anchor: sel.from + before.length,
+          head: sel.from + before.length + selectedText.length
+        },
         scrollIntoView: true
       })
     )

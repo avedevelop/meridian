@@ -12,22 +12,23 @@
 
 ## File map
 
-| Action | Path |
-|--------|------|
-| **Create** | `src/renderer/src/lib/markdownCore.ts` |
-| **Create** | `src/renderer/src/lib/markdownCoreFormatters/calloutsFormatter.ts` |
-| **Create** | `src/renderer/src/lib/markdownCoreFormatters/highlightsFormatter.ts` |
-| **Create** | `src/renderer/src/lib/markdownCoreFormatters/wikiLinksFormatter.ts` |
-| **Create** | `src/renderer/src/lib/markdownCoreFormatters/taskListFormatter.ts` |
-| **Modify** | `src/renderer/src/components/Editor/MarkdownPreview.tsx` |
+| Action     | Path                                                                    |
+| ---------- | ----------------------------------------------------------------------- |
+| **Create** | `src/renderer/src/lib/markdownCore.ts`                                  |
+| **Create** | `src/renderer/src/lib/markdownCoreFormatters/calloutsFormatter.ts`      |
+| **Create** | `src/renderer/src/lib/markdownCoreFormatters/highlightsFormatter.ts`    |
+| **Create** | `src/renderer/src/lib/markdownCoreFormatters/wikiLinksFormatter.ts`     |
+| **Create** | `src/renderer/src/lib/markdownCoreFormatters/taskListFormatter.ts`      |
+| **Modify** | `src/renderer/src/components/Editor/MarkdownPreview.tsx`                |
 | **Modify** | `src/renderer/src/components/Editor/extensions/livePreviewExtension.ts` |
-| **Modify** | `src/renderer/src/assets/meridian.css` |
+| **Modify** | `src/renderer/src/assets/meridian.css`                                  |
 
 ---
 
 ### Task 1: Create markdownCore.ts — registry and pipeline
 
 **Files:**
+
 - Create: `src/renderer/src/lib/markdownCore.ts`
 
 - [ ] **Step 1: Create the file**
@@ -57,7 +58,10 @@ export function applyPreprocessors(md: string): string {
 }
 
 export function applyPostprocessors(html: string, files: VaultFile[]): string {
-  return registry.reduce((acc, f) => (f.postprocessHtml ? f.postprocessHtml(acc, files) : acc), html)
+  return registry.reduce(
+    (acc, f) => (f.postprocessHtml ? f.postprocessHtml(acc, files) : acc),
+    html
+  )
 }
 
 export function collectCmDecorations(view: EditorView): CmEntry[] {
@@ -66,12 +70,15 @@ export function collectCmDecorations(view: EditorView): CmEntry[] {
 ```
 
 - [ ] **Step 2: Typecheck**
+
 ```bash
 cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npx tsc --noEmit 2>&1 | tail -10
 ```
+
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/lib/markdownCore.ts
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: markdown formatter registry (markdownCore)"
@@ -82,6 +89,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: mark
 ### Task 2: calloutsFormatter — callouts in HTML and live preview
 
 **Files:**
+
 - Create: `src/renderer/src/lib/markdownCoreFormatters/calloutsFormatter.ts`
 - Modify: `src/renderer/src/lib/markdownCore.ts` (add import + registration)
 
@@ -96,20 +104,21 @@ import type { MarkdownFormatter, CmEntry } from '../markdownCore'
 import { CALLOUT_TYPES } from '../../components/Editor/markdownUtils'
 
 function preprocessMd(md: string): string {
-  return md.replace(
-    /^(> \[!([\w]+)\][^\n]*(?:\n> [^\n]*)*)/gm,
-    (block) => {
-      const lines = block.split('\n')
-      const firstLine = lines[0]
-      const m = firstLine.match(/^> \[!([\w]+)\](.*)/)
-      if (!m) return block
-      const typeKey = m[1].toLowerCase()
-      const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
-      const displayTitle = m[2].trim() || (typeKey.charAt(0).toUpperCase() + typeKey.slice(1))
-      const body = lines.slice(1).map((l) => l.replace(/^> ?/, '')).join('\n').trim()
-      return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
-    }
-  )
+  return md.replace(/^(> \[!([\w]+)\][^\n]*(?:\n> [^\n]*)*)/gm, (block) => {
+    const lines = block.split('\n')
+    const firstLine = lines[0]
+    const m = firstLine.match(/^> \[!([\w]+)\](.*)/)
+    if (!m) return block
+    const typeKey = m[1].toLowerCase()
+    const info = CALLOUT_TYPES[typeKey] ?? { icon: '📝', color: '#6b7280' }
+    const displayTitle = m[2].trim() || typeKey.charAt(0).toUpperCase() + typeKey.slice(1)
+    const body = lines
+      .slice(1)
+      .map((l) => l.replace(/^> ?/, ''))
+      .join('\n')
+      .trim()
+    return `<div class="callout callout-${typeKey}" style="border-left:4px solid ${info.color};background:${info.color}22;border-radius:6px;padding:12px 16px;margin:12px 0"><div class="callout-title" style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:${body ? '8px' : '0'};color:${info.color}"><span>${info.icon}</span><span>${displayTitle}</span></div>${body ? `<div class="callout-content">${body}</div>` : ''}</div>`
+  })
 }
 
 function cmDecorations(view: EditorView): CmEntry[] {
@@ -129,8 +138,12 @@ function cmDecorations(view: EditorView): CmEntry[] {
 
     // Line class for the title line
     entries.push({
-      from: line.from, to: line.from,
-      deco: Decoration.line({ class: `cm-lp-callout cm-lp-callout-${typeKey}`, attributes: { style: `--callout-color:${info.color}` } })
+      from: line.from,
+      to: line.from,
+      deco: Decoration.line({
+        class: `cm-lp-callout cm-lp-callout-${typeKey}`,
+        attributes: { style: `--callout-color:${info.color}` }
+      })
     })
 
     if (!onCursor) {
@@ -146,8 +159,12 @@ function cmDecorations(view: EditorView): CmEntry[] {
       if (!bodyLine.text.startsWith('> ') && bodyLine.text !== '>') break
       const onBodyCursor = head >= bodyLine.from && head <= bodyLine.to
       entries.push({
-        from: bodyLine.from, to: bodyLine.from,
-        deco: Decoration.line({ class: 'cm-lp-callout-body', attributes: { style: `--callout-color:${info.color}` } })
+        from: bodyLine.from,
+        to: bodyLine.from,
+        deco: Decoration.line({
+          class: 'cm-lp-callout-body',
+          attributes: { style: `--callout-color:${info.color}` }
+        })
       })
       if (!onBodyCursor) {
         // Hide the "> " prefix on body lines
@@ -165,7 +182,7 @@ function cmDecorations(view: EditorView): CmEntry[] {
 export const calloutsFormatter: MarkdownFormatter = {
   name: 'callouts',
   preprocessMd,
-  cmDecorations,
+  cmDecorations
 }
 ```
 
@@ -178,11 +195,13 @@ registerFormatter(calloutsFormatter)
 ```
 
 - [ ] **Step 3: Typecheck**
+
 ```bash
 cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/lib/markdownCoreFormatters/calloutsFormatter.ts src/renderer/src/lib/markdownCore.ts
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: calloutsFormatter for HTML and live preview"
@@ -193,6 +212,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: call
 ### Task 3: highlightsFormatter — ==text== in HTML and live preview
 
 **Files:**
+
 - Create: `src/renderer/src/lib/markdownCoreFormatters/highlightsFormatter.ts`
 - Modify: `src/renderer/src/lib/markdownCore.ts` (add import + registration)
 
@@ -242,7 +262,7 @@ function cmDecorations(view: EditorView): CmEntry[] {
 export const highlightsFormatter: MarkdownFormatter = {
   name: 'highlights',
   preprocessMd,
-  cmDecorations,
+  cmDecorations
 }
 ```
 
@@ -254,11 +274,13 @@ registerFormatter(highlightsFormatter)
 ```
 
 - [ ] **Step 3: Typecheck**
+
 ```bash
 cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/lib/markdownCoreFormatters/highlightsFormatter.ts src/renderer/src/lib/markdownCore.ts
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: highlightsFormatter for HTML and live preview"
@@ -269,6 +291,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: high
 ### Task 4: wikiLinksFormatter — [[links]] in HTML and live preview
 
 **Files:**
+
 - Create: `src/renderer/src/lib/markdownCoreFormatters/wikiLinksFormatter.ts`
 - Modify: `src/renderer/src/lib/markdownCore.ts`
 
@@ -304,7 +327,7 @@ function cmDecorations(view: EditorView): CmEntry[] {
 export const wikiLinksFormatter: MarkdownFormatter = {
   name: 'wikiLinks',
   postprocessHtml: (html: string, files: VaultFile[]) => postprocessWikiLinks(html, files),
-  cmDecorations,
+  cmDecorations
 }
 ```
 
@@ -316,11 +339,13 @@ registerFormatter(wikiLinksFormatter)
 ```
 
 - [ ] **Step 3: Typecheck**
+
 ```bash
 cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/lib/markdownCoreFormatters/wikiLinksFormatter.ts src/renderer/src/lib/markdownCore.ts
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: wikiLinksFormatter for HTML and live preview"
@@ -331,6 +356,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: wiki
 ### Task 5: taskListFormatter — - [ ] checkboxes in live preview
 
 **Files:**
+
 - Create: `src/renderer/src/lib/markdownCoreFormatters/taskListFormatter.ts`
 - Modify: `src/renderer/src/lib/markdownCore.ts`
 
@@ -342,18 +368,25 @@ import { Decoration, WidgetType } from '@codemirror/view'
 import type { MarkdownFormatter, CmEntry } from '../markdownCore'
 
 class CheckboxWidget extends WidgetType {
-  constructor(private checked: boolean) { super() }
+  constructor(private checked: boolean) {
+    super()
+  }
   toDOM() {
     const input = document.createElement('input')
     input.type = 'checkbox'
     input.checked = this.checked
     input.disabled = true
     input.className = 'cm-lp-checkbox'
-    input.style.cssText = 'margin-right:6px;vertical-align:middle;cursor:default;pointer-events:none'
+    input.style.cssText =
+      'margin-right:6px;vertical-align:middle;cursor:default;pointer-events:none'
     return input
   }
-  eq(other: CheckboxWidget) { return other.checked === this.checked }
-  ignoreEvent() { return true }
+  eq(other: CheckboxWidget) {
+    return other.checked === this.checked
+  }
+  ignoreEvent() {
+    return true
+  }
 }
 
 function cmDecorations(view: EditorView): CmEntry[] {
@@ -384,7 +417,7 @@ function cmDecorations(view: EditorView): CmEntry[] {
 
 export const taskListFormatter: MarkdownFormatter = {
   name: 'taskList',
-  cmDecorations,
+  cmDecorations
 }
 ```
 
@@ -396,11 +429,13 @@ registerFormatter(taskListFormatter)
 ```
 
 - [ ] **Step 3: Typecheck**
+
 ```bash
 cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/lib/markdownCoreFormatters/taskListFormatter.ts src/renderer/src/lib/markdownCore.ts
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: taskListFormatter — checkbox widgets in live preview"
@@ -411,6 +446,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: task
 ### Task 6: Wire MarkdownPreview.tsx to use markdownCore
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/MarkdownPreview.tsx`
 
 Replace the local `preProcessCallouts`, `preProcessHighlights`, and `postprocessWikiLinks` calls with the core pipeline. The local functions and the `postprocessWikiLinks` import can be removed.
@@ -418,6 +454,7 @@ Replace the local `preProcessCallouts`, `preProcessHighlights`, and `postprocess
 - [ ] **Step 1: Add import at the top of MarkdownPreview.tsx**
 
 Find the existing imports block and add:
+
 ```ts
 import { applyPreprocessors, applyPostprocessors } from '../../../lib/markdownCore'
 // Side-effect import to register built-in formatters
@@ -427,22 +464,25 @@ import '../../../lib/markdownCore'
 - [ ] **Step 2: Update the html useMemo (lines ~172-189)**
 
 Find:
+
 ```ts
-      const preprocessed = preProcessHighlights(preProcessCallouts(stripped))
-      const sanitized = String(processor.processSync(preprocessed))
-      const withLinks = postprocessWikiLinks(sanitized, files)
+const preprocessed = preProcessHighlights(preProcessCallouts(stripped))
+const sanitized = String(processor.processSync(preprocessed))
+const withLinks = postprocessWikiLinks(sanitized, files)
 ```
 
 Replace with:
+
 ```ts
-      const preprocessed = applyPreprocessors(stripped)
-      const sanitized = String(processor.processSync(preprocessed))
-      const withLinks = applyPostprocessors(sanitized, files)
+const preprocessed = applyPreprocessors(stripped)
+const sanitized = String(processor.processSync(preprocessed))
+const withLinks = applyPostprocessors(sanitized, files)
 ```
 
 - [ ] **Step 3: Remove now-unused local functions and imports**
 
 Delete:
+
 - The `function preProcessCallouts(md: string)` block (lines 32-47)
 - The `function preProcessHighlights(md: string)` block (lines 50-55)
 - The `postprocessWikiLinks` from the import on line 12: `import { flattenVaultFiles, postprocessWikiLinks, CALLOUT_TYPES } from './markdownUtils'`
@@ -451,11 +491,13 @@ Delete:
 **Note:** Keep `flattenVaultFiles` import — it is still used by the drawing/note embed `useEffect`s.
 
 - [ ] **Step 4: Typecheck**
+
 ```bash
 cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/components/Editor/MarkdownPreview.tsx
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "refactor: MarkdownPreview uses markdownCore pipeline"
@@ -466,6 +508,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "refactor: 
 ### Task 7: Wire livePreviewExtension.ts to use markdownCore
 
 **Files:**
+
 - Modify: `src/renderer/src/components/Editor/extensions/livePreviewExtension.ts`
 
 Add `collectCmDecorations` call and merge its entries with the existing syntax-tree entries.
@@ -483,17 +526,19 @@ import '../../../lib/markdownCore'
 Find the `function buildDecos(view: EditorView)` function. At the start, after `const entries: Entry[] = []`, add:
 
 ```ts
-  // Collect decorations from registered formatters (callouts, highlights, wikilinks, task-list)
-  const coreEntries = collectCmDecorations(view)
-  entries.push(...coreEntries)
+// Collect decorations from registered formatters (callouts, highlights, wikilinks, task-list)
+const coreEntries = collectCmDecorations(view)
+entries.push(...coreEntries)
 ```
 
 - [ ] **Step 3: Typecheck**
+
 ```bash
 cd "/Users/vladyslav/Desktop/dev/new project/meridian" && npx tsc --noEmit 2>&1 | tail -10
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/components/Editor/extensions/livePreviewExtension.ts
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: livePreviewExtension collects decorations from markdownCore formatters"
@@ -504,6 +549,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: live
 ### Task 8: Add CSS for new live preview classes
 
 **Files:**
+
 - Modify: `src/renderer/src/assets/meridian.css`
 
 - [ ] **Step 1: Append to meridian.css**
@@ -535,6 +581,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "feat: live
 ```
 
 - [ ] **Step 2: Commit**
+
 ```bash
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" add src/renderer/src/assets/meridian.css
 git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "style: CSS classes for markdownCore live preview formatters"
@@ -545,6 +592,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "style: CSS
 ## Self-Review
 
 **Spec coverage:**
+
 - ✅ Registry with `registerFormatter` → Task 1
 - ✅ `calloutsFormatter` HTML + CM → Task 2
 - ✅ `highlightsFormatter` HTML + CM → Task 3
@@ -557,6 +605,7 @@ git -C "/Users/vladyslav/Desktop/dev/new project/meridian" commit -m "style: CSS
 **Placeholder scan:** No TBDs. All code is complete with exact function bodies.
 
 **Type consistency:**
+
 - `CmEntry` defined in Task 1, used in Tasks 2-5 ✓
 - `MarkdownFormatter` interface defined in Task 1, implemented in Tasks 2-5 ✓
 - `collectCmDecorations(view: EditorView): CmEntry[]` in Task 1, called in Task 7 ✓

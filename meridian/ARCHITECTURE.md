@@ -23,11 +23,11 @@ npm run check-lines
 
 We enforce strict maximum line count limits for files under `src/renderer/src/components`:
 
-| File Type | Target Size | Strict Maximum |
-| :--- | :--- | :--- |
-| **React Components** (`*.tsx`) | ≤ 400 lines | **500 lines** |
-| **Custom Hooks** (`use*.ts`) | ≤ 200 lines | **250 lines** |
-| **Pure Utilities** (`*.ts`) | ≤ 150 lines | **200 lines** |
+| File Type                      | Target Size | Strict Maximum |
+| :----------------------------- | :---------- | :------------- |
+| **React Components** (`*.tsx`) | ≤ 400 lines | **500 lines**  |
+| **Custom Hooks** (`use*.ts`)   | ≤ 200 lines | **250 lines**  |
+| **Pure Utilities** (`*.ts`)    | ≤ 150 lines | **200 lines**  |
 
 No legacy exceptions — `npm run check-lines` fails on any component `.tsx` over 500 lines.
 
@@ -101,11 +101,11 @@ User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
 
 **Hooks available to plugins (v1):**
 
-| Hook | Description |
-|------|-------------|
+| Hook       | Description                                       |
+| ---------- | ------------------------------------------------- |
 | `commands` | Register commands visible in Command Palette (⌘K) |
-| `onLoad` | Called when plugin is enabled / vault opens |
-| `onUnload` | Called when plugin is disabled / vault closes |
+| `onLoad`   | Called when plugin is enabled / vault opens       |
+| `onUnload` | Called when plugin is disabled / vault closes     |
 
 **Security:** Community plugins run renderer-only (no Node `require`). Loaded via validated `file://` path from inside the vault. No `eval`.
 

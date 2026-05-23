@@ -82,14 +82,31 @@ const TABS: {
   labelKey: string
   Icon: React.ComponentType<{ size?: number; color?: string }>
 }[] = [
-  { id: 'files', labelKey: 'activityBar.files', Icon: (props) => <FolderOpenBtnIcon size={20} {...props} /> },
+  {
+    id: 'files',
+    labelKey: 'activityBar.files',
+    Icon: (props) => <FolderOpenBtnIcon size={20} {...props} />
+  },
   { id: 'git', labelKey: 'activityBar.git', Icon: (props) => <GitIcon size={20} {...props} /> },
   { id: 'graph', labelKey: 'activityBar.graph', Icon: (props) => <WebIcon size={20} {...props} /> },
-  { id: 'calendar', labelKey: 'activityBar.calendar', Icon: (props) => <CalendarIcon size={20} {...props} /> },
-  { id: 'tasks', labelKey: 'activityBar.tasks', Icon: (props) => <TasksIcon size={20} {...props} /> }
+  {
+    id: 'calendar',
+    labelKey: 'activityBar.calendar',
+    Icon: (props) => <CalendarIcon size={20} {...props} />
+  },
+  {
+    id: 'tasks',
+    labelKey: 'activityBar.tasks',
+    Icon: (props) => <TasksIcon size={20} {...props} />
+  }
 ]
 
-export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollapsed }: ActivityBarProps) {
+export function ActivityBar({
+  activeTab,
+  onTabChange,
+  onSettings,
+  sidebarCollapsed
+}: ActivityBarProps) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(() => {
     return localStorage.getItem('layout-activitybar-expanded') === 'true'
@@ -177,7 +194,15 @@ export function ActivityBar({ activeTab, onTabChange, onSettings, sidebarCollaps
               if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, position: 'relative' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 20,
+                position: 'relative'
+              }}
+            >
               <Icon />
               {hasGitBadge && !expanded && (
                 <span

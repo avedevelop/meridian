@@ -75,7 +75,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             background: 'var(--bg-secondary)'
           }}
         >
-          <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, letterSpacing: '0.02em' }}>
+          <span
+            style={{
+              color: 'var(--text-primary)',
+              fontSize: 14,
+              fontWeight: 600,
+              letterSpacing: '0.02em'
+            }}
+          >
             {t('settings.title')}
           </span>
           <button

@@ -23,7 +23,8 @@ export function getNodeGroup(
 }
 
 export const nodeR = (d: GNode) => (d.degree > 0 ? 8 + Math.min(d.degree * 2, 12) : 6)
-export const labelColor = (d: GNode) => (d.degree > 0 ? 'var(--text-primary)' : 'var(--text-secondary)')
+export const labelColor = (d: GNode) =>
+  d.degree > 0 ? 'var(--text-primary)' : 'var(--text-secondary)'
 export const nodeColor = (d: GNode) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)]
 
 export interface BuildGraphDataOptions {
@@ -57,7 +58,8 @@ export function buildGraphData(
   outlinks: (file: string) => any,
   options: BuildGraphDataOptions
 ): GraphBuildResult {
-  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height, maxNodes } = options
+  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height, maxNodes } =
+    options
 
   const flat = flattenFiles(files)
   const mtimeMap: Record<string, number> = {}
@@ -71,7 +73,11 @@ export function buildGraphData(
     .map((f) => f.path)
 
   filteredPaths = filteredPaths.filter((path) => {
-    const name = path.split('/').pop()?.replace(/\.(md|canvas)$/, '') ?? ''
+    const name =
+      path
+        .split('/')
+        .pop()
+        ?.replace(/\.(md|canvas)$/, '') ?? ''
 
     // Daily Notes filter
     const isDaily = !!name.match(/^\d{4}-\d{2}-\d{2}$/)
@@ -144,7 +150,11 @@ export function buildGraphData(
 
   const nodes: GNode[] = finalPaths.map((f) => ({
     id: f,
-    name: f.split('/').pop()?.replace(/\.(md|canvas)$/, '') ?? '',
+    name:
+      f
+        .split('/')
+        .pop()
+        ?.replace(/\.(md|canvas)$/, '') ?? '',
     degree: finalDegree[f] ?? 0,
     x: width / 2 + (Math.random() - 0.5) * 100,
     y: height / 2 + (Math.random() - 0.5) * 100

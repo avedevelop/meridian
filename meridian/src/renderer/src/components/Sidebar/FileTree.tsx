@@ -208,7 +208,11 @@ export function FileTree({
                 color: activePath === file.path ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontWeight: activePath === file.path ? '500' : 'normal',
                 background:
-                  activePath === file.path ? 'var(--accent-glow)' : editing === file.path ? 'transparent' : '',
+                  activePath === file.path
+                    ? 'var(--accent-glow)'
+                    : editing === file.path
+                      ? 'transparent'
+                      : '',
                 fontSize: 14,
                 display: 'flex',
                 alignItems: 'center',
@@ -228,7 +232,9 @@ export function FileTree({
                 }
               }}
             >
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', width: 12, flexShrink: 0 }}>
+              <span
+                style={{ fontSize: 12, color: 'var(--text-secondary)', width: 12, flexShrink: 0 }}
+              >
                 {file.isDirectory ? (expanded.has(file.path) ? '▾' : '▸') : ''}
               </span>
               <FileIcon
@@ -299,7 +305,10 @@ export function FileTree({
                   {
                     label: t('common.newNote'),
                     onClick: () =>
-                      onCreateFile?.(contextMenu.file.path, uniqueFileName(contextMenu.file.path, 'Untitled', 'md', files))
+                      onCreateFile?.(
+                        contextMenu.file.path,
+                        uniqueFileName(contextMenu.file.path, 'Untitled', 'md', files)
+                      )
                   },
                   {
                     label: t('common.newFolder'),

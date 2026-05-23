@@ -110,7 +110,10 @@ export function SettingsNav({
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {getCategoryIcon(cat.id, isSelected ? 'var(--accent-color)' : 'var(--text-secondary)')}
+                {getCategoryIcon(
+                  cat.id,
+                  isSelected ? 'var(--accent-color)' : 'var(--text-secondary)'
+                )}
               </span>
               <span>{cat.label}</span>
             </button>

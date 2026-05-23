@@ -11,7 +11,9 @@ interface UseSketchpadStateProps {
 export function useSketchpadState({ filePath, content, onSave }: UseSketchpadStateProps) {
   const { t } = useTranslation()
   const [elements, setElements] = useState<DrawingElement[]>([])
-  const [tool, setTool] = useState<'pencil' | 'rectangle' | 'circle' | 'line' | 'text' | 'eraser'>('pencil')
+  const [tool, setTool] = useState<'pencil' | 'rectangle' | 'circle' | 'line' | 'text' | 'eraser'>(
+    'pencil'
+  )
   const [strokeColor, setStrokeColor] = useState('#7c6af7') // Default purple accent
   const [fillColor] = useState('transparent')
   const [strokeWidth, setStrokeWidth] = useState(3)
@@ -72,14 +74,21 @@ export function useSketchpadState({ filePath, content, onSave }: UseSketchpadSta
 
   // Stable save function via ref — never goes stale in callbacks
   const saveDrawing = useCallback((newElements: DrawingElement[]) => {
-    onSaveRef.current(filePathRef.current, JSON.stringify({
-      type: 'meridian-drawing',
-      elements: newElements,
-    }, null, 2))
+    onSaveRef.current(
+      filePathRef.current,
+      JSON.stringify(
+        {
+          type: 'meridian-drawing',
+          elements: newElements
+        },
+        null,
+        2
+      )
+    )
   }, [])
 
   const pushState = useCallback((oldElements: DrawingElement[]) => {
-    setUndoStack(prev => [...prev, oldElements])
+    setUndoStack((prev) => [...prev, oldElements])
     setRedoStack([])
   }, [])
 
@@ -87,8 +96,8 @@ export function useSketchpadState({ filePath, content, onSave }: UseSketchpadSta
   const handleUndo = useCallback(() => {
     if (undoStackRef.current.length === 0) return
     const prev = undoStackRef.current[undoStackRef.current.length - 1]
-    setUndoStack(s => s.slice(0, -1))
-    setRedoStack(s => [...s, elementsRef.current])
+    setUndoStack((s) => s.slice(0, -1))
+    setRedoStack((s) => [...s, elementsRef.current])
     setElements(prev)
     saveDrawing(prev)
   }, [saveDrawing])
@@ -96,8 +105,8 @@ export function useSketchpadState({ filePath, content, onSave }: UseSketchpadSta
   const handleRedo = useCallback(() => {
     if (redoStackRef.current.length === 0) return
     const next = redoStackRef.current[redoStackRef.current.length - 1]
-    setRedoStack(s => s.slice(0, -1))
-    setUndoStack(s => [...s, elementsRef.current])
+    setRedoStack((s) => s.slice(0, -1))
+    setUndoStack((s) => [...s, elementsRef.current])
     setElements(next)
     saveDrawing(next)
   }, [saveDrawing])
@@ -157,7 +166,9 @@ export function useSketchpadState({ filePath, content, onSave }: UseSketchpadSta
       fill: fillColor,
       strokeWidth,
       // line uses w/h as x2/y2 — init at same point to avoid diagonal flash
-      ...(tool === 'pencil' ? { points: [[x, y]] } : { x, y, w: tool === 'line' ? x : 0, h: tool === 'line' ? y : 0 })
+      ...(tool === 'pencil'
+        ? { points: [[x, y]] }
+        : { x, y, w: tool === 'line' ? x : 0, h: tool === 'line' ? y : 0 })
     }
 
     setElements((prev) => [...prev, newElement])
@@ -172,7 +183,7 @@ export function useSketchpadState({ filePath, content, onSave }: UseSketchpadSta
     if (tool === 'eraser') {
       setMousePos({ x, y })
       if (e.buttons === 1) {
-        setElements(prev => {
+        setElements((prev) => {
           const next = applyEraserAt(prev, x, y)
           if (next.length !== prev.length || next.some((el, i) => el !== prev[i])) saveDrawing(next)
           return next
