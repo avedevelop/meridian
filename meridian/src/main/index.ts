@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, protocol, Menu } from 'electron'
 import { join, resolve, sep, extname } from 'path'
 import { readFile } from 'fs/promises'
 import { AppSettings } from './settings'
+import { parsePluginUrl } from '../shared/pluginUrl'
 import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
 
 // Must be called before app is ready — tells Chromium vault:// is a secure scheme
@@ -206,10 +207,9 @@ app.whenReady().then(() => {
   })
 
   protocol.handle('meridian-plugin', async (request) => {
-    const url = new URL(request.url)
-    const pluginId = url.hostname
-    const fileSubpath = decodeURIComponent(url.pathname).replace(/^\/+/, '')
-    if (!pluginId) return new Response('Invalid plugin ID', { status: 400 })
+    const parsed = parsePluginUrl(request.url)
+    if (!parsed) return new Response('Invalid plugin URL', { status: 400 })
+    const { id: pluginId, path: fileSubpath } = parsed
 
     const vm = getVaultManager()
     if (!vm) return new Response('No vault', { status: 503 })

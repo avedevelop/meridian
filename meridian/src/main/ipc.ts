@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { basename, isAbsolute, resolve } from 'path'
 import chokidar, { type FSWatcher } from 'chokidar'
 import { IPC, type VaultFileChangeEvent, type VaultFileChangeType } from '../shared/types'
+import { buildPluginUrl } from '../shared/pluginUrl'
 import { VaultManager } from './vault'
 import { AppSettings } from './settings'
 
@@ -782,7 +783,9 @@ export function registerIpcHandlers(settings: AppSettings): void {
     } catch (err) {
       throw new Error(`Failed to access plugin main file: ${mainFile}. ${err}`)
     }
-    return `meridian-plugin://${id}/${mainFile}`
+    const url = buildPluginUrl(id, mainFile)
+    if (!url) throw new Error(`Invalid plugin id or main file: ${id} / ${mainFile}`)
+    return url
   })
 }
 
