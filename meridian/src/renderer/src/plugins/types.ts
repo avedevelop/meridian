@@ -5,7 +5,17 @@ export interface PluginCommand {
 }
 
 export interface PluginAPI {
-  vault: typeof window.vault
+  vault: Pick<
+    typeof window.vault,
+    | 'listFiles'
+    | 'readFile'
+    | 'writeFile'
+    | 'createFile'
+    | 'createDir'
+    | 'deleteFile'
+    | 'renameFile'
+    | 'moveFile'
+  >
   settings: {
     get<T>(key: string): T
     set(key: string, value: unknown): void

@@ -137,10 +137,15 @@ export default function App() {
     initCorePlugins(pluginAPI)
   }, [pluginAPI])
 
-  // Sync active plugins from store to registry
   useEffect(() => {
     if (!vault) {
       pluginRegistry.clearCommunityPlugins()
+      const coreList = pluginRegistry.getCorePlugins()
+      for (const p of coreList) {
+        if (pluginRegistry.isPluginLoaded(p.id)) {
+          pluginRegistry.disablePlugin(p.id)
+        }
+      }
       return
     }
 
