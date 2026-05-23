@@ -21,6 +21,8 @@ interface GraphSidebarFiltersProps {
   setLinkThickness: (v: number) => void
   labelMode: 'auto' | 'hover' | 'all'
   setLabelMode: (v: 'auto' | 'hover' | 'all') => void
+  showGlow: boolean
+  setShowGlow: (v: boolean) => void
 }
 
 export function GraphSidebarFilters({
@@ -41,7 +43,9 @@ export function GraphSidebarFilters({
   linkThickness,
   setLinkThickness,
   labelMode,
-  setLabelMode
+  setLabelMode,
+  showGlow,
+  setShowGlow
 }: GraphSidebarFiltersProps) {
   const { t } = useTranslation()
 
@@ -429,6 +433,26 @@ export function GraphSidebarFilters({
             style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
           />
           {t('graph.linkArrows')}
+        </label>
+
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 12,
+            cursor: 'pointer',
+            userSelect: 'none',
+            color: 'var(--text-primary)'
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={showGlow}
+            onChange={(e) => setShowGlow(e.target.checked)}
+            style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+          />
+          {t('graph.showGlow')}
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

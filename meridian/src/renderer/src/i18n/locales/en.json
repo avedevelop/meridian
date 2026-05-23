@@ -492,6 +492,7 @@
   "graph.labelMode.all": "All",
   "graph.displaySettings": "DISPLAY SETTINGS",
   "graph.linkArrows": "Link direction arrows",
+  "graph.showGlow": "Node glowing aura",
   "graph.textSize": "Text size",
   "graph.linkThickness": "Link thickness",
   "graph.metrics": "VAULT NETWORK METRICS",

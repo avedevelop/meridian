@@ -43,6 +43,8 @@ interface GraphSidebarProps {
   focusNode: (id: string) => void
   labelMode: 'auto' | 'hover' | 'all'
   setLabelMode: (v: 'auto' | 'hover' | 'all') => void
+  showGlow: boolean
+  setShowGlow: (v: boolean) => void
 }
 
 export function GraphSidebar(props: GraphSidebarProps) {
@@ -71,7 +73,9 @@ export function GraphSidebar(props: GraphSidebarProps) {
     graphStats,
     focusNode,
     labelMode,
-    setLabelMode
+    setLabelMode,
+    showGlow,
+    setShowGlow
   } = props
 
   return (
@@ -254,6 +258,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
               setLinkThickness={setLinkThickness}
               labelMode={labelMode}
               setLabelMode={setLabelMode}
+              showGlow={showGlow}
+              setShowGlow={setShowGlow}
             />
           ) : (
             <GraphSidebarAnalytics graphStats={graphStats} focusNode={focusNode} />

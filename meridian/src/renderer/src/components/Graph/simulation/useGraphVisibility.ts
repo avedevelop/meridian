@@ -90,6 +90,7 @@ export function useGraphVisibility(
     const q = searchQuery.toLowerCase().trim()
     const ts = minTime + (maxTime - minTime) * progress
     const isHistory = viewMode === 'history'
+    const zoomK = state.svgEl ? d3.zoomTransform(state.svgEl).k : 1.0
 
     let reheated = false
     const visibleNodes = new Set<string>()
@@ -150,7 +151,6 @@ export function useGraphVisibility(
 
         circle.transition().duration(800).ease(d3.easeBackOut).attr('r', nodeR(d))
 
-        const zoomK = state.svgEl ? d3.zoomTransform(state.svgEl).k : 1.0
         const isHovered = d3.select(this).classed('is-hovered')
         const show = shouldShowLabel(labelMode, zoomK, d.degree, isHovered)
         text.transition().duration(150).attr('opacity', show ? 1 : 0)
@@ -186,11 +186,15 @@ export function useGraphVisibility(
         opacity = sMatch && tMatch ? 1 : 0.15
       }
 
+      const isLowDegreeHidden = visible && zoomK < 0.8 && sNode.degree <= 2 && tNode.degree <= 2
+      const targetOpacity = isLowDegreeHidden ? 0 : opacity
+
       d3.select(this)
+        .attr('data-base-opacity', opacity)
         .transition()
         .duration(250)
-        .attr('stroke', 'rgba(255, 255, 255, 0.22)')
-        .attr('opacity', opacity)
+        .attr('stroke', 'rgba(255, 255, 255, 0.12)')
+        .attr('opacity', targetOpacity)
         .attr('stroke-width', visible ? linkThickness : 0)
     })
 
@@ -291,7 +295,7 @@ export function useGraphVisibility(
           const sNode = l.source as GNode
           const tNode = l.target as GNode
           const isConnected = sNode.id === d.id || tNode.id === d.id
-          return isConnected ? hoverColor : 'rgba(255, 255, 255, 0.22)'
+          return isConnected ? hoverColor : 'rgba(255, 255, 255, 0.06)'
         })
         .attr('stroke-width', (l) => {
           const sNode = l.source as GNode
@@ -308,7 +312,15 @@ export function useGraphVisibility(
           const tVisible = isNodeVisible(tNode, { isHistory, ts, birthtimes, disabledCategories })
 
           if (!sVisible || !tVisible) return 0
-          return isConnected ? 1 : 0.15
+          if (isConnected) return 0.45
+
+          let baseOpacity = 1
+          if (q) {
+            const sMatch = sNode.name.toLowerCase().includes(q)
+            const tMatch = tNode.name.toLowerCase().includes(q)
+            baseOpacity = sMatch && tMatch ? 1 : 0.15
+          }
+          return baseOpacity
         })
 
       // Graph hover tooltip preview

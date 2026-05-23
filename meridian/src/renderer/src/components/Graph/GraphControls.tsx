@@ -1,11 +1,8 @@
 import React from 'react'
-import { GROUP_COLORS } from './GraphSidebar'
 import { HistoryTimelineBar } from './HistoryTimelineBar'
 
 export interface GraphControlsProps {
   viewMode: 'live' | 'history'
-  disabledCategories: Set<string>
-  toggleCategory: (category: string) => void
   isPhysicsRunning: boolean
   handleTogglePhysics: () => void
   handleZoomIn: () => void
@@ -29,8 +26,6 @@ export interface GraphControlsProps {
 
 export function GraphControls({
   viewMode,
-  disabledCategories,
-  toggleCategory,
   isPhysicsRunning,
   handleTogglePhysics,
   handleZoomIn,
@@ -69,79 +64,6 @@ export function GraphControls({
           historyTicks={historyTicks}
         />
       )}
-
-      {/* Floating Legend / Quick Category Filter (Bottom-Center) */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: viewMode === 'history' ? 106 : 24,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(20, 20, 26, 0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: 8,
-          padding: '6px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          zIndex: 20,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        <span
-          style={{ fontSize: 10, color: 'var(--text-secondary)', opacity: 0.5, marginRight: 2 }}
-        >
-          ⬡
-        </span>
-        {(
-          [
-            { key: 'canvas', label: 'Canvases', color: GROUP_COLORS.canvas },
-            { key: 'project', label: 'Projects', color: GROUP_COLORS.project },
-            { key: 'daily', label: 'Daily Notes', color: GROUP_COLORS.daily },
-            { key: 'connected', label: 'Connected', color: GROUP_COLORS.connected },
-            { key: 'orphan', label: 'Orphans', color: GROUP_COLORS.orphan }
-          ] as const
-        ).map((cat) => {
-          const isDisabled = disabledCategories.has(cat.key)
-          return (
-            <button
-              key={cat.key}
-              onClick={() => toggleCategory(cat.key)}
-              style={{
-                background: isDisabled ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.08)',
-                border: 'none',
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '4px 10px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                opacity: isDisabled ? 0.4 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!isDisabled) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'
-              }}
-              onMouseLeave={(e) => {
-                if (!isDisabled) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-              }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color }} />
-              <span
-                style={{
-                  fontSize: 11,
-                  color: 'var(--text-primary)',
-                  textDecoration: isDisabled ? 'line-through' : 'none'
-                }}
-              >
-                {cat.label}
-              </span>
-            </button>
-          )
-        })}
-      </div>
 
       {/* Floating Navigation & Physics Controls HUD (Bottom-Right) */}
       <div

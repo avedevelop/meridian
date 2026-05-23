@@ -62,6 +62,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     localStorage.setItem('meridian:graph-label-mode', labelMode)
   }, [labelMode])
 
+  const [showGlow, setShowGlow] = useState<boolean>(() => {
+    return localStorage.getItem('meridian:graph-show-glow') === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('meridian:graph-show-glow', String(showGlow))
+  }, [showGlow])
+
   const [strictFilter, setStrictFilter] = useState(false)
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set())
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
@@ -95,7 +103,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     minTime,
     maxTime,
     onFileOpen,
-    labelMode
+    labelMode,
+    showGlow
   })
 
   const { canvasRef, isRecording, startRecording, stopRecording, cancelRecording } =
@@ -364,6 +373,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         focusNode={focusNode}
         labelMode={labelMode}
         setLabelMode={setLabelMode}
+        showGlow={showGlow}
+        setShowGlow={setShowGlow}
       />
 
       <div
@@ -408,8 +419,6 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
       <GraphControls
         viewMode={viewMode}
-        disabledCategories={disabledCategories}
-        toggleCategory={toggleCategory}
         isPhysicsRunning={isPhysicsRunning}
         handleTogglePhysics={handleTogglePhysics}
         handleZoomIn={handleZoomIn}

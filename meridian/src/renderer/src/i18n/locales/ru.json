@@ -492,6 +492,7 @@
   "graph.labelMode.all": "Все",
   "graph.displaySettings": "НАСТРОЙКИ ОТОБРАЖЕНИЯ",
   "graph.linkArrows": "Стрелки направления связей",
+  "graph.showGlow": "Свечение узлов",
   "graph.textSize": "Размер текста",
   "graph.linkThickness": "Толщина связей",
   "graph.metrics": "МЕТРИКИ СЕТИ ХРАНИЛИЩА",

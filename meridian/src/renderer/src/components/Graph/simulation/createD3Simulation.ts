@@ -22,6 +22,7 @@ export interface CreateSimulationOptions {
   handleMouseOut: (gEl: SVGGElement, d: GNode) => void
   maxNodes: number
   labelMode: 'auto' | 'hover' | 'all'
+  showGlow: boolean
 }
 
 export interface SimulationResult {
@@ -46,7 +47,8 @@ export function createD3Simulation({
   handleMouseOver,
   handleMouseOut,
   maxNodes,
-  labelMode
+  labelMode,
+  showGlow
 }: CreateSimulationOptions): SimulationResult | null {
   el.innerHTML = ''
   const width = el.clientWidth
@@ -152,6 +154,15 @@ export function createD3Simulation({
         const isHovered = parent ? d3.select(parent).classed('is-hovered') : false
         return shouldShowLabel(currentLabelMode, transform.k, d.degree, isHovered) ? 1 : 0
       })
+      // Hide links between low-degree nodes when zoom < 0.8
+      linkSel.attr('opacity', function (l: any) {
+        const baseOpacity = parseFloat(d3.select(this).attr('data-base-opacity') || '0')
+        if (baseOpacity === 0) return 0
+        if (transform.k < 0.8 && l.source.degree <= 2 && l.target.degree <= 2) {
+          return 0
+        }
+        return baseOpacity
+      })
     })
     .on('start', () => svg.style('cursor', 'grabbing'))
     .on('end', () => svg.style('cursor', 'grab'))
@@ -163,7 +174,7 @@ export function createD3Simulation({
     .selectAll<SVGLineElement, GLink>('line')
     .data(finalLinks)
     .join('line')
-    .attr('stroke', 'rgba(255, 255, 255, 0.22)')
+    .attr('stroke', 'rgba(255, 255, 255, 0.12)')
     .attr('stroke-width', 0)
     .attr('opacity', 0)
 
@@ -199,14 +210,16 @@ export function createD3Simulation({
     )
 
   // Background pulsing glow
-  nodeG
-    .append('circle')
-    .attr('class', 'glow-halo')
-    .attr('r', (d) => nodeR(d) + 8)
-    .attr('fill', (d) => `url(#glow-grad-${getNodeGroup(d.id, d.name, d.degree)})`)
-    .attr('opacity', 0)
-    .style('pointer-events', 'none')
-    .style('transform-origin', 'center')
+  if (showGlow) {
+    nodeG
+      .append('circle')
+      .attr('class', 'glow-halo')
+      .attr('r', (d) => nodeR(d) + 8)
+      .attr('fill', (d) => `url(#glow-grad-${getNodeGroup(d.id, d.name, d.degree)})`)
+      .attr('opacity', 0)
+      .style('pointer-events', 'none')
+      .style('transform-origin', 'center')
+  }
 
   // Node circles
   nodeG

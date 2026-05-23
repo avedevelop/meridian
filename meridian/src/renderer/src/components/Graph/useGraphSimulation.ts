@@ -29,6 +29,7 @@ export interface UseGraphSimulationOptions {
   maxTime: number
   onFileOpen?: () => void
   labelMode: 'auto' | 'hover' | 'all'
+  showGlow: boolean
 }
 
 export function useGraphSimulation({
@@ -50,7 +51,8 @@ export function useGraphSimulation({
   minTime,
   maxTime,
   onFileOpen,
-  labelMode
+  labelMode,
+  showGlow
 }: UseGraphSimulationOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   const d3Ref = useRef<D3State | null>(null)
@@ -177,7 +179,8 @@ export function useGraphSimulation({
         handleMouseOver: (gEl, d, event) => handleMouseOverRef.current(gEl, d, event),
         handleMouseOut: (gEl, d) => handleMouseOutRef.current(gEl, d),
         maxNodes: graphMaxNodes,
-        labelMode
+        labelMode,
+        showGlow
       })
 
       if (!res) return
@@ -211,7 +214,8 @@ export function useGraphSimulation({
     strictFilter,
     debouncedSearchQuery,
     onFileOpen,
-    graphMaxNodes
+    graphMaxNodes,
+    showGlow
   ])
 
   const handleTogglePhysics = useCallback(() => {
