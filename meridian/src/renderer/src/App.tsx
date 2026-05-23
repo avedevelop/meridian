@@ -98,7 +98,6 @@ export default function App() {
     applyTemplate
   } = useVaultBridge()
   const pluginsEnabled = useSettingsStore((s) => s.pluginsEnabled)
-  const communityPluginsEnabled = useSettingsStore((s) => s.communityPluginsEnabled)
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -171,7 +170,7 @@ export default function App() {
         // Disable any loaded plugins that are now disabled in settings
         const loadedCommunity = pluginRegistry.getCommunityPlugins()
         for (const p of loadedCommunity) {
-          const shouldBeEnabled = !!communityPluginsEnabled[p.id]
+          const shouldBeEnabled = !!pluginsEnabled[p.id]
           if (!shouldBeEnabled && pluginRegistry.isPluginLoaded(p.id)) {
             pluginRegistry.disablePlugin(p.id)
           }
@@ -179,7 +178,7 @@ export default function App() {
 
         // Enable any plugins that should be enabled but are not loaded
         for (const manifest of manifests) {
-          const shouldBeEnabled = !!communityPluginsEnabled[manifest.id]
+          const shouldBeEnabled = !!pluginsEnabled[manifest.id]
           const isLoaded = pluginRegistry.isPluginLoaded(manifest.id)
 
           if (shouldBeEnabled && !isLoaded) {
@@ -202,7 +201,7 @@ export default function App() {
     return () => {
       active = false
     }
-  }, [vault, pluginsEnabled, communityPluginsEnabled, pluginAPI])
+  }, [vault, pluginsEnabled, pluginAPI])
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<
     'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
@@ -541,7 +540,7 @@ export default function App() {
     }))
 
     return [...staticCmds, ...dynamicCmds]
-  }, [pluginAPI, listTemplates, applyTemplate, pluginsEnabled, communityPluginsEnabled])
+  }, [pluginAPI, listTemplates, applyTemplate, pluginsEnabled])
 
   const handlePaletteFileSelect = useCallback(
     (path: string, name: string) => {

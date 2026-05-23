@@ -80,7 +80,7 @@ export function SettingsPluginsSection() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {pluginsList.map((p) => {
-              const isEnabled = store.pluginsEnabled[p.id as keyof typeof store.pluginsEnabled]
+              const isEnabled = !!store.pluginsEnabled[p.id]
               return (
                 <div
                   key={p.id}
@@ -144,7 +144,7 @@ export function SettingsPluginsSection() {
                     </div>
                   </div>
                   <div
-                    onClick={() => store.togglePlugin(p.id as keyof typeof store.pluginsEnabled)}
+                    onClick={() => store.togglePlugin(p.id)}
                     style={{
                       width: 38,
                       height: 20,

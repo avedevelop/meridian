@@ -95,7 +95,7 @@ export function SettingsCommunityPluginsSection() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
         {plugins.length > 0 ? (
           plugins.map((p) => {
-            const isEnabled = !!store.communityPluginsEnabled[p.id]
+            const isEnabled = !!store.pluginsEnabled[p.id]
             return (
               <div
                 key={p.id}
@@ -162,7 +162,7 @@ export function SettingsCommunityPluginsSection() {
                   )}
                 </div>
                 <div
-                  onClick={() => store.toggleCommunityPlugin(p.id)}
+                  onClick={() => store.togglePlugin(p.id)}
                   style={{
                     width: 38,
                     height: 20,

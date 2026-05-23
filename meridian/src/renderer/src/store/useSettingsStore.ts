@@ -76,18 +76,7 @@ export interface SettingsState {
   graphMaxNodes: 200 | 400 | 800 | 0
 
   // Plugins
-  pluginsEnabled: {
-    dailyNotes: boolean
-    wordCounter: boolean
-    slashCommands: boolean
-    tagsPanel: boolean
-    backlinksPanel: boolean
-    tocPanel: boolean
-    gitBackup: boolean
-    excalidraw: boolean
-    vimMode: boolean
-  }
-  communityPluginsEnabled: Record<string, boolean>
+  pluginsEnabled: Record<string, boolean>
 
   // Actions
   setFontSize: (n: number) => void
@@ -100,15 +89,13 @@ export interface SettingsState {
       | 'updateSetting'
       | 'resetToDefault'
       | 'togglePlugin'
-      | 'toggleCommunityPlugin'
       | 'loadFromDisk'
     >
   >(
     key: K,
     value: SettingsState[K]
   ) => void
-  togglePlugin: (pluginId: keyof SettingsState['pluginsEnabled']) => void
-  toggleCommunityPlugin: (pluginId: string) => void
+  togglePlugin: (pluginId: string) => void
   resetToDefault: () => void
   loadFromDisk: () => Promise<void>
 }
@@ -184,8 +171,7 @@ const DEFAULTS: Omit<
     gitBackup: false,
     excalidraw: false,
     vimMode: false
-  },
-  communityPluginsEnabled: {}
+  }
 }
 
 function loadSettings(): typeof DEFAULTS {
@@ -198,9 +184,9 @@ function loadSettings(): typeof DEFAULTS {
         ...parsed,
         pluginsEnabled: {
           ...DEFAULTS.pluginsEnabled,
-          ...(parsed.pluginsEnabled || {})
-        },
-        communityPluginsEnabled: parsed.communityPluginsEnabled || {}
+          ...(parsed.pluginsEnabled || {}),
+          ...(parsed.communityPluginsEnabled || {})
+        }
       }
     }
   } catch {
@@ -289,28 +275,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       delete (toSave as any).updateSetting
       delete (toSave as any).resetToDefault
       delete (toSave as any).togglePlugin
-      delete (toSave as any).toggleCommunityPlugin
-      saveSettings(toSave)
-      return next
-    })
-  },
-
-  toggleCommunityPlugin: (pluginId) => {
-    set((s) => {
-      const next = {
-        ...s,
-        communityPluginsEnabled: {
-          ...s.communityPluginsEnabled,
-          [pluginId]: !s.communityPluginsEnabled[pluginId]
-        }
-      }
-      const toSave = { ...next }
-      delete (toSave as any).setFontSize
-      delete (toSave as any).setLineWidth
-      delete (toSave as any).updateSetting
-      delete (toSave as any).resetToDefault
-      delete (toSave as any).togglePlugin
-      delete (toSave as any).toggleCommunityPlugin
       saveSettings(toSave)
       return next
     })
@@ -334,9 +298,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
             ...prefs,
             pluginsEnabled: {
               ...s.pluginsEnabled,
-              ...((prefs.pluginsEnabled as any) || {})
-            },
-            communityPluginsEnabled: (prefs.communityPluginsEnabled as any) || {}
+              ...((prefs.pluginsEnabled as any) || {}),
+              ...((prefs.communityPluginsEnabled as any) || {})
+            }
           }))
         }
       }
