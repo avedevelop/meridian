@@ -48,11 +48,11 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
   // Graph View Settings State
   const [searchQuery, setSearchQuery] = useState('')
-  const [linkDistance, setLinkDistance] = useState(70)
-  const [repulsionStrength, setRepulsionStrength] = useState(-80)
+  const [linkDistance, setLinkDistance] = useState(100)
+  const [repulsionStrength, setRepulsionStrength] = useState(-160)
   const [showArrows, setShowArrows] = useState(false)
   const [textSize, setTextSize] = useState(11)
-  const [linkThickness, setLinkThickness] = useState(1)
+  const [linkThickness, setLinkThickness] = useState(0.8)
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
 
   const [strictFilter, setStrictFilter] = useState(false)

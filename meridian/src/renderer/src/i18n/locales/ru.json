@@ -472,6 +472,7 @@
   "graph.strictPhysics": "Строгое разделение физики подграфов",
   "graph.physicsPresets": "ФИЗИЧЕСКИЕ ПРЕСЕТЫ",
   "graph.presetDefault": "По умолчанию",
+  "graph.presetReadable": "Читаемый",
   "graph.presetDense": "Плотный",
   "graph.presetGalaxy": "Галактика",
   "graph.legend": "ИНТЕРАКТИВНАЯ ЛЕГЕНДА",

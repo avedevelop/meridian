@@ -472,6 +472,7 @@
   "graph.strictPhysics": "Strict Physics Subgraphing",
   "graph.physicsPresets": "PHYSICS PRESETS",
   "graph.presetDefault": "Default",
+  "graph.presetReadable": "Readable",
   "graph.presetDense": "Dense",
   "graph.presetGalaxy": "Galaxy",
   "graph.legend": "INTERACTIVE LEGEND",

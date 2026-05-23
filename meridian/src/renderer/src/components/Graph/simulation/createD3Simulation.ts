@@ -62,19 +62,21 @@ export function createD3Simulation({
 
   const sim = d3
     .forceSimulation(nodes)
+    .alphaDecay(0.02)
+    .velocityDecay(0.35)
     .force(
       'link',
       d3
         .forceLink<GNode, GLink>(finalLinks)
         .id((d) => d.id)
         .distance(linkDistance)
-        .strength(0.4)
+        .strength(0.25)
     )
     .force('charge', d3.forceManyBody().strength(repulsionStrength).distanceMax(300))
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force(
       'collide',
-      d3.forceCollide<GNode>((d) => nodeR(d) + 8)
+      d3.forceCollide<GNode>((d) => nodeR(d) + 12 + (textSize * 0.5))
     )
 
   const svg = d3
@@ -239,6 +241,10 @@ export function createD3Simulation({
       .attr('y2', (d) => (d.target as GNode).y!)
     nodeG.attr('transform', (d) => `translate(${d.x},${d.y})`)
   })
+
+  // Warm up simulation to avoid layout explosion on first render
+  sim.tick(120)
+  sim.alphaTarget(0)
 
   if (showArrows) {
     linkSel.attr('marker-end', 'url(#arrow)')

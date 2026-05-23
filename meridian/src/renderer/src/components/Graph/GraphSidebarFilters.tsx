@@ -142,20 +142,20 @@ export function GraphSidebarFilters({
         >
           {t('graph.physicsPresets')}
         </span>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button
             onClick={() => {
-              setLinkDistance(70)
-              setRepulsionStrength(-80)
+              setLinkDistance(100)
+              setRepulsionStrength(-160)
             }}
             style={{
-              flex: 1,
+              flex: '1 1 calc(50% - 3px)',
               padding: '6px 0',
               borderRadius: 6,
               fontSize: 11,
               border: '1px solid rgba(255, 255, 255, 0.08)',
               background:
-                linkDistance === 70 && repulsionStrength === -80
+                linkDistance === 100 && repulsionStrength === -160
                   ? 'rgba(255, 255, 255, 0.08)'
                   : 'transparent',
               color: 'var(--text-primary)',
@@ -167,11 +167,34 @@ export function GraphSidebarFilters({
           </button>
           <button
             onClick={() => {
+              setLinkDistance(110)
+              setRepulsionStrength(-200)
+              setTextSize(10)
+            }}
+            style={{
+              flex: '1 1 calc(50% - 3px)',
+              padding: '6px 0',
+              borderRadius: 6,
+              fontSize: 11,
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background:
+                linkDistance === 110 && repulsionStrength === -200 && textSize === 10
+                  ? 'rgba(255, 255, 255, 0.08)'
+                  : 'transparent',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {t('graph.presetReadable')}
+          </button>
+          <button
+            onClick={() => {
               setLinkDistance(45)
               setRepulsionStrength(-220)
             }}
             style={{
-              flex: 1,
+              flex: '1 1 calc(50% - 3px)',
               padding: '6px 0',
               borderRadius: 6,
               fontSize: 11,
@@ -193,7 +216,7 @@ export function GraphSidebarFilters({
               setRepulsionStrength(-40)
             }}
             style={{
-              flex: 1,
+              flex: '1 1 calc(50% - 3px)',
               padding: '6px 0',
               borderRadius: 6,
               fontSize: 11,
