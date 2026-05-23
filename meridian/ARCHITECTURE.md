@@ -71,7 +71,51 @@ Do not expand root orchestrator views. Add code in the focused modules below.
 
 ---
 
-## 3. Enforcement
+## 3. Plugins
+
+Meridian has two plugin categories:
+
+### Core plugins (built-in)
+
+Shipped with the app, listed in [SettingsPluginsSection.tsx](src/renderer/src/components/Settings/SettingsPluginsSection.tsx).
+Enable/disable state lives in `pluginsEnabled` inside [useSettingsStore.ts](src/renderer/src/store/useSettingsStore.ts) and persists to `settings.json` on disk.
+
+Current core plugins: word counter, daily notes, git autocommit, slash commands, backlinks, outline, table of contents, graph view, templates.
+
+### Community plugins (planned — Plugin API v1)
+
+User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
+
+```
+{vault}/.meridian/plugins/
+  hello-plugin/
+    manifest.json        ← id, name, version, main
+    main.js              ← ESM module, renderer-only
+```
+
+**Registry & lifecycle:**
+
+- `src/renderer/src/plugins/types.ts` — `MeridianPlugin`, `PluginAPI`, `PluginCommand` interfaces
+- `src/renderer/src/plugins/registry.ts` — register, enable/disable, list commands
+- `src/renderer/src/plugins/core/` — core plugins migrated to registry format
+
+**Hooks available to plugins (v1):**
+
+| Hook | Description |
+|------|-------------|
+| `commands` | Register commands visible in Command Palette (⌘K) |
+| `onLoad` | Called when plugin is enabled / vault opens |
+| `onUnload` | Called when plugin is disabled / vault closes |
+
+**Security:** Community plugins run renderer-only (no Node `require`). Loaded via validated `file://` path from inside the vault. No `eval`.
+
+**Where to register new hooks:** Add to `PluginAPI` in `plugins/types.ts`, implement in `plugins/registry.ts`.
+
+See [SCOPE.md](SCOPE.md) for what is and isn't in scope.
+
+---
+
+## 4. Enforcement
 
 ```bash
 npm run check-lines
@@ -81,6 +125,6 @@ npm run test
 
 ---
 
-## 4. Dev launch
+## 5. Dev launch
 
 `npm run dev` unsets `ELECTRON_RUN_AS_NODE` (required in Cursor/VS Code). See [README.md](README.md) if Electron fails to start.
