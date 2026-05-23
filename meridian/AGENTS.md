@@ -15,6 +15,19 @@
 
 - **Language Constraint**: All markdown notes, diaries, and sample content created or modified in `demo-vault` (or any local workspaces for testing) MUST be written in Russian so that the user can easily read and test the application features.
 
+## Graph performance limits
+
+`graphMaxNodes` (in `useSettingsStore`) caps how many notes the force-directed graph renders. Documented values:
+
+| Setting | Renders | Notes |
+| ------- | ------- | ----- |
+| `200`   | 200     | "Fast" — large vaults, low-end machines |
+| `400`   | 400     | **Default** — balanced |
+| `800`   | 800     | "Detailed" — strong machines |
+| `0`     | All     | Slow path. The renderer prompts on first activation per session via `sessionStorage['meridian:graph-slow-confirmed']`. |
+
+When the eligible note set exceeds the cap, `buildGraphData` keeps the highest-degree nodes (mtime as tiebreaker) and the `GraphView` truncation banner reports `displayed / total / hidden`. Synthetic fixtures live at `tests/fixtures/largeVault.ts`; coverage in `tests/renderer/graphLargeVault.test.ts`.
+
 ## Tech Stack
 
 - **Electron 39** (main process + preload + renderer, contextIsolation: true, sandbox: false)
