@@ -98,6 +98,7 @@ export default function App() {
     applyTemplate
   } = useVaultBridge()
   const pluginsEnabled = useSettingsStore((s) => s.pluginsEnabled)
+  const communityPluginsEnabled = useSettingsStore((s) => s.communityPluginsEnabled)
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -124,7 +125,9 @@ export default function App() {
           await openDailyNote()
         }
       },
-      registerCommand: () => {}
+      registerCommand: (cmd) => {
+        pluginRegistry.registerCommand(cmd)
+      }
     }),
     [openDailyNote]
   )
@@ -136,7 +139,10 @@ export default function App() {
 
   // Sync active plugins from store to registry
   useEffect(() => {
-    if (!vault) return
+    if (!vault) {
+      pluginRegistry.clearCommunityPlugins()
+      return
+    }
 
     // Core plugins sync
     const coreList = pluginRegistry.getCorePlugins()
@@ -149,7 +155,49 @@ export default function App() {
         pluginRegistry.disablePlugin(p.id)
       }
     }
-  }, [vault, pluginsEnabled])
+
+    // Community plugins sync
+    let active = true
+    async function syncCommunityPlugins() {
+      try {
+        const manifests = await window.vault.listPlugins()
+        if (!active) return
+
+        // Disable any loaded plugins that are now disabled in settings
+        const loadedCommunity = pluginRegistry.getCommunityPlugins()
+        for (const p of loadedCommunity) {
+          const shouldBeEnabled = !!communityPluginsEnabled[p.id]
+          if (!shouldBeEnabled && pluginRegistry.isPluginLoaded(p.id)) {
+            pluginRegistry.disablePlugin(p.id)
+          }
+        }
+
+        // Enable any plugins that should be enabled but are not loaded
+        for (const manifest of manifests) {
+          const shouldBeEnabled = !!communityPluginsEnabled[manifest.id]
+          const isLoaded = pluginRegistry.isPluginLoaded(manifest.id)
+
+          if (shouldBeEnabled && !isLoaded) {
+            try {
+              const entryUrl = await window.vault.loadPlugin(manifest.id)
+              const moduleExports = await import(/* @vite-ignore */ `${entryUrl}?t=${Date.now()}`)
+              pluginRegistry.loadCommunityPlugin(manifest, moduleExports)
+              await pluginRegistry.enablePlugin(manifest.id)
+            } catch (err) {
+              console.error(`Failed to load community plugin ${manifest.id}:`, err)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to sync community plugins:', err)
+      }
+    }
+
+    syncCommunityPlugins()
+    return () => {
+      active = false
+    }
+  }, [vault, pluginsEnabled, communityPluginsEnabled, pluginAPI])
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<
     'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'

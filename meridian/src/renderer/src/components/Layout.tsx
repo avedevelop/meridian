@@ -4,6 +4,7 @@ import { FolderIcon } from './Icons'
 import { useVaultBridge, uniqueFileName } from '../hooks/useVaultBridge'
 import { useVaultStore } from '../store/useVaultStore'
 import { HeaderSearch } from './HeaderSearch'
+import { QuickActionButton } from './QuickActionButton'
 
 import {
   PlusIcon,
@@ -55,40 +56,6 @@ export function Layout({
 
   // When graph tab is active, expand sidebar to full width and hide editor
   const isGraphFullscreen = activeSidebarTab === 'graph' && !sidebarCollapsed
-
-  const renderQuickAction = (icon: React.ReactNode, title: string, onClick: () => void) => {
-    return (
-      <button
-        onClick={onClick}
-        title={title}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--text-secondary)',
-          cursor: 'pointer',
-          width: 24,
-          height: 24,
-          borderRadius: 4,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.15s',
-          // @ts-ignore
-          WebkitAppRegion: 'no-drag'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-surface)'
-          e.currentTarget.style.color = 'var(--accent-color)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent'
-          e.currentTarget.style.color = 'var(--text-secondary)'
-        }}
-      >
-        {icon}
-      </button>
-    )
-  }
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('layout-sidebar-width')
@@ -254,27 +221,43 @@ export function Layout({
         >
           {/* Quick Actions Row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {renderQuickAction(<PlusIcon size={14} />, t('layout.createNote'), () => {
-              if (vault)
-                createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', vaultFiles))
-            })}
-            {renderQuickAction(<CanvasIcon size={13} />, t('layout.createCanvas'), () => {
-              if (vault)
-                createCanvas(
-                  vault.path,
-                  uniqueFileName(vault.path, 'Untitled', 'canvas', vaultFiles)
-                )
-            })}
-            {renderQuickAction(<CalendarIcon size={13} />, t('layout.openDaily'), () => {
-              openDailyNote()
-            })}
-            {renderQuickAction(<GraphIcon size={13} />, t('layout.quickGraph'), () => {
-              if (onSidebarTabChange) {
-                onSidebarTabChange('graph')
-                setSidebarCollapsed(false)
-                localStorage.setItem('layout-sidebar-collapsed', 'false')
-              }
-            })}
+            <QuickActionButton
+              icon={<PlusIcon size={14} />}
+              title={t('layout.createNote')}
+              onClick={() => {
+                if (vault)
+                  createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', vaultFiles))
+              }}
+            />
+            <QuickActionButton
+              icon={<CanvasIcon size={13} />}
+              title={t('layout.createCanvas')}
+              onClick={() => {
+                if (vault)
+                  createCanvas(
+                    vault.path,
+                    uniqueFileName(vault.path, 'Untitled', 'canvas', vaultFiles)
+                  )
+              }}
+            />
+            <QuickActionButton
+              icon={<CalendarIcon size={13} />}
+              title={t('layout.openDaily')}
+              onClick={() => {
+                openDailyNote()
+              }}
+            />
+            <QuickActionButton
+              icon={<GraphIcon size={13} />}
+              title={t('layout.quickGraph')}
+              onClick={() => {
+                if (onSidebarTabChange) {
+                  onSidebarTabChange('graph')
+                  setSidebarCollapsed(false)
+                  localStorage.setItem('layout-sidebar-collapsed', 'false')
+                }
+              }}
+            />
           </div>
 
           <div style={{ width: 1, height: 14, background: 'var(--border-color)' }} />

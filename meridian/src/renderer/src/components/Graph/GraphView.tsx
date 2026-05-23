@@ -11,6 +11,12 @@ import { useGraphTimeline } from './useGraphTimeline'
 import { useGraphSimulation } from './useGraphSimulation'
 import { useGraphRecording } from './useGraphRecording'
 import { GraphControls } from './GraphControls'
+import {
+  bannerStyle,
+  bannerButtonStyle,
+  openFiltersButtonStyle,
+  tooltipStyleBase
+} from './graphStyles'
 
 export function GraphView({ onFileOpen }: GraphViewProps) {
   const { t } = useTranslation()
@@ -357,28 +363,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {buildResult?.truncated && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 16,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 900,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.25)',
-              backdropFilter: 'blur(12px)',
-              borderRadius: 8,
-              padding: '8px 16px',
-              fontSize: 12,
-              color: '#eee',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
-              fontFamily: 'Inter, sans-serif',
-              pointerEvents: 'auto'
-            }}
-          >
+          <div style={bannerStyle}>
             <span>
               {t('graph.truncation.banner', {
                 displayed: buildResult.displayedCount,
@@ -388,18 +373,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={handleIncreaseLimit}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#fff',
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  fontWeight: 500,
-                  outline: 'none',
-                  transition: 'background 0.2s ease'
-                }}
+                style={bannerButtonStyle}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)')
                 }
@@ -411,16 +385,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               </button>
               <button
                 onClick={handleOpenFilters}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--accent-color, #7c6af7)',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  fontWeight: 500,
-                  outline: 'none',
-                  padding: '4px 0'
-                }}
+                style={openFiltersButtonStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
                 onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
               >
@@ -458,7 +423,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       {hoveredNode && (
         <div
           style={{
-            position: 'absolute',
+            ...tooltipStyleBase,
             left: (() => {
               const xOffset = hoveredNode.x + 15
               const containerWidth = containerRef.current?.clientWidth ?? 800
@@ -468,17 +433,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
               const yOffset = hoveredNode.y + 15
               const containerHeight = containerRef.current?.clientHeight ?? 600
               return yOffset + 150 > containerHeight ? hoveredNode.y - 165 : yOffset
-            })(),
-            pointerEvents: 'none',
-            zIndex: 1000,
-            width: 250,
-            background: 'rgba(20, 20, 26, 0.85)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: 8,
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            padding: 12,
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-            fontFamily: 'Inter, sans-serif'
+            })()
           }}
         >
           <div

@@ -72,6 +72,7 @@ declare global {
       ) => Promise<{ success: boolean; error?: string; noRemote?: boolean }>
       getConfigPath: () => Promise<string>
       setSpellLanguage: (lang: string) => Promise<void>
+      openPath: (filePath: string) => Promise<void>
       gitInit: () => Promise<{ success: boolean; error?: string }>
       gitLog: () => Promise<{
         success: boolean

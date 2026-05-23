@@ -87,6 +87,7 @@ export interface SettingsState {
     excalidraw: boolean
     vimMode: boolean
   }
+  communityPluginsEnabled: Record<string, boolean>
 
   // Actions
   setFontSize: (n: number) => void
@@ -99,6 +100,7 @@ export interface SettingsState {
       | 'updateSetting'
       | 'resetToDefault'
       | 'togglePlugin'
+      | 'toggleCommunityPlugin'
       | 'loadFromDisk'
     >
   >(
@@ -106,6 +108,7 @@ export interface SettingsState {
     value: SettingsState[K]
   ) => void
   togglePlugin: (pluginId: keyof SettingsState['pluginsEnabled']) => void
+  toggleCommunityPlugin: (pluginId: string) => void
   resetToDefault: () => void
   loadFromDisk: () => Promise<void>
 }
@@ -117,6 +120,7 @@ const DEFAULTS: Omit<
   | 'updateSetting'
   | 'resetToDefault'
   | 'togglePlugin'
+  | 'toggleCommunityPlugin'
   | 'loadFromDisk'
 > = {
   fontSize: 15,
@@ -180,7 +184,8 @@ const DEFAULTS: Omit<
     gitBackup: false,
     excalidraw: false,
     vimMode: false
-  }
+  },
+  communityPluginsEnabled: {}
 }
 
 function loadSettings(): typeof DEFAULTS {
@@ -194,7 +199,8 @@ function loadSettings(): typeof DEFAULTS {
         pluginsEnabled: {
           ...DEFAULTS.pluginsEnabled,
           ...(parsed.pluginsEnabled || {})
-        }
+        },
+        communityPluginsEnabled: parsed.communityPluginsEnabled || {}
       }
     }
   } catch {
@@ -283,6 +289,28 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       delete (toSave as any).updateSetting
       delete (toSave as any).resetToDefault
       delete (toSave as any).togglePlugin
+      delete (toSave as any).toggleCommunityPlugin
+      saveSettings(toSave)
+      return next
+    })
+  },
+
+  toggleCommunityPlugin: (pluginId) => {
+    set((s) => {
+      const next = {
+        ...s,
+        communityPluginsEnabled: {
+          ...s.communityPluginsEnabled,
+          [pluginId]: !s.communityPluginsEnabled[pluginId]
+        }
+      }
+      const toSave = { ...next }
+      delete (toSave as any).setFontSize
+      delete (toSave as any).setLineWidth
+      delete (toSave as any).updateSetting
+      delete (toSave as any).resetToDefault
+      delete (toSave as any).togglePlugin
+      delete (toSave as any).toggleCommunityPlugin
       saveSettings(toSave)
       return next
     })
@@ -307,7 +335,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
             pluginsEnabled: {
               ...s.pluginsEnabled,
               ...((prefs.pluginsEnabled as any) || {})
-            }
+            },
+            communityPluginsEnabled: (prefs.communityPluginsEnabled as any) || {}
           }))
         }
       }
