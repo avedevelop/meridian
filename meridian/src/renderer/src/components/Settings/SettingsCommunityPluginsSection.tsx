@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
 
-export function SettingsCommunityPluginsSection() {
+export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?: boolean }) {
   const { t } = useTranslation()
   const store = useSettingsStore()
   const vault = useVaultStore((s) => s.vault)
@@ -15,6 +15,9 @@ export function SettingsCommunityPluginsSection() {
       try {
         if (!vault) {
           setPlugins([])
+          return
+        }
+        if (!isActive) {
           return
         }
         const list = await window.vault.listPlugins()
@@ -30,7 +33,7 @@ export function SettingsCommunityPluginsSection() {
     return () => {
       active = false
     }
-  }, [vault])
+  }, [vault, isActive])
 
   const handleOpenFolder = () => {
     if (!vault) return

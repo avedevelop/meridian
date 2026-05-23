@@ -63,120 +63,119 @@ export function SettingsPluginsSection() {
         </button>
       </div>
 
-      {activeTab === 'core' ? (
-        <div>
-          <h3
-            style={{
-              margin: '0 0 4px 0',
-              color: '#fff',
-              fontSize: 16,
-              fontWeight: 600
-            }}
-          >
-            {t('settings.plugins.title')}
-          </h3>
-          <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
-            {t('settings.plugins.description')}
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {pluginsList.map((p) => {
-              const isEnabled = !!store.pluginsEnabled[p.id]
-              return (
+      <div style={{ display: activeTab === 'core' ? 'block' : 'none' }}>
+        <h3
+          style={{
+            margin: '0 0 4px 0',
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: 600
+          }}
+        >
+          {t('settings.plugins.title')}
+        </h3>
+        <p style={{ margin: '0 0 20px 0', color: '#777', fontSize: 12 }}>
+          {t('settings.plugins.description')}
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {pluginsList.map((p) => {
+            const isEnabled = !!store.pluginsEnabled[p.id]
+            return (
+              <div
+                key={p.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  background: '#161616',
+                  borderRadius: 8,
+                  border: '1px solid #252525'
+                }}
+              >
                 <div
-                  key={p.id}
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 18px',
-                    background: '#161616',
-                    borderRadius: 8,
-                    border: '1px solid #252525'
+                    flexDirection: 'column',
+                    gap: 3,
+                    paddingRight: 16
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: '#eee', fontSize: 13, fontWeight: 600 }}>
+                      {t('settings.plugins.' + p.id + '.name')}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        color: '#555',
+                        background: '#222',
+                        padding: '1px 5px',
+                        borderRadius: 4
+                      }}
+                    >
+                      v{(window as any).appInfo?.version ?? '1.0.0'}
+                    </span>
+                  </div>
+                  <span style={{ color: '#777', fontSize: 11, lineHeight: '1.4' }}>
+                    {t('settings.plugins.' + p.id + '.desc')}
+                  </span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 4,
+                      fontSize: 10,
+                      color: '#555',
+                      marginTop: 4
+                    }}
+                  >
+                    <span>{t('settings.plugins.by')}</span>
+                    <span
+                      onClick={() => handleOpenLink('https://github.com/bvsmma')}
+                      style={{
+                        color: '#7c6af7',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      {p.author}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  onClick={() => store.togglePlugin(p.id)}
+                  style={{
+                    width: 38,
+                    height: 20,
+                    borderRadius: 10,
+                    background: isEnabled ? '#7c6af7' : '#333',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s ease',
+                    flexShrink: 0
                   }}
                 >
                   <div
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 3,
-                      paddingRight: 16
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      position: 'absolute',
+                      top: 3,
+                      left: isEnabled ? 21 : 3,
+                      transition: 'left 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'
                     }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: '#eee', fontSize: 13, fontWeight: 600 }}>
-                        {t('settings.plugins.' + p.id + '.name')}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 9,
-                          color: '#555',
-                          background: '#222',
-                          padding: '1px 5px',
-                          borderRadius: 4
-                        }}
-                      >
-                        v{(window as any).appInfo?.version ?? '1.0.0'}
-                      </span>
-                    </div>
-                    <span style={{ color: '#777', fontSize: 11, lineHeight: '1.4' }}>
-                      {t('settings.plugins.' + p.id + '.desc')}
-                    </span>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 4,
-                        fontSize: 10,
-                        color: '#555',
-                        marginTop: 4
-                      }}
-                    >
-                      <span>{t('settings.plugins.by')}</span>
-                      <span
-                        onClick={() => handleOpenLink('https://github.com/bvsmma')}
-                        style={{
-                          color: '#7c6af7',
-                          cursor: 'pointer',
-                          textDecoration: 'underline'
-                        }}
-                      >
-                        {p.author}
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    onClick={() => store.togglePlugin(p.id)}
-                    style={{
-                      width: 38,
-                      height: 20,
-                      borderRadius: 10,
-                      background: isEnabled ? '#7c6af7' : '#333',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s ease',
-                      flexShrink: 0
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: '50%',
-                        background: '#fff',
-                        position: 'absolute',
-                        top: 3,
-                        left: isEnabled ? 21 : 3,
-                        transition: 'left 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)'
-                      }}
-                    />
-                  </div>
+                  />
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )
+          })}
         </div>
-      ) : (
-        <SettingsCommunityPluginsSection />
-      )}
+      </div>
+      <div style={{ display: activeTab === 'community' ? 'block' : 'none' }}>
+        <SettingsCommunityPluginsSection isActive={activeTab === 'community'} />
+      </div>
     </div>
   )
 }
