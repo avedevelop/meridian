@@ -82,7 +82,7 @@ Enable/disable state lives in `pluginsEnabled` inside [useSettingsStore.ts](src/
 
 Current core plugins: word counter, daily notes, git autocommit, slash commands, backlinks, outline, table of contents, graph view, templates.
 
-### Community plugins (planned — Plugin API v1)
+### Community plugins (shipped — Plugin API v1)
 
 User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
 
@@ -95,8 +95,9 @@ User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
 
 **Registry & lifecycle:**
 
+- `src/shared/pluginUrl.ts` — build/parse `meridian-plugin://` URLs (single source of truth for the scheme)
 - `src/renderer/src/plugins/types.ts` — `MeridianPlugin`, `PluginAPI`, `PluginCommand` interfaces
-- `src/renderer/src/plugins/registry.ts` — register, enable/disable, list commands
+- `src/renderer/src/plugins/registry.ts` — register, enable/disable, list commands; `pruneCommunityPlugins(keepIds)` for vault switches
 - `src/renderer/src/plugins/core/` — core plugins migrated to registry format
 
 **Hooks available to plugins (v1):**
@@ -107,7 +108,9 @@ User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
 | `onLoad`   | Called when plugin is enabled / vault opens       |
 | `onUnload` | Called when plugin is disabled / vault closes     |
 
-**Security:** Community plugins run renderer-only (no Node `require`). Loaded via validated `file://` path from inside the vault. No `eval`.
+**Hot-reload:** A dedicated chokidar watcher on `{vault}/.meridian/plugins/**/{main.js,manifest.json}` in `src/main/ipc.ts` debounces 300ms per plugin and emits `IPC.PLUGIN_FILE_CHANGED`. The renderer (`App.tsx`) disables the affected plugin, drops the cached manifest, and re-imports the module on the next sync pass. Settings → Community Plugins also exposes a manual per-plugin **Reload** button via `window.__meridianReloadPlugin(id)`.
+
+**Security:** Community plugins run renderer-only (no Node `require`). Loaded via the validated `meridian-plugin://` scheme served from inside the vault. No `eval`. The protocol handler resolves paths inside `{vault}/.meridian/plugins/{id}` and rejects anything that escapes the plugin root.
 
 **Where to register new hooks:** Add to `PluginAPI` in `plugins/types.ts`, implement in `plugins/registry.ts`.
 
