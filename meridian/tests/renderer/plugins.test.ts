@@ -113,4 +113,68 @@ describe('PluginRegistry', () => {
     pluginRegistry.disablePlugin('test-commands-plugin')
     expect(pluginRegistry.getCommands()).not.toContain(command)
   })
+
+  it('rethrows enable errors so callers can surface them', async () => {
+    const failingPlugin: MeridianPlugin = {
+      id: 'broken-plugin',
+      name: 'Broken',
+      version: '1.0.0',
+      onLoad: () => {
+        throw new Error('boom')
+      }
+    }
+    pluginRegistry.registerCorePlugin(failingPlugin)
+
+    await expect(pluginRegistry.enablePlugin('broken-plugin')).rejects.toThrow('boom')
+    expect(pluginRegistry.isPluginLoaded('broken-plugin')).toBe(false)
+  })
+
+  describe('pruneCommunityPlugins (vault switch)', () => {
+    function makeManifest(id: string) {
+      return {
+        id,
+        name: id,
+        version: '1.0.0'
+      }
+    }
+
+    it('drops community entries not in the keep set', () => {
+      pluginRegistry.loadCommunityPlugin(makeManifest('vault-a-only'), {})
+      pluginRegistry.loadCommunityPlugin(makeManifest('shared-plugin'), {})
+
+      pluginRegistry.pruneCommunityPlugins(new Set(['shared-plugin']))
+
+      const remaining = pluginRegistry.getCommunityPlugins().map((p) => p.id)
+      expect(remaining).toEqual(['shared-plugin'])
+    })
+
+    it('disables loaded plugins before dropping them', async () => {
+      const onUnloadSpy = vi.fn()
+      const manifest = makeManifest('to-be-pruned')
+      const exports = {
+        default: class P {
+          onUnload = onUnloadSpy
+        }
+      }
+      pluginRegistry.loadCommunityPlugin(manifest, exports)
+      await pluginRegistry.enablePlugin('to-be-pruned')
+      expect(pluginRegistry.isPluginLoaded('to-be-pruned')).toBe(true)
+
+      pluginRegistry.pruneCommunityPlugins(new Set())
+
+      expect(onUnloadSpy).toHaveBeenCalled()
+      expect(pluginRegistry.isPluginLoaded('to-be-pruned')).toBe(false)
+      expect(pluginRegistry.getCommunityPlugins()).toEqual([])
+    })
+
+    it('is a no-op when every id is preserved', () => {
+      pluginRegistry.loadCommunityPlugin(makeManifest('a'), {})
+      pluginRegistry.loadCommunityPlugin(makeManifest('b'), {})
+
+      pluginRegistry.pruneCommunityPlugins(new Set(['a', 'b']))
+
+      const ids = pluginRegistry.getCommunityPlugins().map((p) => p.id).sort()
+      expect(ids).toEqual(['a', 'b'])
+    })
+  })
 })
