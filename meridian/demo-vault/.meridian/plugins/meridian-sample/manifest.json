@@ -1,0 +1,9 @@
+{
+  "id": "meridian-sample",
+  "name": "Sample Plugin",
+  "version": "1.0.0",
+  "description": "A sample plugin showing how to register a command palette action and trigger toasts.",
+  "author": "Meridian Developer",
+  "main": "main.js",
+  "minAppVersion": "1.0.0"
+}
