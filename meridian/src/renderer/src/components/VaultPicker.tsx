@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVaultBridge } from '../hooks/useVaultBridge'
+import { MeridianLogo } from './MeridianLogo'
 import type { VaultConfig } from '@shared/types'
 
-const WELCOME_DEST = `${(window as any).__homeDir || ''}/Documents/Meridian Welcome`
+const WELCOME_DEST = `${(window as any).appInfo?.homeDir || ''}/Documents/Meridian Welcome`
 const WELCOME_REPO = 'https://github.com/bvsmma/meridian-welcome'
 
 export function VaultPicker() {
@@ -48,7 +49,7 @@ export function VaultPicker() {
         color: '#ccc'
       }}
     >
-      <div style={{ fontSize: 48 }}>📓</div>
+      <MeridianLogo size={88} />
       <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>
         {t('vaultPicker.title')}
       </h1>

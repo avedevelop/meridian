@@ -143,6 +143,7 @@ function createWindow(): BrowserWindow {
     height,
     x,
     y,
+    icon: join(__dirname, '../../resources/icon.png'),
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#1a1a1a',
     webPreferences: {

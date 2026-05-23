@@ -1,10 +1,10 @@
 {
   "name": "meridian",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "Local-first markdown notes app for macOS, inspired by Obsidian.",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "bvsmma",
+  "homepage": "https://github.com/bvsmma/meridian",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

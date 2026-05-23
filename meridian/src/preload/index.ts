@@ -11,10 +11,9 @@ import type {
 import { homedir } from 'os'
 
 const appInfo = {
-  version: process.env.npm_package_version ?? '1.0.0'
+  version: process.env.npm_package_version ?? '1.0.0',
+  homeDir: homedir()
 }
-
-;(window as any).__homeDir = homedir()
 
 const vaultAPI = {
   openDialog: (): Promise<VaultConfig | null> => ipcRenderer.invoke(IPC.VAULT_OPEN_DIALOG),

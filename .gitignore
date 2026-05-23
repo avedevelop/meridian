@@ -2,6 +2,18 @@ node_modules
 dist
 dist-electron
 out
+
+# AI / dev tooling artifacts
+.claude
 .superpowers
+.vscode
+AGENTS.md
+
+# OS
+.DS_Store
+
+# Build artifacts
 *.dmg
 *.app
+*.tsbuildinfo
+*.eslintcache
