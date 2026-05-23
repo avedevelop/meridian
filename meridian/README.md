@@ -164,6 +164,9 @@ npm run build:linux  # Linux AppImage
 ## Тесты
 
 ```bash
-npm run test         # Vitest (119 тестов)
-npm run typecheck    # TypeScript
+npm run test         # Vitest (158 тестов)
+npm run typecheck    # TypeScript (node + web проекты)
+npm run check-lines  # лимиты строк по компонентам (см. ARCHITECTURE.md)
 ```
+
+Перед коммитом или PR прогоняй все три: `typecheck && test && check-lines`.

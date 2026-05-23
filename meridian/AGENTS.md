@@ -7,6 +7,13 @@
 - **Commands:** `cd meridian` then `npm run dev` | `npm run test` | `npm run check-lines`
 - **Modularity rules:** [ARCHITECTURE.md](ARCHITECTURE.md)
 
+## Dev troubleshooting
+
+- `npm run dev` already strips `ELECTRON_RUN_AS_NODE` for Cursor / VS Code shells (`env -u ELECTRON_RUN_AS_NODE electron-vite dev`). If Electron still launches as Node, run `unset ELECTRON_RUN_AS_NODE && npm run dev` or use `npm run dev:kill` to free port 5173.
+- Preload changes (`src/preload/index.ts`) need a full restart — Vite HMR does not apply to preload bundles.
+- Community plugin loader changes (`src/main/index.ts` protocol handler, `src/main/ipc.ts` PLUGIN_LIST/LOAD/FILE_CHANGED) require restarting `npm run dev` and re-enabling the Sample plugin from Settings → Community Plugins. See [PLUGIN_DEVELOPMENT.md](PLUGIN_DEVELOPMENT.md) "Smoke Checklist".
+- Run `npm run typecheck && npm run test && npm run check-lines` before every commit.
+
 ## What is this project?
 
 **Meridian** is a macOS desktop app — a free, open-source Obsidian alternative built with Electron + React + TypeScript. Portfolio project by @bvsmma. GitHub: https://github.com/bvsmma/meridian
@@ -38,7 +45,7 @@ When the eligible note set exceeds the cap, `buildGraphData` keeps the highest-d
 - **D3 v7** (force-directed graph)
 - **MiniSearch** (full-text search)
 - **remark/rehype** (markdown rendering in preview panel)
-- **Vitest + React Testing Library** (tests — 62 passing)
+- **Vitest + React Testing Library** (tests — 158 passing)
 
 ## Running the app
 
