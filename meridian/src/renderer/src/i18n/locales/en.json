@@ -502,6 +502,8 @@
   "graph.density": "DENSITY",
   "graph.topHubs": "TOP HUBS (MOST CONNECTED)",
   "graph.noConnections": "No connections in network yet.",
+  "graph.resetView": "Reset view & forces",
+  "graph.lodHint": "Zoom in to view node labels",
 
   "timeline.viewing": "Viewing",
   "timeline.stop": "Stop",

@@ -58,3 +58,24 @@ export const tooltipStyleBase: React.CSSProperties = {
   boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
   fontFamily: 'Inter, sans-serif'
 }
+
+export const hintBannerStyle: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 80,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 900,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  background: 'rgba(124, 106, 247, 0.15)',
+  border: '1px solid rgba(124, 106, 247, 0.35)',
+  backdropFilter: 'blur(12px)',
+  borderRadius: 8,
+  padding: '8px 16px',
+  fontSize: 12,
+  color: '#eee',
+  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+  fontFamily: 'Inter, sans-serif',
+  pointerEvents: 'auto'
+}

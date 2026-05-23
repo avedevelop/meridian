@@ -502,6 +502,8 @@
   "graph.density": "ПЛОТНОСТЬ",
   "graph.topHubs": "ГЛАВНЫЕ ХАБЫ (НАИБОЛЕЕ СВЯЗАННЫЕ)",
   "graph.noConnections": "В сети пока нет связей.",
+  "graph.resetView": "Сбросить вид и силы",
+  "graph.lodHint": "Увеличьте масштаб, чтобы увидеть подписи",
 
   "timeline.viewing": "Просмотр",
   "timeline.stop": "Остановить",

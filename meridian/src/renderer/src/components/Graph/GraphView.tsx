@@ -6,7 +6,7 @@ import { useVaultStore } from '../../store/useVaultStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { GraphSidebar } from './GraphSidebar'
 import type { GNode, GraphViewProps } from './graphTypes'
-import { flattenFiles, nodeR } from './graphLayout'
+import { nodeR, calculateGraphStats } from './graphLayout'
 import { useGraphTimeline } from './useGraphTimeline'
 import { useGraphSimulation } from './useGraphSimulation'
 import { useGraphRecording } from './useGraphRecording'
@@ -15,7 +15,8 @@ import {
   bannerStyle,
   bannerButtonStyle,
   openFiltersButtonStyle,
-  tooltipStyleBase
+  tooltipStyleBase,
+  hintBannerStyle
 } from './graphStyles'
 
 export function GraphView({ onFileOpen }: GraphViewProps) {
@@ -53,22 +54,29 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [showArrows, setShowArrows] = useState(false)
   const [textSize, setTextSize] = useState(11)
   const [linkThickness, setLinkThickness] = useState(0.8)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(true)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth >= 1200 : true
+  })
   const [labelMode, setLabelMode] = useState<'auto' | 'hover' | 'all'>(() => {
     return (localStorage.getItem('meridian:graph-label-mode') as any) || 'auto'
   })
 
-  useEffect(() => {
-    localStorage.setItem('meridian:graph-label-mode', labelMode)
-  }, [labelMode])
+  useEffect(() => localStorage.setItem('meridian:graph-label-mode', labelMode), [labelMode])
 
   const [showGlow, setShowGlow] = useState<boolean>(() => {
     return localStorage.getItem('meridian:graph-show-glow') === 'true'
   })
 
+  useEffect(() => localStorage.setItem('meridian:graph-show-glow', String(showGlow)), [showGlow])
+
+  const [showLodHint, setShowLodHint] = useState(false)
   useEffect(() => {
-    localStorage.setItem('meridian:graph-show-glow', String(showGlow))
-  }, [showGlow])
+    if (labelMode === 'auto' && !sessionStorage.getItem('meridian:graph-lod-hint')) setShowLodHint(true)
+  }, [labelMode])
+
+  const dismissHint = useCallback(() => {
+    sessionStorage.setItem('meridian:graph-lod-hint', 'true'); setShowLodHint(false)
+  }, [])
 
   const [strictFilter, setStrictFilter] = useState(false)
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set())
@@ -118,24 +126,17 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     })
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 250)
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 250)
     return () => clearTimeout(timer)
   }, [searchQuery])
 
   const handleIncreaseLimit = useCallback(() => {
-    let nextLimit: 200 | 400 | 800 | 0 = 400
-    if (graphMaxNodes === 400) nextLimit = 800
-    else if (graphMaxNodes === 800) nextLimit = 0
-    else if (graphMaxNodes === 200) nextLimit = 400
-    else nextLimit = 400
+    const nextLimit = graphMaxNodes === 400 ? 800 : graphMaxNodes === 800 ? 0 : 400
     updateSetting('graphMaxNodes', nextLimit)
   }, [graphMaxNodes, updateSetting])
 
   const handleOpenFilters = useCallback(() => {
-    setIsSettingsOpen(true)
-    setActiveSidebarTab('filters')
+    setIsSettingsOpen(true); setActiveSidebarTab('filters')
   }, [])
 
   useEffect(() => {
@@ -157,63 +158,13 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   }, [buildResult, graphMaxNodes, updateSetting, t])
 
   const graphStats = useMemo(() => {
-    const allFiles = flattenFiles(files)
-      .filter((f) => !f.isDirectory && (f.name.endsWith('.md') || f.name.endsWith('.canvas')))
-      .map((f) => f.path)
-
-    const liveSet = new Set(allFiles)
-    const degree: Record<string, number> = {}
-    const edgeSet = new Set<string>()
-    const linksCount: { s: string; t: string }[] = []
-
-    for (const file of allFiles) {
-      for (const target of outlinks(file)) {
-        if (!liveSet.has(target)) continue
-        const key = [file, target].sort().join('|')
-        if (edgeSet.has(key)) continue
-        edgeSet.add(key)
-        linksCount.push({ s: file, t: target })
-        degree[file] = (degree[file] ?? 0) + 1
-        degree[target] = (degree[target] ?? 0) + 1
-      }
-    }
-
-    const hubs = allFiles
-      .map((path) => ({
-        id: path,
-        name:
-          path
-            .split('/')
-            .pop()
-            ?.replace(/\.(md|canvas)$/, '') ?? '',
-        degree: degree[path] ?? 0
-      }))
-      .filter((h) => h.degree > 0)
-      .sort((a, b) => b.degree - a.degree)
-      .slice(0, 5)
-
-    const totalNodes = allFiles.length
-    const totalLinks = linksCount.length
-    const orphans = allFiles.filter((p) => !degree[p]).length
-    const density = totalNodes > 1 ? (totalLinks / ((totalNodes * (totalNodes - 1)) / 2)) * 100 : 0
-
-    return {
-      totalNodes,
-      totalLinks,
-      orphans,
-      density: density.toFixed(1) + '%',
-      hubs
-    }
+    return calculateGraphStats(files, outlinks)
   }, [files, outlinks, indexVersion])
 
   const toggleCategory = (category: string) => {
     setDisabledCategories((prev) => {
       const next = new Set(prev)
-      if (next.has(category)) {
-        next.delete(category)
-      } else {
-        next.add(category)
-      }
+      next.has(category) ? next.delete(category) : next.add(category)
       return next
     })
   }
@@ -309,6 +260,32 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
   }, [d3Ref, zoomBehaviorRef])
 
+  const handleResetView = useCallback(() => {
+    setSearchQuery('')
+    setLinkDistance(100)
+    setRepulsionStrength(-160)
+    setShowArrows(false)
+    setTextSize(11)
+    setLinkThickness(0.8)
+    setLabelMode('auto')
+    setShowGlow(false)
+    setStrictFilter(false)
+    setDisabledCategories(new Set())
+
+    const state = d3Ref.current
+    if (state) {
+      state.sim.alpha(1).restart()
+    }
+
+    if (state && zoomBehaviorRef.current) {
+      const svg = d3.select(state.svgEl)
+      svg
+        .transition()
+        .duration(600)
+        .call(zoomBehaviorRef.current.transform, d3.zoomIdentity)
+    }
+  }, [d3Ref, zoomBehaviorRef])
+
   const handleToggleMode = (mode: 'live' | 'history') => {
     setViewMode(mode)
     if (mode === 'live') {
@@ -375,6 +352,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         setLabelMode={setLabelMode}
         showGlow={showGlow}
         setShowGlow={setShowGlow}
+        handleResetView={handleResetView}
       />
 
       <div
@@ -413,6 +391,28 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
                 {t('graph.truncation.openFilters')}
               </button>
             </div>
+          </div>
+        )}
+
+        {showLodHint && (
+          <div style={hintBannerStyle}>
+            <span>{t('graph.lodHint')}</span>
+            <button
+              onClick={dismissHint}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#aaa',
+                cursor: 'pointer',
+                fontSize: 14,
+                padding: '0 4px',
+                lineHeight: 1
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#aaa')}
+            >
+              ×
+            </button>
           </div>
         )}
       </div>

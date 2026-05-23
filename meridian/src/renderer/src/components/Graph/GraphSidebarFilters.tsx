@@ -23,6 +23,7 @@ interface GraphSidebarFiltersProps {
   setLabelMode: (v: 'auto' | 'hover' | 'all') => void
   showGlow: boolean
   setShowGlow: (v: boolean) => void
+  handleResetView: () => void
 }
 
 export function GraphSidebarFilters({
@@ -45,7 +46,8 @@ export function GraphSidebarFilters({
   labelMode,
   setLabelMode,
   showGlow,
-  setShowGlow
+  setShowGlow,
+  handleResetView
 }: GraphSidebarFiltersProps) {
   const { t } = useTranslation()
 
@@ -151,95 +153,50 @@ export function GraphSidebarFilters({
           {t('graph.physicsPresets')}
         </span>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => {
-              setLinkDistance(100)
-              setRepulsionStrength(-160)
-            }}
-            style={{
-              flex: '1 1 calc(50% - 3px)',
-              padding: '6px 0',
-              borderRadius: 6,
-              fontSize: 11,
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              background:
-                linkDistance === 100 && repulsionStrength === -160
-                  ? 'rgba(255, 255, 255, 0.08)'
-                  : 'transparent',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {t('graph.presetDefault')}
-          </button>
-          <button
-            onClick={() => {
-              setLinkDistance(110)
-              setRepulsionStrength(-200)
-              setTextSize(10)
-            }}
-            style={{
-              flex: '1 1 calc(50% - 3px)',
-              padding: '6px 0',
-              borderRadius: 6,
-              fontSize: 11,
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              background:
-                linkDistance === 110 && repulsionStrength === -200 && textSize === 10
-                  ? 'rgba(255, 255, 255, 0.08)'
-                  : 'transparent',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {t('graph.presetReadable')}
-          </button>
-          <button
-            onClick={() => {
-              setLinkDistance(45)
-              setRepulsionStrength(-220)
-            }}
-            style={{
-              flex: '1 1 calc(50% - 3px)',
-              padding: '6px 0',
-              borderRadius: 6,
-              fontSize: 11,
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              background:
-                linkDistance === 45 && repulsionStrength === -220
-                  ? 'rgba(255, 255, 255, 0.08)'
-                  : 'transparent',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {t('graph.presetDense')}
-          </button>
-          <button
-            onClick={() => {
-              setLinkDistance(125)
-              setRepulsionStrength(-40)
-            }}
-            style={{
-              flex: '1 1 calc(50% - 3px)',
-              padding: '6px 0',
-              borderRadius: 6,
-              fontSize: 11,
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              background:
-                linkDistance === 125 && repulsionStrength === -40
-                  ? 'rgba(255, 255, 255, 0.08)'
-                  : 'transparent',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {t('graph.presetGalaxy')}
-          </button>
+          {[
+            {
+              key: 'default',
+              label: t('graph.presetDefault'),
+              onClick: () => { setLinkDistance(100); setRepulsionStrength(-160) },
+              active: linkDistance === 100 && repulsionStrength === -160
+            },
+            {
+              key: 'readable',
+              label: t('graph.presetReadable'),
+              onClick: () => { setLinkDistance(110); setRepulsionStrength(-200); setTextSize(10) },
+              active: linkDistance === 110 && repulsionStrength === -200 && textSize === 10
+            },
+            {
+              key: 'dense',
+              label: t('graph.presetDense'),
+              onClick: () => { setLinkDistance(45); setRepulsionStrength(-220) },
+              active: linkDistance === 45 && repulsionStrength === -220
+            },
+            {
+              key: 'galaxy',
+              label: t('graph.presetGalaxy'),
+              onClick: () => { setLinkDistance(125); setRepulsionStrength(-40) },
+              active: linkDistance === 125 && repulsionStrength === -40
+            }
+          ].map((preset) => (
+            <button
+              key={preset.key}
+              onClick={preset.onClick}
+              style={{
+                flex: '1 1 calc(50% - 3px)',
+                padding: '6px 0',
+                borderRadius: 6,
+                fontSize: 11,
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: preset.active ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -484,6 +441,47 @@ export function GraphSidebarFilters({
             style={{ accentColor: 'var(--accent-color)', cursor: 'pointer', height: 3 }}
           />
         </div>
+      </div>
+
+      {/* Reset view action button */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          paddingTop: 14,
+          marginTop: 6
+        }}
+      >
+        <button
+          onClick={handleResetView}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            borderRadius: 8,
+            fontSize: 12,
+            fontWeight: 600,
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            color: '#f87171',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'
+            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'
+            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)'
+          }}
+        >
+          {t('graph.resetView')}
+        </button>
       </div>
     </>
   )

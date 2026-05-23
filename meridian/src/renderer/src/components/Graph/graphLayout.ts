@@ -169,3 +169,64 @@ export function buildGraphData(
     maxNodes
   }
 }
+
+export interface GraphStats {
+  totalNodes: number
+  totalLinks: number
+  orphans: number
+  density: string
+  hubs: Array<{ id: string; name: string; degree: number }>
+}
+
+export function calculateGraphStats(
+  files: VaultFile[],
+  outlinks: (file: string) => string[]
+): GraphStats {
+  const allFiles = flattenFiles(files)
+    .filter((f) => !f.isDirectory && (f.name.endsWith('.md') || f.name.endsWith('.canvas')))
+    .map((f) => f.path)
+
+  const liveSet = new Set(allFiles)
+  const degree: Record<string, number> = {}
+  const edgeSet = new Set<string>()
+  const linksCount: { s: string; t: string }[] = []
+
+  for (const file of allFiles) {
+    for (const target of outlinks(file)) {
+      if (!liveSet.has(target)) continue
+      const key = [file, target].sort().join('|')
+      if (edgeSet.has(key)) continue
+      edgeSet.add(key)
+      linksCount.push({ s: file, t: target })
+      degree[file] = (degree[file] ?? 0) + 1
+      degree[target] = (degree[target] ?? 0) + 1
+    }
+  }
+
+  const hubs = allFiles
+    .map((path) => ({
+      id: path,
+      name:
+        path
+          .split('/')
+          .pop()
+          ?.replace(/\.(md|canvas)$/, '') ?? '',
+      degree: degree[path] ?? 0
+    }))
+    .filter((h) => h.degree > 0)
+    .sort((a, b) => b.degree - a.degree)
+    .slice(0, 5)
+
+  const totalNodes = allFiles.length
+  const totalLinks = linksCount.length
+  const orphans = allFiles.filter((p) => !degree[p]).length
+  const density = totalNodes > 1 ? (totalLinks / ((totalNodes * (totalNodes - 1)) / 2)) * 100 : 0
+
+  return {
+    totalNodes,
+    totalLinks,
+    orphans,
+    density: density.toFixed(1) + '%',
+    hubs
+  }
+}

@@ -45,6 +45,7 @@ interface GraphSidebarProps {
   setLabelMode: (v: 'auto' | 'hover' | 'all') => void
   showGlow: boolean
   setShowGlow: (v: boolean) => void
+  handleResetView: () => void
 }
 
 export function GraphSidebar(props: GraphSidebarProps) {
@@ -75,7 +76,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
     labelMode,
     setLabelMode,
     showGlow,
-    setShowGlow
+    setShowGlow,
+    handleResetView
   } = props
 
   return (
@@ -260,6 +262,7 @@ export function GraphSidebar(props: GraphSidebarProps) {
               setLabelMode={setLabelMode}
               showGlow={showGlow}
               setShowGlow={setShowGlow}
+              handleResetView={handleResetView}
             />
           ) : (
             <GraphSidebarAnalytics graphStats={graphStats} focusNode={focusNode} />
