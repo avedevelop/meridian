@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import * as d3 from 'd3'
+import { useTranslation } from 'react-i18next'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultStore } from '../../store/useVaultStore'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { GraphSidebar } from './GraphSidebar'
 import type { GNode, GraphViewProps } from './graphTypes'
 import { flattenFiles, nodeR } from './graphLayout'
@@ -11,6 +13,10 @@ import { useGraphRecording } from './useGraphRecording'
 import { GraphControls } from './GraphControls'
 
 export function GraphView({ onFileOpen }: GraphViewProps) {
+  const { t } = useTranslation()
+  const graphMaxNodes = useSettingsStore((s) => s.graphMaxNodes)
+  const updateSetting = useSettingsStore((s) => s.updateSetting)
+
   const modeHandlerRef = useRef<(mode: 'live' | 'history') => void>(() => {})
 
   const files = useVaultStore((s) => s.files)
@@ -55,7 +61,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     isPhysicsRunning,
     handleTogglePhysics,
     hoveredNode,
-    hoverPreviewContent
+    hoverPreviewContent,
+    buildResult
   } = useGraphSimulation({
     files,
     outlinks,
@@ -98,6 +105,39 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     }, 250)
     return () => clearTimeout(timer)
   }, [searchQuery])
+
+  const handleIncreaseLimit = useCallback(() => {
+    let nextLimit: 200 | 400 | 800 | 0 = 400
+    if (graphMaxNodes === 400) nextLimit = 800
+    else if (graphMaxNodes === 800) nextLimit = 0
+    else if (graphMaxNodes === 200) nextLimit = 400
+    else nextLimit = 400
+    updateSetting('graphMaxNodes', nextLimit)
+  }, [graphMaxNodes, updateSetting])
+
+  const handleOpenFilters = useCallback(() => {
+    setIsSettingsOpen(true)
+    setActiveSidebarTab('filters')
+  }, [])
+
+  useEffect(() => {
+    if (
+      buildResult &&
+      graphMaxNodes === 0 &&
+      buildResult.totalEligible > 600 &&
+      !sessionStorage.getItem('meridian:graph-slow-confirmed')
+    ) {
+      const confirmed = window.confirm(
+        t('graph.truncation.slowWarning', { count: buildResult.totalEligible })
+      )
+      if (confirmed) {
+        sessionStorage.setItem('meridian:graph-slow-confirmed', 'true')
+      } else {
+        updateSetting('graphMaxNodes', 400)
+      }
+    }
+  }, [buildResult, graphMaxNodes, updateSetting, t])
+
 
   const graphStats = useMemo(() => {
     const allFiles = flattenFiles(files)
@@ -307,6 +347,76 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}
       >
         <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+        {buildResult?.truncated && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 16,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 900,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              backdropFilter: 'blur(12px)',
+              borderRadius: 8,
+              padding: '8px 16px',
+              fontSize: 12,
+              color: '#eee',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+              fontFamily: 'Inter, sans-serif',
+              pointerEvents: 'auto'
+            }}
+          >
+            <span>
+              {t('graph.truncation.banner', {
+                displayed: buildResult.displayedCount,
+                total: buildResult.totalEligible
+              })}
+            </span>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={handleIncreaseLimit}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#fff',
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  fontWeight: 500,
+                  outline: 'none',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
+              >
+                {t('graph.truncation.increaseLimit')}
+              </button>
+              <button
+                onClick={handleOpenFilters}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--accent-color, #7c6af7)',
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  fontWeight: 500,
+                  outline: 'none',
+                  padding: '4px 0'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+              >
+                {t('graph.truncation.openFilters')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <GraphControls

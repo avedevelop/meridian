@@ -166,6 +166,26 @@ export function buildAppearanceSettings(t: TFunction): SettingDefinition[] {
           onChange={(v) => s.updateSetting('alwaysShowTabBar', v)}
         />
       )
+    },
+    {
+      id: 'graphMaxNodes',
+      label: t('settings.appearance.graphMaxNodes'),
+      description: t('settings.appearance.graphMaxNodesDesc'),
+      category: 'appearance',
+      render: (s) => (
+        <Dropdown
+          label={t('settings.appearance.graphMaxNodes')}
+          description={t('settings.appearance.graphMaxNodesDesc')}
+          value={s.graphMaxNodes}
+          options={[
+            { value: 200, label: t('settings.appearance.graphMaxNodes.200') },
+            { value: 400, label: t('settings.appearance.graphMaxNodes.400') },
+            { value: 800, label: t('settings.appearance.graphMaxNodes.800') },
+            { value: 0, label: t('settings.appearance.graphMaxNodes.0') }
+          ]}
+          onChange={(v) => s.updateSetting('graphMaxNodes', v)}
+        />
+      )
     }
   ]
 }
