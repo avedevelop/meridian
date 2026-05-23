@@ -338,6 +338,8 @@
   "settings.plugins.community.title": "Сторонние плагины",
   "settings.plugins.community.description": "Устанавливайте сторонние плагины в папку .meridian/plugins вашего хранилища для добавления новых функций.",
   "settings.plugins.community.openFolder": "Открыть папку плагинов",
+  "settings.plugins.community.reload": "Перезагрузить плагины",
+  "settings.plugins.community.loadFailed": "Не удалось загрузить сторонний плагин: {{name}}",
   "settings.plugins.community.noPlugins": "Сторонние плагины не найдены. Чтобы создать плагин, перейдите по ссылке ниже или создайте папку в .meridian/plugins/ вашего хранилища.",
   "settings.plugins.community.developerLink": "Документация разработчика плагинов",
   "settings.hotkeys.group.general": "Общие",

@@ -338,6 +338,8 @@
   "settings.plugins.community.title": "Community Plugins",
   "settings.plugins.community.description": "Install third-party plugins in your vault's .meridian/plugins folder to add custom features.",
   "settings.plugins.community.openFolder": "Open Plugins Folder",
+  "settings.plugins.community.reload": "Reload Plugins",
+  "settings.plugins.community.loadFailed": "Failed to load community plugin: {{name}}",
   "settings.plugins.community.noPlugins": "No community plugins found. To create one, follow the link below or create a directory in your vault under .meridian/plugins/.",
   "settings.plugins.community.developerLink": "Plugin Developer Documentation",
   "settings.hotkeys.group.general": "General",

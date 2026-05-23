@@ -200,6 +200,11 @@ export default function App() {
               await pluginRegistry.enablePlugin(manifest.id)
             } catch (err) {
               console.error(`Failed to load community plugin ${manifest.id}:`, err)
+              pluginAPI.ui.toast(
+                i18n.t('settings.plugins.community.loadFailed', {
+                  name: manifest.name || manifest.id
+                })
+              )
             }
           }
         }

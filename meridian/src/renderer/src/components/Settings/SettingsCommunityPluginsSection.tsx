@@ -8,6 +8,11 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
   const store = useSettingsStore()
   const vault = useVaultStore((s) => s.vault)
   const [plugins, setPlugins] = useState<any[]>([])
+  const [reloadTrigger, setReloadTrigger] = useState(0)
+
+  const handleReload = () => {
+    setReloadTrigger((prev) => prev + 1)
+  }
 
   useEffect(() => {
     let active = true
@@ -33,7 +38,7 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
     return () => {
       active = false
     }
-  }, [vault, isActive])
+  }, [vault, isActive, reloadTrigger])
 
   const handleOpenFolder = () => {
     if (!vault) return
@@ -74,30 +79,56 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
             {t('settings.plugins.community.description')}
           </p>
         </div>
-        <button
-          onClick={handleOpenFolder}
-          style={{
-            background: '#222',
-            color: '#eee',
-            border: '1px solid #333',
-            padding: '6px 12px',
-            borderRadius: 6,
-            fontSize: 11,
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'background 0.2s ease, border-color 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#2a2a2a'
-            e.currentTarget.style.borderColor = '#444'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#222'
-            e.currentTarget.style.borderColor = '#333'
-          }}
-        >
-          📁 {t('settings.plugins.community.openFolder')}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleReload}
+            style={{
+              background: '#222',
+              color: '#eee',
+              border: '1px solid #333',
+              padding: '6px 12px',
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.2s ease, border-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#2a2a2a'
+              e.currentTarget.style.borderColor = '#444'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#222'
+              e.currentTarget.style.borderColor = '#333'
+            }}
+          >
+            🔄 {t('settings.plugins.community.reload')}
+          </button>
+          <button
+            onClick={handleOpenFolder}
+            style={{
+              background: '#222',
+              color: '#eee',
+              border: '1px solid #333',
+              padding: '6px 12px',
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.2s ease, border-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#2a2a2a'
+              e.currentTarget.style.borderColor = '#444'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#222'
+              e.currentTarget.style.borderColor = '#333'
+            }}
+          >
+            📁 {t('settings.plugins.community.openFolder')}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
