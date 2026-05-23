@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, Component, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Component, type ReactNode } from 'react'
 import { WarningIcon } from './components/Icons'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -102,6 +102,16 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  const [toasts, setToasts] = useState<{ id: string; message: string }[]>([])
+  const showToastRef = useRef<(message: string) => void>(() => {})
+  showToastRef.current = (message: string) => {
+    const id = Math.random().toString(36).substring(2, 9)
+    setToasts((prev) => [...prev, { id, message }])
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id))
+    }, 4000)
+  }
+
   // Initialize core plugins API
   const pluginAPI = useMemo(
     () => ({
@@ -114,6 +124,7 @@ export default function App() {
       ui: {
         toast: (msg: string) => {
           console.log(`[Toast] ${msg}`)
+          showToastRef.current(msg)
         },
         openSettings: () => {
           setSettingsOpen(true)
@@ -585,6 +596,82 @@ export default function App() {
         commands={paletteCommands}
       />
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {/* Glassmorphic Toast Notifications */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          pointerEvents: 'none'
+        }}
+      >
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            style={{
+              pointerEvents: 'auto',
+              background: 'rgba(25, 25, 25, 0.85)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              color: '#eee',
+              padding: '12px 20px',
+              borderRadius: 8,
+              fontSize: 13,
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              minWidth: 260,
+              maxWidth: 400,
+              animation: 'toast-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            }}
+          >
+            <span style={{ fontSize: 16 }}>✦</span>
+            <div style={{ flex: 1, lineHeight: '1.4' }}>{toast.message}</div>
+            <button
+              onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: 14,
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#bbb'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#666'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @keyframes toast-slide-in {
+          from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
     </div>
   )
 }
