@@ -1,0 +1,73 @@
+name: Meridian Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. v1.0.0). Must match meridian/package.json version.'
+        required: true
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: meridian
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: meridian/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify (typecheck + tests + line limits)
+        run: |
+          npm run typecheck
+          npm run test
+          npm run check-lines
+
+      - name: Build macOS DMG (unsigned, no notarization)
+        run: npm run build:mac
+        env:
+          # electron-builder skips notarization when these are absent.
+          # See electron-builder.yml mac.notarize: false.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: List build artifacts
+        run: ls -lh dist/
+
+      - name: Upload DMG to GitHub Release
+        uses: softprops/action-gh-release@v2
+        # Only auto-attach when this run was triggered by a tag push.
+        # workflow_dispatch runs build the artifact but don't attach.
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            meridian/dist/*.dmg
+          generate_release_notes: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload DMG as workflow artifact
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-dmg
+          path: meridian/dist/*.dmg
+          if-no-files-found: error
