@@ -91,7 +91,7 @@ describe('VaultManager', () => {
 
     const manifests = await vault.listPluginManifests()
     expect(manifests).toHaveLength(1)
-    expect(manifests[0]).toEqual(manifest)
+    expect(manifests[0]).toEqual({ ...manifest, source: 'vault' })
   })
 
   it('listPluginManifests handles missing plugins folder gracefully', async () => {
@@ -114,7 +114,10 @@ describe('VaultManager', () => {
     const manifest = {
       version: '1.0.0'
     }
-    writeFileSync(join(pluginsDir, 'missing-fields-plugin', 'manifest.json'), JSON.stringify(manifest))
+    writeFileSync(
+      join(pluginsDir, 'missing-fields-plugin', 'manifest.json'),
+      JSON.stringify(manifest)
+    )
 
     const manifests = await vault.listPluginManifests()
     expect(manifests).toEqual([])

@@ -21,6 +21,19 @@ export interface AppConfig {
   githubUsername?: string
 }
 
+export type PluginSource = 'bundled' | 'user' | 'vault'
+
+export interface PluginManifest {
+  id: string
+  name: string
+  version: string
+  description?: string
+  author?: string
+  main?: string
+  minAppVersion?: string
+  source: PluginSource
+}
+
 export type VaultFileChangeType = 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir'
 
 export interface VaultFileChangeEvent {
@@ -71,6 +84,7 @@ export const IPC = {
   WELCOME_DOWNLOAD: 'welcome:download',
   PLUGIN_LIST: 'plugin:list',
   PLUGIN_LOAD: 'plugin:load',
+  PLUGIN_OPEN_FOLDER: 'plugin:open-folder',
   PLUGIN_FILE_CHANGED: 'plugin:file-changed' // main → renderer push event
 } as const
 

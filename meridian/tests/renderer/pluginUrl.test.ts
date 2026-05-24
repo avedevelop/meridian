@@ -1,13 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildPluginUrl,
+  buildAppPluginUrl,
+  parseAppPluginUrl,
   parsePluginUrl,
+  APP_PLUGIN_URL_SCHEME,
   PLUGIN_URL_SCHEME
 } from '../../src/shared/pluginUrl'
 
 describe('pluginUrl helpers', () => {
   it('exports the meridian-plugin: scheme constant', () => {
     expect(PLUGIN_URL_SCHEME).toBe('meridian-plugin:')
+    expect(APP_PLUGIN_URL_SCHEME).toBe('meridian-app-plugin:')
   })
 
   describe('buildPluginUrl', () => {
@@ -89,6 +93,19 @@ describe('pluginUrl helpers', () => {
     it('build → parse yields original inputs', () => {
       const url = buildPluginUrl('hello-plugin', 'sub/dir/main.js')!
       expect(parsePluginUrl(url)).toEqual({ id: 'hello-plugin', path: 'sub/dir/main.js' })
+    })
+  })
+
+  describe('app plugin URLs', () => {
+    it('builds and parses app-level plugin URLs', () => {
+      const url = buildAppPluginUrl('hello-plugin', 'dist/main.js')!
+      expect(url).toBe('meridian-app-plugin://hello-plugin/dist/main.js')
+      expect(parseAppPluginUrl(url)).toEqual({ id: 'hello-plugin', path: 'dist/main.js' })
+    })
+
+    it('keeps app plugin URLs separate from vault plugin URLs', () => {
+      expect(parsePluginUrl('meridian-app-plugin://hello-plugin/main.js')).toBeNull()
+      expect(parseAppPluginUrl('meridian-plugin://hello-plugin/main.js')).toBeNull()
     })
   })
 })

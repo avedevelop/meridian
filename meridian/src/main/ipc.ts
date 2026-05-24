@@ -3,13 +3,15 @@ import { basename, isAbsolute, resolve, sep } from 'path'
 import chokidar, { type FSWatcher } from 'chokidar'
 import {
   IPC,
+  type PluginManifest,
   type PluginFileChangeEvent,
   type VaultFileChangeEvent,
   type VaultFileChangeType
 } from '../shared/types'
-import { buildPluginUrl } from '../shared/pluginUrl'
+import { buildAppPluginUrl, buildPluginUrl } from '../shared/pluginUrl'
 import { VaultManager } from './vault'
 import { AppSettings } from './settings'
+import { ensureUserPluginsDir, listAppPluginManifests, resolveAppPluginFile } from './plugins'
 
 let vaultManager: VaultManager | null = null
 let vaultWatcher: FSWatcher | null = null
@@ -26,6 +28,23 @@ const WATCH_EVENT_TYPES = new Set<VaultFileChangeType>([
   'addDir',
   'unlinkDir'
 ])
+
+async function listAvailablePluginManifests(): Promise<PluginManifest[]> {
+  const manifests = await listAppPluginManifests()
+  const seenIds = new Set(manifests.map((manifest) => manifest.id))
+
+  if (vaultManager) {
+    const vaultManifests = await vaultManager.listPluginManifests()
+    for (const manifest of vaultManifests) {
+      if (!seenIds.has(manifest.id)) {
+        manifests.push(manifest)
+        seenIds.add(manifest.id)
+      }
+    }
+  }
+
+  return manifests
+}
 
 function toAbsoluteVaultPath(manager: VaultManager, changedPath: string): string {
   return isAbsolute(changedPath) ? changedPath : resolve(manager.vaultPath, changedPath)
@@ -839,18 +858,32 @@ export function registerIpcHandlers(settings: AppSettings): void {
   })
 
   ipcMain.handle(IPC.PLUGIN_LIST, async () => {
-    if (!vaultManager) return []
-    return vaultManager.listPluginManifests()
+    return listAvailablePluginManifests()
+  })
+
+  ipcMain.handle(IPC.PLUGIN_OPEN_FOLDER, async () => {
+    const pluginsDir = await ensureUserPluginsDir()
+    await shell.openPath(pluginsDir)
+    return pluginsDir
   })
 
   ipcMain.handle(IPC.PLUGIN_LOAD, async (_event, id: string) => {
-    if (!vaultManager) throw new Error('No vault open')
-    const manifests = await vaultManager.listPluginManifests()
+    const manifests = await listAvailablePluginManifests()
     const manifest = manifests.find((m) => m.id === id)
     if (!manifest) throw new Error(`Plugin not found: ${id}`)
     const mainFile = manifest.main || 'main.js'
     const { join } = await import('path')
     const { stat } = await import('fs/promises')
+
+    if (manifest.source === 'bundled' || manifest.source === 'user') {
+      const pluginFile = await resolveAppPluginFile(id, mainFile, manifest.source)
+      if (!pluginFile) throw new Error(`Failed to access app plugin main file: ${mainFile}`)
+      const url = buildAppPluginUrl(id, mainFile)
+      if (!url) throw new Error(`Invalid app plugin id or main file: ${id} / ${mainFile}`)
+      return url
+    }
+
+    if (!vaultManager) throw new Error('No vault open')
     const pluginsDir = join(vaultManager.vaultPath, '.meridian', 'plugins')
     const mainFilePath = join(pluginsDir, id, mainFile)
     try {

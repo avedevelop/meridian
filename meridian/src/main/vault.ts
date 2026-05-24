@@ -1,6 +1,8 @@
 import { readFile, writeFile, readdir, stat, mkdir, rm, rename } from 'fs/promises'
 import { basename, dirname, join, relative, resolve, sep } from 'path'
-import { VaultFile } from '../shared/types'
+import { PluginManifest, VaultFile } from '../shared/types'
+
+const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9-]*$/
 
 export class VaultManager {
   constructor(public readonly vaultPath: string) {}
@@ -118,7 +120,7 @@ export class VaultManager {
     return resolvedDest
   }
 
-  async listPluginManifests(): Promise<any[]> {
+  async listPluginManifests(): Promise<PluginManifest[]> {
     const pluginsDir = join(this.vaultPath, '.meridian', 'plugins')
     try {
       const stats = await stat(pluginsDir)
@@ -128,16 +130,21 @@ export class VaultManager {
     }
 
     const entries = await readdir(pluginsDir)
-    const manifests: any[] = []
+    const manifests: PluginManifest[] = []
 
     for (const entry of entries) {
       if (entry.startsWith('.')) continue
       const manifestPath = join(pluginsDir, entry, 'manifest.json')
       try {
         const manifestContent = await readFile(manifestPath, 'utf-8')
-        const manifestObj = JSON.parse(manifestContent)
-        if (manifestObj.id && manifestObj.name) {
-          manifests.push(manifestObj)
+        const manifestObj = JSON.parse(manifestContent) as Partial<PluginManifest>
+        if (
+          manifestObj.id === entry &&
+          PLUGIN_ID_RE.test(manifestObj.id) &&
+          manifestObj.name &&
+          manifestObj.version
+        ) {
+          manifests.push({ ...manifestObj, source: 'vault' } as PluginManifest)
         }
       } catch (err) {
         console.warn(`[VaultManager] Failed to read manifest for plugin ${entry}:`, err)

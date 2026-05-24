@@ -11,6 +11,7 @@ export default defineConfig(
       '**/node_modules',
       '**/dist',
       '**/out',
+      'plugins/**',
       'demo-vault/**/.meridian/plugins/**',
       'sample-plugin/**'
     ]

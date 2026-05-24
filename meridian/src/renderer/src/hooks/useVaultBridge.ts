@@ -2,7 +2,12 @@ import { useCallback } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
 import { useLinkStore } from '../store/useLinkStore'
 import { useSettingsStore } from '../store/useSettingsStore'
-import type { VaultConfig, VaultFile, VaultFileChangeEvent } from '@shared/types'
+import type {
+  PluginFileChangeEvent,
+  VaultConfig,
+  VaultFile,
+  VaultFileChangeEvent
+} from '@shared/types'
 import { restoreSession } from './useSessionPersist'
 
 function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
@@ -24,6 +29,7 @@ export function uniqueFileName(dir: string, base: string, ext: string, files: Va
 
 declare global {
   interface Window {
+    __meridianReloadPlugin?: (id: string) => void
     vault: {
       openDialog: () => Promise<VaultConfig | null>
       listFiles: () => Promise<VaultFile[]>
@@ -100,8 +106,10 @@ declare global {
       ) => Promise<{ success: boolean; username?: string; pending?: boolean; error?: string }>
       githubLogout: () => Promise<{ success: boolean }>
       githubStatus: () => Promise<{ connected: boolean; username: string }>
-      listPlugins: () => Promise<any[]>
+      listPlugins: () => Promise<import('@shared/types').PluginManifest[]>
       loadPlugin: (id: string) => Promise<string>
+      openPluginsFolder: () => Promise<string>
+      onPluginFileChanged: (callback: (event: PluginFileChangeEvent) => void) => () => void
     }
     settings: {
       get: () => Promise<import('@shared/types').AppConfig>

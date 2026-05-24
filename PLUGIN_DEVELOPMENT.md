@@ -2,14 +2,19 @@
 
 Meridian allows you to write custom plugins to extend the capabilities of your notebook editor, daily notes, command palette, and spatial canvas.
 
-Community plugins are loaded from your vault's `.meridian/plugins/` directory.
+Community plugins are application-wide. Bundled plugins live in the repository-level
+`plugins/` directory and are packaged with the app. User-installed plugins live in
+Meridian's app data `plugins/` directory, opened from Settings → Community Plugins.
+
+Legacy vault-local plugins in `{vault}/.meridian/plugins/` are still detected, but
+they are no longer the primary plugin location.
 
 ## Plugin Structure
 
 A plugin is a folder containing at least two files:
 
 ```
-{vault}/.meridian/plugins/{plugin-id}/
+plugins/{plugin-id}/
 ├── manifest.json
 └── main.js
 ```
@@ -109,19 +114,17 @@ export interface PluginAPI {
 
 ## Testing / Development Workflow
 
-1. Open your active vault folder on your machine.
-2. Create `.meridian/plugins/my-plugin/` directory.
-3. Put `manifest.json` and `main.js` inside.
-4. Open Meridian settings (⌘,), go to the **Community Plugins** tab.
-5. Click **Open Plugins Folder** to verify the folder opens, and click **Reload/Refresh** (or reopen the settings dialog) to see your plugin.
-6. Toggle the switch to enable it!
+1. Open Settings → Community Plugins.
+2. Click **Open App Plugins Folder**.
+3. Create `my-plugin/` directory there.
+4. Put `manifest.json` and `main.js` inside.
+5. Click **Reload Plugins** (or reopen the settings dialog) to see your plugin.
+6. Toggle the switch to enable it.
 7. Open the Command Palette (⌘K) to verify that any registered commands are shown and can be executed.
 
 ## Bundled Demo Plugins
 
-The demo vault includes several community plugins under
-`meridian/demo-vault/.meridian/plugins/` that can be copied into another vault
-or used as implementation examples:
+The repository includes application-wide community plugins under `plugins/`:
 
 - **Quick Capture** — appends prompted text to `Inbox.md`.
 - **Vault Index** — rebuilds `Vault Index.md` with wiki-links for every note.
@@ -135,10 +138,9 @@ Command Palette with `>` command mode.
 
 Repeat these steps before claiming community plugins still work — vault switches, CSP, and the dev reload path are easy to break.
 
-1. Restart `npm run dev` from the canonical workspace
-   (`/Users/vladyslav/Desktop/dev/new project/meridian`).
+1. Restart `npm run dev` from the repository's `meridian/` app directory.
 2. Open the welcome vault, then **Settings → Community Plugins**.
-3. Enable the bundled **Sample Plugin** (`demo-vault/.meridian/plugins/meridian-sample/`).
+3. Enable the bundled **Sample Plugin** (`plugins/meridian-sample/`).
 4. A toast similar to «Hello from sample plugin!» should appear within ~1s.
    No «Failed to load community plugin …» toast.
 5. Open Command Palette (⌘K) and run **Sample: Show Greeting Toast**
@@ -147,8 +149,8 @@ Repeat these steps before claiming community plugins still work — vault switch
    `Refused to load … because it violates the following Content Security Policy directive`** errors.
    The CSP in `src/renderer/index.html` must whitelist `meridian-plugin:` for both
    `script-src` and `connect-src`.
-7. Switch vaults via the vault picker. The previous vault's plugin must
-   not produce a load-error toast in the new vault, even if its id is
-   still listed in `pluginsEnabled` (see `App.tsx` community sync).
+7. Switch vaults via the vault picker. Application plugins should remain listed,
+   and legacy vault plugins from the previous vault must not produce a load-error
+   toast in the new vault, even if their ids are still listed in `pluginsEnabled`.
 
-**Troubleshooting:** If enabling shows «Failed to load community plugin», check DevTools console. A common cause is Content-Security-Policy blocking `meridian-plugin://` module loads — `src/renderer/index.html` must include `meridian-plugin:` in `script-src` and `connect-src`.
+**Troubleshooting:** If enabling shows «Failed to load community plugin», check DevTools console. A common cause is Content-Security-Policy blocking plugin module loads — `src/renderer/index.html` must include `meridian-app-plugin:` and `meridian-plugin:` in `script-src` and `connect-src`.

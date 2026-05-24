@@ -2,6 +2,18 @@
 
 All notable changes to Meridian. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] — 2026-05-24
+
+### Changed
+
+- Community plugins are now application-wide instead of being tied to the active vault.
+- Bundled community plugins live in the repository-level `plugins/` folder and are packaged into releases.
+- Settings → Community Plugins now lists app-level plugins first and still supports legacy vault-local plugins as extras.
+
+### Fixed
+
+- Newly bundled plugins now appear for every user regardless of which vault is open.
+
 ## [1.0.1] — 2026-05-24
 
 ### Added
@@ -137,5 +149,6 @@ First public release. Local-first markdown knowledge base for macOS desktop, ins
 - macOS DMG is **not** notarized — Gatekeeper will warn on first launch (right-click → Open)
 - No Obsidian plugin compatibility, no cloud sync, no mobile, no marketplace, no WebGL graph (see [SCOPE.md](SCOPE.md))
 
+[1.0.2]: https://github.com/bvsmma/meridian/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bvsmma/meridian/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bvsmma/meridian/releases/tag/v1.0.0

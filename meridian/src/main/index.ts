@@ -2,8 +2,9 @@ import { app, BrowserWindow, shell, protocol, Menu } from 'electron'
 import { join, resolve, sep, extname } from 'path'
 import { readFile } from 'fs/promises'
 import { AppSettings } from './settings'
-import { parsePluginUrl } from '../shared/pluginUrl'
+import { parseAppPluginUrl, parsePluginUrl } from '../shared/pluginUrl'
 import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
+import { resolveAppPluginFile } from './plugins'
 
 // Must be called before app is ready — tells Chromium vault:// is a secure scheme
 // so it can be loaded from any origin (http://localhost in dev, file:// in prod)
@@ -14,6 +15,10 @@ protocol.registerSchemesAsPrivileged([
   },
   {
     scheme: 'meridian-plugin',
+    privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true }
+  },
+  {
+    scheme: 'meridian-app-plugin',
     privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true }
   }
 ])
@@ -220,6 +225,28 @@ app.whenReady().then(() => {
     const fullPath = resolve(pluginRoot, fileSubpath)
 
     // Security check: must be inside the specific plugin root directory
+    if (!fullPath.startsWith(pluginRoot + sep) && fullPath !== pluginRoot) {
+      return new Response('Forbidden', { status: 403 })
+    }
+
+    try {
+      const data = await readFile(fullPath)
+      const contentType = MIME[extname(fullPath).toLowerCase()] ?? 'application/octet-stream'
+      return new Response(data, { headers: { 'Content-Type': contentType } })
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
+  })
+
+  protocol.handle('meridian-app-plugin', async (request) => {
+    const parsed = parseAppPluginUrl(request.url)
+    if (!parsed) return new Response('Invalid app plugin URL', { status: 400 })
+    const { id: pluginId, path: fileSubpath } = parsed
+
+    const pluginFile = await resolveAppPluginFile(pluginId, fileSubpath)
+    if (!pluginFile) return new Response('Not found', { status: 404 })
+
+    const { root: pluginRoot, fullPath } = pluginFile
     if (!fullPath.startsWith(pluginRoot + sep) && fullPath !== pluginRoot) {
       return new Response('Forbidden', { status: 403 })
     }

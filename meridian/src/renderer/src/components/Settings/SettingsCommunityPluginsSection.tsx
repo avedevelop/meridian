@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
+import type { PluginManifest } from '@shared/types'
 
 export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?: boolean }) {
   const { t } = useTranslation()
   const store = useSettingsStore()
   const vault = useVaultStore((s) => s.vault)
-  const [plugins, setPlugins] = useState<any[]>([])
+  const [plugins, setPlugins] = useState<PluginManifest[]>([])
   const [reloadTrigger, setReloadTrigger] = useState(0)
 
   const handleReload = () => {
@@ -18,10 +19,6 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
     let active = true
     async function fetchPlugins() {
       try {
-        if (!vault) {
-          setPlugins([])
-          return
-        }
         if (!isActive) {
           return
         }
@@ -41,9 +38,7 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
   }, [vault, isActive, reloadTrigger])
 
   const handleOpenFolder = () => {
-    if (!vault) return
-    const path = `${vault.path.replace(/[/\\]$/, '')}/.meridian/plugins`
-    window.vault.openPath(path)
+    window.vault.openPluginsFolder?.()
   }
 
   const handleOpenLink = (url: string) => {
@@ -135,6 +130,7 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
         {plugins.length > 0 ? (
           plugins.map((p) => {
             const isEnabled = !!store.pluginsEnabled[p.id]
+            const sourceLabel = p.source === 'vault' ? 'VAULT' : 'APP'
             return (
               <div
                 key={p.id}
@@ -181,6 +177,18 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
                     >
                       {p.id}
                     </span>
+                    <span
+                      style={{
+                        fontSize: 8,
+                        color: p.source === 'vault' ? '#d6a85f' : '#7c6af7',
+                        border: `1px solid ${p.source === 'vault' ? '#4a3820' : '#332c70'}`,
+                        padding: '0 4px',
+                        borderRadius: 3,
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      {sourceLabel}
+                    </span>
                   </div>
                   <span style={{ color: '#777', fontSize: 11, lineHeight: '1.4' }}>
                     {p.description}
@@ -206,7 +214,7 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
                       type="button"
                       title={t('settings.plugins.community.reloadOneTitle')}
                       onClick={() => {
-                        const reload = (window as any).__meridianReloadPlugin
+                        const reload = window.__meridianReloadPlugin
                         if (typeof reload === 'function') reload(p.id)
                       }}
                       style={{
@@ -284,9 +292,7 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
       <div style={{ marginTop: 24, padding: '12px 0', borderTop: '1px solid #222' }}>
         <span
           onClick={() =>
-            handleOpenLink(
-              'https://github.com/bvsmma/meridian/blob/main/meridian/PLUGIN_DEVELOPMENT.md'
-            )
+            handleOpenLink('https://github.com/bvsmma/meridian/blob/main/PLUGIN_DEVELOPMENT.md')
           }
           style={{
             fontSize: 11,

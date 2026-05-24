@@ -4,8 +4,8 @@ import { join } from 'path'
 
 const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9-]*$/
 
-describe('demo vault community plugins', () => {
-  const pluginsDir = join(process.cwd(), 'demo-vault', '.meridian', 'plugins')
+describe('bundled community plugins', () => {
+  const pluginsDir = join(process.cwd(), '..', 'plugins')
 
   it('ships loadable plugin manifests and entry files', () => {
     const pluginDirs = readdirSync(pluginsDir, { withFileTypes: true })

@@ -84,10 +84,14 @@ Current core plugins: word counter, daily notes, git autocommit, slash commands,
 
 ### Community plugins (shipped — Plugin API v1)
 
-User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
+Application-wide plugins are loaded from app plugin directories:
+
+- bundled plugins: repository-level `plugins/{id}/`, packaged as app resources
+- user-installed plugins: Meridian app data `plugins/{id}/`
+- legacy vault plugins: `{vault}/.meridian/plugins/{id}/`, still supported as extras
 
 ```
-{vault}/.meridian/plugins/
+plugins/
   hello-plugin/
     manifest.json        ← id, name, version, main
     main.js              ← ESM module, renderer-only
@@ -95,7 +99,8 @@ User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
 
 **Registry & lifecycle:**
 
-- `src/shared/pluginUrl.ts` — build/parse `meridian-plugin://` URLs (single source of truth for the scheme)
+- `src/shared/pluginUrl.ts` — build/parse `meridian-plugin://` and `meridian-app-plugin://` URLs (single source of truth for plugin schemes)
+- `src/main/plugins.ts` — app-level bundled/user plugin discovery and path resolution
 - `src/renderer/src/plugins/types.ts` — `MeridianPlugin`, `PluginAPI`, `PluginCommand` interfaces
 - `src/renderer/src/plugins/registry.ts` — register, enable/disable, list commands; `pruneCommunityPlugins(keepIds)` for vault switches
 - `src/renderer/src/plugins/core/` — core plugins migrated to registry format
@@ -108,9 +113,9 @@ User-installed plugins loaded from `{vault}/.meridian/plugins/{id}/`.
 | `onLoad`   | Called when plugin is enabled / vault opens       |
 | `onUnload` | Called when plugin is disabled / vault closes     |
 
-**Hot-reload:** A dedicated chokidar watcher on `{vault}/.meridian/plugins/**/{main.js,manifest.json}` in `src/main/ipc.ts` debounces 300ms per plugin and emits `IPC.PLUGIN_FILE_CHANGED`. The renderer (`App.tsx`) disables the affected plugin, drops the cached manifest, and re-imports the module on the next sync pass. Settings → Community Plugins also exposes a manual per-plugin **Reload** button via `window.__meridianReloadPlugin(id)`.
+**Hot-reload:** Legacy vault-local plugins keep a dedicated chokidar watcher on `{vault}/.meridian/plugins/**/{main.js,manifest.json}` in `src/main/ipc.ts`. App-level plugins can be refreshed from Settings → Community Plugins with **Reload Plugins** or the per-plugin **Reload** button via `window.__meridianReloadPlugin(id)`.
 
-**Security:** Community plugins run renderer-only (no Node `require`). Loaded via the validated `meridian-plugin://` scheme served from inside the vault. No `eval`. The protocol handler resolves paths inside `{vault}/.meridian/plugins/{id}` and rejects anything that escapes the plugin root.
+**Security:** Community plugins run renderer-only (no Node `require`). App-level plugins are loaded via the validated `meridian-app-plugin://` scheme, while legacy vault plugins use `meridian-plugin://`. No `eval`. Protocol handlers resolve paths inside the selected plugin root and reject anything that escapes it.
 
 **Where to register new hooks:** Add to `PluginAPI` in `plugins/types.ts`, implement in `plugins/registry.ts`.
 

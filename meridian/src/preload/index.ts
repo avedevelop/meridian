@@ -115,6 +115,7 @@ const vaultAPI = {
   downloadWelcomeVault: (destPath: string) => ipcRenderer.invoke(IPC.WELCOME_DOWNLOAD, destPath),
   listPlugins: (): Promise<any[]> => ipcRenderer.invoke(IPC.PLUGIN_LIST),
   loadPlugin: (id: string): Promise<string> => ipcRenderer.invoke(IPC.PLUGIN_LOAD, id),
+  openPluginsFolder: (): Promise<string> => ipcRenderer.invoke(IPC.PLUGIN_OPEN_FOLDER),
   onPluginFileChanged: (callback: (event: PluginFileChangeEvent) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, change: PluginFileChangeEvent) =>
       callback(change)

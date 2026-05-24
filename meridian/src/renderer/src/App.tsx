@@ -168,18 +168,16 @@ export default function App() {
   // Subscribe to main-process file change events for community plugins.
   useEffect(() => {
     if (!vault) return
-    const unsubscribe = (window.vault as any).onPluginFileChanged?.(
-      (event: { pluginId: string }) => {
-        requestPluginReload(event.pluginId)
-      }
-    )
+    const unsubscribe = window.vault.onPluginFileChanged?.((event) => {
+      requestPluginReload(event.pluginId)
+    })
     // Expose a renderer-only entry point so settings UI can trigger
     // a manual reload without prop drilling through the whole app.
-    ;(window as any).__meridianReloadPlugin = requestPluginReload
+    window.__meridianReloadPlugin = requestPluginReload
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe()
-      if ((window as any).__meridianReloadPlugin === requestPluginReload) {
-        delete (window as any).__meridianReloadPlugin
+      if (window.__meridianReloadPlugin === requestPluginReload) {
+        delete window.__meridianReloadPlugin
       }
     }
   }, [vault, requestPluginReload])
@@ -221,8 +219,8 @@ export default function App() {
 
         const manifestIds = new Set(manifests.map((m) => m.id))
 
-        // Drop registry entries for plugins missing in current vault
-        // (handles vault switch — stale ids from previous vault).
+        // Drop registry entries for plugins missing from the current app/vault plugin set.
+        // This keeps app-wide plugins loaded while removing stale legacy vault plugins.
         pluginRegistry.pruneCommunityPlugins(manifestIds)
 
         // Drop hot-reload-targeted plugins from the registry so the
@@ -245,8 +243,8 @@ export default function App() {
         }
 
         // Enable any plugins that should be enabled but are not loaded.
-        // Plugins enabled in settings but missing from the current vault
-        // are silently skipped — manifests is the source of truth here.
+        // Plugins enabled in settings but missing from the manifest list
+        // are silently skipped; manifests are the source of truth here.
         for (const manifest of manifests) {
           const shouldBeEnabled = !!pluginsEnabled[manifest.id]
           const isLoaded = pluginRegistry.isPluginLoaded(manifest.id)
