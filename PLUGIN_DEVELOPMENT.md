@@ -117,6 +117,20 @@ export interface PluginAPI {
 6. Toggle the switch to enable it!
 7. Open the Command Palette (⌘K) to verify that any registered commands are shown and can be executed.
 
+## Bundled Demo Plugins
+
+The demo vault includes several community plugins under
+`meridian/demo-vault/.meridian/plugins/` that can be copied into another vault
+or used as implementation examples:
+
+- **Quick Capture** — appends prompted text to `Inbox.md`.
+- **Vault Index** — rebuilds `Vault Index.md` with wiki-links for every note.
+- **Link Auditor** — scans wiki-links and writes `Reports/Broken Links.md`.
+- **Template Pack** — installs starter templates into `_templates/`.
+
+Enable them in Settings → Community Plugins, then run their commands from the
+Command Palette with `>` command mode.
+
 ## Smoke Checklist (run after every plugin or loader change)
 
 Repeat these steps before claiming community plugins still work — vault switches, CSP, and the dev reload path are easy to break.
@@ -124,7 +138,7 @@ Repeat these steps before claiming community plugins still work — vault switch
 1. Restart `npm run dev` from the canonical workspace
    (`/Users/vladyslav/Desktop/dev/new project/meridian`).
 2. Open the welcome vault, then **Settings → Community Plugins**.
-3. Enable the bundled **Sample Plugin** (`demo-vault/.meridian/plugins/sample-plugin/`).
+3. Enable the bundled **Sample Plugin** (`demo-vault/.meridian/plugins/meridian-sample/`).
 4. A toast similar to «Hello from sample plugin!» should appear within ~1s.
    No «Failed to load community plugin …» toast.
 5. Open Command Palette (⌘K) and run **Sample: Show Greeting Toast**

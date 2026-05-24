@@ -101,6 +101,7 @@ export default function App() {
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pluginCommands, setPluginCommands] = useState(() => pluginRegistry.getCommands())
 
   const [toasts, setToasts] = useState<{ id: string; message: string }[]>([])
   const showToastRef = useRef<(message: string) => void>(() => {})
@@ -146,6 +147,13 @@ export default function App() {
   useEffect(() => {
     initCorePlugins(pluginAPI)
   }, [pluginAPI])
+
+  useEffect(() => {
+    setPluginCommands(pluginRegistry.getCommands())
+    return pluginRegistry.subscribe(() => {
+      setPluginCommands(pluginRegistry.getCommands())
+    })
+  }, [])
 
   // Bumping this counter forces the community-plugin sync effect to re-run.
   // pluginReloadIds collects ids that should be force-reloaded (module re-imported)
@@ -602,7 +610,7 @@ export default function App() {
       }
     ]
 
-    const dynamicCmds = pluginRegistry.getCommands().map((c) => ({
+    const dynamicCmds = pluginCommands.map((c) => ({
       id: c.id,
       label: c.title,
       icon: '⚡',
@@ -610,7 +618,7 @@ export default function App() {
     }))
 
     return [...staticCmds, ...dynamicCmds]
-  }, [pluginAPI, listTemplates, applyTemplate, pluginsEnabled])
+  }, [pluginAPI, listTemplates, applyTemplate, pluginCommands])
 
   const handlePaletteFileSelect = useCallback(
     (path: string, name: string) => {

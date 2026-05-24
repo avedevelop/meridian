@@ -1,0 +1,9 @@
+{
+  "id": "meridian-link-auditor",
+  "name": "Link Auditor",
+  "version": "1.0.0",
+  "description": "Scans wiki-links and writes a report for links that do not resolve to notes.",
+  "author": "Meridian Developer",
+  "main": "main.js",
+  "minAppVersion": "1.0.0"
+}

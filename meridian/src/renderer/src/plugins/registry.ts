@@ -5,7 +5,20 @@ class PluginRegistry {
   private communityPlugins = new Map<string, MeridianPlugin>()
   private loadedPlugins = new Map<string, MeridianPlugin>() // active plugin instances
   private commands = new Map<string, PluginCommand>()
+  private commandOwners = new Map<string, string>()
+  private listeners = new Set<() => void>()
   private api: PluginAPI | null = null
+
+  private notify() {
+    for (const listener of this.listeners) listener()
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
 
   setAPI(api: PluginAPI) {
     this.api = api
@@ -27,8 +40,12 @@ class PluginRegistry {
     return this.corePlugins.get(id) ?? this.communityPlugins.get(id)
   }
 
-  registerCommand(cmd: PluginCommand) {
+  registerCommand(cmd: PluginCommand, ownerId?: string) {
     this.commands.set(cmd.id, cmd)
+    if (ownerId) {
+      this.commandOwners.set(cmd.id, ownerId)
+    }
+    this.notify()
   }
 
   getCommands(): PluginCommand[] {
@@ -50,22 +67,35 @@ class PluginRegistry {
       this.loadedPlugins.set(id, plugin)
       if (plugin.commands) {
         for (const cmd of plugin.commands) {
-          this.registerCommand(cmd)
+          this.registerCommand(cmd, id)
         }
       }
       if (plugin.onLoad) {
-        await plugin.onLoad(this.api)
+        const pluginAPI: PluginAPI = {
+          ...this.api,
+          registerCommand: (cmd) => this.registerCommand(cmd, id)
+        }
+        await plugin.onLoad(pluginAPI)
       }
     } catch (err) {
       console.error(`Failed to load plugin ${id}:`, err)
       this.loadedPlugins.delete(id)
-      if (plugin.commands) {
-        for (const cmd of plugin.commands) {
-          this.commands.delete(cmd.id)
-        }
-      }
+      this.removePluginCommands(id)
       throw err
     }
+  }
+
+  private removePluginCommands(id: string): void {
+    let changed = false
+    for (const [cmdId, ownerId] of Array.from(this.commandOwners.entries())) {
+      if (ownerId === id) {
+        this.commands.delete(cmdId)
+        this.commandOwners.delete(cmdId)
+        changed = true
+      }
+    }
+
+    if (changed) this.notify()
   }
 
   disablePlugin(id: string): void {
@@ -80,12 +110,7 @@ class PluginRegistry {
       console.error(`Failed to unload plugin ${id}:`, err)
     }
 
-    // Remove commands registered by this plugin
-    if (plugin.commands) {
-      for (const cmd of plugin.commands) {
-        this.commands.delete(cmd.id)
-      }
-    }
+    this.removePluginCommands(id)
 
     this.loadedPlugins.delete(id)
   }

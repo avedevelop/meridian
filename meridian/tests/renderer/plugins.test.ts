@@ -11,6 +11,8 @@ describe('PluginRegistry', () => {
     ;(pluginRegistry as any).communityPlugins.clear()
     ;(pluginRegistry as any).loadedPlugins.clear()
     ;(pluginRegistry as any).commands.clear()
+    ;(pluginRegistry as any).commandOwners.clear()
+    ;(pluginRegistry as any).listeners.clear()
 
     // Create a mock PluginAPI
     mockAPI = {
@@ -59,7 +61,15 @@ describe('PluginRegistry', () => {
 
     await pluginRegistry.enablePlugin('test-core')
     expect(pluginRegistry.isPluginLoaded('test-core')).toBe(true)
-    expect(onLoadSpy).toHaveBeenCalledWith(mockAPI)
+    expect(onLoadSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vault: mockAPI.vault,
+        settings: mockAPI.settings,
+        ui: mockAPI.ui,
+        app: mockAPI.app,
+        registerCommand: expect.any(Function)
+      })
+    )
 
     pluginRegistry.disablePlugin('test-core')
     expect(pluginRegistry.isPluginLoaded('test-core')).toBe(false)
@@ -112,6 +122,47 @@ describe('PluginRegistry', () => {
 
     pluginRegistry.disablePlugin('test-commands-plugin')
     expect(pluginRegistry.getCommands()).not.toContain(command)
+  })
+
+  it('unregisters commands registered through the PluginAPI on unload', async () => {
+    const dynamicCommand = {
+      id: 'dynamic-command',
+      title: 'Dynamic Command',
+      run: vi.fn()
+    }
+
+    const plugin: MeridianPlugin = {
+      id: 'dynamic-commands-plugin',
+      name: 'Dynamic Commands Test',
+      version: '1.0.0',
+      onLoad: (api) => {
+        api.registerCommand(dynamicCommand)
+      }
+    }
+
+    pluginRegistry.registerCorePlugin(plugin)
+    await pluginRegistry.enablePlugin('dynamic-commands-plugin')
+    expect(pluginRegistry.getCommands()).toContain(dynamicCommand)
+
+    pluginRegistry.disablePlugin('dynamic-commands-plugin')
+    expect(pluginRegistry.getCommands()).not.toContain(dynamicCommand)
+  })
+
+  it('notifies subscribers when commands change', async () => {
+    const listener = vi.fn()
+    const unsubscribe = pluginRegistry.subscribe(listener)
+    const command = {
+      id: 'observable-command',
+      title: 'Observable Command',
+      run: vi.fn()
+    }
+
+    pluginRegistry.registerCommand(command)
+    expect(listener).toHaveBeenCalledTimes(1)
+
+    unsubscribe()
+    pluginRegistry.registerCommand({ ...command, id: 'after-unsubscribe' })
+    expect(listener).toHaveBeenCalledTimes(1)
   })
 
   it('rethrows enable errors so callers can surface them', async () => {

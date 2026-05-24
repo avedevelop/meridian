@@ -2,6 +2,23 @@
 
 All notable changes to Meridian. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] — 2026-05-24
+
+### Added
+
+- Bundled demo community plugins for quick capture, vault indexing, broken-link reports, and starter template installation.
+- Tests that verify demo plugin manifests and entry files are loadable.
+
+### Changed
+
+- Community plugin commands registered through `api.registerCommand` now refresh the Command Palette immediately.
+- Plugin-owned commands are now tracked and removed when the plugin unloads.
+- Demo community plugin files are excluded from app lint rules because they are vault-installed browser ESM examples.
+
+### Fixed
+
+- Community plugin commands registered during `onLoad` no longer remain available after disabling or reloading the plugin.
+
 ## [1.0.0] — 2026-05-23
 
 First public release. Local-first markdown knowledge base for macOS desktop, inspired by Obsidian — not a drop-in replacement.
@@ -120,4 +137,5 @@ First public release. Local-first markdown knowledge base for macOS desktop, ins
 - macOS DMG is **not** notarized — Gatekeeper will warn on first launch (right-click → Open)
 - No Obsidian plugin compatibility, no cloud sync, no mobile, no marketplace, no WebGL graph (see [SCOPE.md](SCOPE.md))
 
+[1.0.1]: https://github.com/bvsmma/meridian/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bvsmma/meridian/releases/tag/v1.0.0

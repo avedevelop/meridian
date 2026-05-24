@@ -1,0 +1,9 @@
+{
+  "id": "meridian-vault-index",
+  "name": "Vault Index",
+  "version": "1.0.0",
+  "description": "Builds a Markdown index of all notes in the active vault.",
+  "author": "Meridian Developer",
+  "main": "main.js",
+  "minAppVersion": "1.0.0"
+}

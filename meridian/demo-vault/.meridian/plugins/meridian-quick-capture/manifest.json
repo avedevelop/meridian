@@ -1,0 +1,9 @@
+{
+  "id": "meridian-quick-capture",
+  "name": "Quick Capture",
+  "version": "1.0.0",
+  "description": "Adds a command for quickly appending short notes to Inbox.md.",
+  "author": "Meridian Developer",
+  "main": "main.js",
+  "minAppVersion": "1.0.0"
+}
