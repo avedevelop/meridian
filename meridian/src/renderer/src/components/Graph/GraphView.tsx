@@ -311,7 +311,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     // Notify header about initial mode
     window.dispatchEvent(new CustomEvent('graph:mode-changed', { detail: viewMode }))
     return () => window.removeEventListener('graph:set-mode', handler)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div

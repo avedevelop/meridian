@@ -81,7 +81,7 @@ export function HeaderSearch() {
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
-        // @ts-ignore
+        // @ts-ignore Electron drag region CSS is not typed in React CSSProperties.
         WebkitAppRegion: 'no-drag'
       }}
     >

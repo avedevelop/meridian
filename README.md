@@ -200,10 +200,11 @@ npm run build:mac    # macOS DMG (arm64 + x64)
 cd meridian
 npm run test         # Vitest (158 tests)
 npm run typecheck    # TypeScript (node + web projects)
+npm run lint         # ESLint
 npm run check-lines  # per-component line limits (see ARCHITECTURE.md)
 ```
 
-Run all three before committing or opening a PR: `typecheck && test && check-lines`.
+Run all four before committing or opening a PR: `lint && typecheck && test && check-lines`.
 
 ---
 

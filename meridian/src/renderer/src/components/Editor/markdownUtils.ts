@@ -44,7 +44,7 @@ export function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
 export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
   const flatFiles = flattenVaultFiles(files)
 
-  let processed = html.replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (fullMatch, link, alias) => {
+  const processed = html.replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (fullMatch, link, alias) => {
     const linkText = link.trim()
 
     if (linkText.endsWith('.excalidraw')) {

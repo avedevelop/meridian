@@ -592,7 +592,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
         changes,
         hasRemote
       }
-    } catch (e) {
+    } catch {
       return { isRepo: false }
     }
   })
@@ -756,7 +756,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
       const normalizedPath = relativePath.replace(/\\/g, '/')
       const { stdout } = await execFileAsync('git', ['show', `HEAD:${normalizedPath}`], { cwd })
       return { success: true, content: stdout }
-    } catch (e: any) {
+    } catch {
       return { success: true, content: '' }
     }
   })

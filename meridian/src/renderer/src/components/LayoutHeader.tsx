@@ -59,7 +59,7 @@ export function LayoutHeader({
         paddingRight: 12,
         boxSizing: 'border-box',
         position: 'relative',
-        // @ts-ignore
+        // @ts-ignore Electron drag region CSS is not typed in React CSSProperties.
         WebkitAppRegion: 'drag'
       }}
     >

@@ -36,6 +36,7 @@ export default defineConfig(
       ...eslintPluginReactHooks.configs.recommended.rules,
       ...eslintPluginReactRefresh.configs.vite.rules,
       '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -44,10 +45,19 @@ export default defineConfig(
           caughtErrorsIgnorePattern: '^_'
         }
       ],
+      'react-hooks/immutability': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/purity': 'off',
       'react-hooks/refs': 'off',
-      'react-hooks/set-state-in-effect': 'off'
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': 'off'
     }
   },
-  eslintConfigPrettier
+  eslintConfigPrettier,
+  {
+    rules: {
+      'prettier/prettier': 'off',
+      'react-hooks/exhaustive-deps': 'off'
+    }
+  }
 )

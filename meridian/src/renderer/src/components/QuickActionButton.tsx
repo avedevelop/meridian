@@ -23,7 +23,7 @@ export function QuickActionButton({ icon, title, onClick }: QuickActionButtonPro
         alignItems: 'center',
         justifyContent: 'center',
         transition: 'all 0.15s',
-        // @ts-ignore
+        // @ts-ignore Electron drag region CSS is not typed in React CSSProperties.
         WebkitAppRegion: 'no-drag'
       }}
       onMouseEnter={(e) => {
