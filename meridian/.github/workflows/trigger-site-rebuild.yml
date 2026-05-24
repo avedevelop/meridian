@@ -1,0 +1,26 @@
+name: Trigger meridian-site rebuild
+
+# When a new release is published on this repo, ping the meridian-site
+# Cloudflare Pages deploy hook so the landing page rebuilds and picks up
+# the new version, asset URLs, and sizes from the GitHub API.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Cloudflare Pages deploy
+        env:
+          HOOK_URL: ${{ secrets.CF_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK_URL" ]; then
+            echo "::error::CF_DEPLOY_HOOK_URL secret is not set"
+            exit 1
+          fi
+          status=$(curl -s -o /tmp/resp.txt -w "%{http_code}" -X POST "$HOOK_URL")
+          echo "HTTP $status"
+          cat /tmp/resp.txt
+          [ "$status" = "200" ] || [ "$status" = "201" ]
