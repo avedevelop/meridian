@@ -1,11 +1,12 @@
 name: Trigger meridian-site rebuild
 
-# When a new release is published on this repo, ping the meridian-site
-# Cloudflare Pages deploy hook so the landing page rebuilds and picks up
-# the new version, asset URLs, and sizes from the GitHub API.
+# Pings the meridian-site Cloudflare Pages deploy hook so the landing page
+# rebuilds and picks up the latest version, asset URLs, and release notes
+# from the GitHub API. Fires when a release is created/edited so changelog
+# tweaks auto-publish without manual intervention.
 on:
   release:
-    types: [published]
+    types: [published, edited, released]
   workflow_dispatch:
 
 jobs:
