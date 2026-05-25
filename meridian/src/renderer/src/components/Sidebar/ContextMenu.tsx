@@ -20,6 +20,31 @@ interface ContextMenuProps {
   onClose: () => void
 }
 
+export interface MenuPositionInput {
+  x: number
+  y: number
+  menuWidth: number
+  menuHeight: number
+  viewportWidth: number
+  viewportHeight: number
+  margin?: number
+}
+
+export function getContextMenuPosition({
+  x,
+  y,
+  menuWidth,
+  menuHeight,
+  viewportWidth,
+  viewportHeight,
+  margin = 8
+}: MenuPositionInput): { left: number; top: number } {
+  return {
+    left: Math.max(margin, Math.min(x, viewportWidth - menuWidth - margin)),
+    top: Math.max(margin, Math.min(y, viewportHeight - menuHeight - margin))
+  }
+}
+
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -43,8 +68,14 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const separatorCount = items.filter((i) => 'separator' in i).length
   const actionCount = items.length - separatorCount
   const menuHeight = actionCount * 30 + separatorCount * 9 + 8
-  const adjustedX = Math.min(x, window.innerWidth - menuWidth - 8)
-  const adjustedY = Math.min(y, window.innerHeight - menuHeight - 8)
+  const { left: adjustedX, top: adjustedY } = getContextMenuPosition({
+    x,
+    y,
+    menuWidth,
+    menuHeight,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight
+  })
 
   return createPortal(
     <div

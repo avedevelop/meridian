@@ -41,7 +41,7 @@
 - Modify: `meridian/src/renderer/src/components/Sidebar/ContextMenu.tsx`
 - Create: `meridian/tests/renderer/contextMenuPosition.test.ts`
 
-- [ ] **Step 1: Extract a pure menu positioning helper**
+- [x] **Step 1: Extract a pure menu positioning helper**
 
 In `ContextMenu.tsx`, add and export this helper above the component:
 
@@ -72,7 +72,7 @@ export function getContextMenuPosition({
 }
 ```
 
-- [ ] **Step 2: Use the helper in `ContextMenu`**
+- [x] **Step 2: Use the helper in `ContextMenu`**
 
 Replace the `adjustedX` / `adjustedY` lines with:
 
@@ -87,7 +87,7 @@ const { left: adjustedX, top: adjustedY } = getContextMenuPosition({
 })
 ```
 
-- [ ] **Step 3: Write the positioning test**
+- [x] **Step 3: Write the positioning test**
 
 Create `meridian/tests/renderer/contextMenuPosition.test.ts`:
 
@@ -137,13 +137,13 @@ describe('getContextMenuPosition', () => {
 })
 ```
 
-- [ ] **Step 4: Run the test**
+- [x] **Step 4: Run the test**
 
 Run: `npm test -- tests/renderer/contextMenuPosition.test.ts`
 
 Expected: `3 passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add meridian/src/renderer/src/components/Sidebar/ContextMenu.tsx meridian/tests/renderer/contextMenuPosition.test.ts
