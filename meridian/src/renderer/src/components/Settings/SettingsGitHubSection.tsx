@@ -5,8 +5,6 @@ interface SettingsGitHubSectionProps {
   isOpen: boolean
 }
 
-const GITHUB_DEVICE_LOGIN_URL = 'https://github.com/login/device'
-
 export function SettingsGitHubSection({ isOpen }: SettingsGitHubSectionProps) {
   const { t } = useTranslation()
   const [ghConnected, setGhConnected] = useState(false)
@@ -38,7 +36,7 @@ export function SettingsGitHubSection({ isOpen }: SettingsGitHubSectionProps) {
         return
       }
       setGhUserCode(res.user_code ?? '')
-      await window.vault.openExternal(res.verification_uri ?? GITHUB_DEVICE_LOGIN_URL)
+      await window.vault.openExternal(res.verification_uri ?? 'https://github.com/login/device')
       const interval = res.interval ?? 5
       const poll = async (): Promise<void> => {
         const r = await window.vault.githubPollToken(res.device_code ?? '')

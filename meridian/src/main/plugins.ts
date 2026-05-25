@@ -1,9 +1,8 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
 import { mkdir, readFile, readdir, stat } from 'fs/promises'
-import { join, resolve } from 'path'
+import { join, resolve, sep } from 'path'
 import type { PluginManifest, PluginSource } from '../shared/types'
-import { resolveExistingPathWithinRoot } from './vault'
 
 type AppPluginSource = Extract<PluginSource, 'user' | 'bundled'>
 
@@ -54,8 +53,7 @@ async function listPluginManifestsFromDir(
     if (entry.startsWith('.')) continue
     const manifestPath = join(pluginsDir, entry, 'manifest.json')
     try {
-      const safeManifestPath = await resolveExistingPathWithinRoot(pluginsDir, manifestPath)
-      const manifestContent = await readFile(safeManifestPath, 'utf-8')
+      const manifestContent = await readFile(manifestPath, 'utf-8')
       const manifestObj = JSON.parse(manifestContent) as Partial<PluginManifest>
       if (
         manifestObj.id === entry &&
@@ -101,11 +99,9 @@ export async function resolveAppPluginFile(
 
   for (const pluginsDir of getAppPluginRoots(source)) {
     const pluginRoot = resolve(pluginsDir, pluginId)
-    let fullPath: string
-    try {
-      await resolveExistingPathWithinRoot(pluginsDir, pluginRoot)
-      fullPath = await resolveExistingPathWithinRoot(pluginRoot, resolve(pluginRoot, fileSubpath))
-    } catch {
+    const fullPath = resolve(pluginRoot, fileSubpath)
+
+    if (!fullPath.startsWith(pluginRoot + sep) && fullPath !== pluginRoot) {
       continue
     }
 

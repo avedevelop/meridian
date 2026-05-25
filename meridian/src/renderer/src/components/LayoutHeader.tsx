@@ -11,7 +11,6 @@ import {
   SidebarLeftIcon,
   SidebarRightIcon
 } from './LayoutIcons'
-import { formatShortcut } from '../utils/platformShortcuts'
 
 export interface LayoutHeaderProps {
   vaultName: string
@@ -140,15 +139,13 @@ export function LayoutHeader({
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <SidebarToggleButton
               active={!sidebarCollapsed}
-              title={t('layout.toggleLeftSidebar', { shortcut: formatShortcut(['mod', 'B']) })}
+              title={t('layout.toggleLeftSidebar')}
               icon={<SidebarLeftIcon active={!sidebarCollapsed} />}
               onClick={onToggleSidebar}
             />
             <SidebarToggleButton
               active={!rightPanelCollapsed}
-              title={t('layout.toggleRightSidebar', {
-                shortcut: formatShortcut(['mod', 'alt', 'B'])
-              })}
+              title={t('layout.toggleRightSidebar')}
               icon={<SidebarRightIcon active={!rightPanelCollapsed} />}
               onClick={onToggleRightPanel}
             />

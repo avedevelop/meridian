@@ -18,7 +18,6 @@ import { DiffPane } from './DiffPane'
 import { flattenVaultFiles } from './markdownUtils'
 import { EditorContextMenu } from './EditorContextMenu'
 import { useEditorDnd } from './useEditorDnd'
-import { formatShortcut } from '../../utils/platformShortcuts'
 
 const SPLIT_KEY = 'meridian-split-ratio'
 
@@ -390,7 +389,7 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
             {t('editor.noFileOpen')}
           </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0, opacity: 0.6 }}>
-            {t('editor.openFileInstructions', { shortcut: formatShortcut(['mod', 'K']) })}
+            {t('editor.openFileInstructions')}
           </p>
         </div>
       </div>

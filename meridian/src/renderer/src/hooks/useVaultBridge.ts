@@ -9,42 +9,9 @@ import type {
   VaultFileChangeEvent
 } from '@shared/types'
 import { restoreSession } from './useSessionPersist'
-import { formatShortcut, type PlatformName } from '../utils/platformShortcuts'
 
 function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
   return files.flatMap((f) => (f.children ? [f, ...flattenVaultFiles(f.children)] : [f]))
-}
-
-export function buildWelcomeNoteContent(platform?: PlatformName): string {
-  const saveShortcut = formatShortcut(['mod', 'S'], platform)
-  const dailyShortcut = formatShortcut(['mod', 'D'], platform)
-  const searchShortcut = formatShortcut(['mod', 'K'], platform)
-  const exportShortcut = formatShortcut(['mod', 'E'], platform)
-  const settingsShortcut = formatShortcut(['mod', ','], platform)
-
-  return [
-    '# Welcome to Meridian',
-    '',
-    'This is your new vault. Here are a few things to try:',
-    '',
-    '- **Write** — just start typing in any note',
-    '- **Link notes** — type `[[Note Name]]` to create a wiki-link',
-    `- **Daily note** — press \`${dailyShortcut}\` to open today's note`,
-    `- **Search** — press \`${searchShortcut}\` to search across all notes`,
-    '- **Graph** — click the Graph tab in the sidebar to see your note network',
-    '',
-    '## Quick shortcuts',
-    '',
-    '| Shortcut | Action |',
-    '|----------|--------|',
-    `| \`${saveShortcut}\` | Save note |`,
-    `| \`${dailyShortcut}\` | Open daily note |`,
-    `| \`${searchShortcut}\` | Command palette |`,
-    `| \`${exportShortcut}\` | Export to HTML |`,
-    `| \`${settingsShortcut}\` | Settings |`,
-    '',
-    'Happy writing! 📓'
-  ].join('\n')
 }
 
 export function uniqueFileName(dir: string, base: string, ext: string, files: VaultFile[]): string {
@@ -679,7 +646,29 @@ ${bodyHtml}
 
     const currentFiles = await window.vault.listFiles()
     if (currentFiles.length === 0) {
-      const welcomeContent = buildWelcomeNoteContent()
+      const welcomeContent = [
+        '# Welcome to Meridian',
+        '',
+        'This is your new vault. Here are a few things to try:',
+        '',
+        '- **Write** — just start typing in any note',
+        '- **Link notes** — type `[[Note Name]]` to create a wiki-link',
+        "- **Daily note** — press `⌘D` to open today's note",
+        '- **Search** — press `⌘K` to search across all notes',
+        '- **Graph** — click the Graph tab in the sidebar to see your note network',
+        '',
+        '## Quick shortcuts',
+        '',
+        '| Shortcut | Action |',
+        '|----------|--------|',
+        '| `⌘S` | Save note |',
+        '| `⌘D` | Open daily note |',
+        '| `⌘K` | Command palette |',
+        '| `⌘E` | Export to HTML |',
+        '| `⌘,` | Settings |',
+        '',
+        'Happy writing! 📓'
+      ].join('\n')
 
       try {
         const filePath = await window.vault.createFile(config.path, 'Welcome.md')
