@@ -9,9 +9,10 @@ import type {
 } from '../shared/types'
 
 import { homedir } from 'os'
+import packageJson from '../../package.json'
 
 const appInfo = {
-  version: process.env.npm_package_version ?? '1.0.0',
+  version: packageJson.version,
   homeDir: homedir(),
   platform: process.platform
 }
