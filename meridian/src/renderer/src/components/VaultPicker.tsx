@@ -13,7 +13,8 @@ export function VaultPicker() {
   const [recents, setRecents] = useState<VaultConfig[]>([])
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
-  const welcomeDest = getWelcomeVaultPath((window as any).appInfo?.homeDir || '')
+  const appInfo = (window as any).appInfo ?? {}
+  const welcomeDest = getWelcomeVaultPath(appInfo.homeDir || '', appInfo.platform)
 
   useEffect(() => {
     window.settings
