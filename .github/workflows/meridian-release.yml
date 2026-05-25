@@ -65,6 +65,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Trigger meridian-site rebuild
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          HOOK_URL: ${{ secrets.CF_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK_URL" ]; then
+            echo "::warning::CF_DEPLOY_HOOK_URL secret is not set; meridian-site will not auto-rebuild"
+            exit 0
+          fi
+          status=$(curl -s -o /tmp/resp.txt -w "%{http_code}" -X POST "$HOOK_URL")
+          echo "HTTP $status"
+          cat /tmp/resp.txt
+          [ "$status" = "200" ] || [ "$status" = "201" ]
+
       - name: Upload DMG as workflow artifact
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: actions/upload-artifact@v4
