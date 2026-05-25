@@ -1,10 +1,10 @@
 {
   "name": "meridian",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Local-first markdown notes app for macOS, inspired by Obsidian.",
   "main": "./out/main/index.js",
-  "author": "bvsmma",
-  "homepage": "https://github.com/bvsmma/meridian",
+  "author": "avedev",
+  "homepage": "https://github.com/avedevelop/meridian",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

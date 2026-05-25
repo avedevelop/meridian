@@ -484,7 +484,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const { tmpdir } = await import('os')
     const unzipper = await import('unzipper')
 
-    const zipUrl = 'https://github.com/bvsmma/meridian-welcome/archive/refs/heads/main.zip'
+    const zipUrl = 'https://github.com/avedevelop/meridian-welcome/archive/refs/heads/main.zip'
     const tmpZip = join(tmpdir(), `meridian-welcome-${Date.now()}.zip`)
     const tmpExtract = join(tmpdir(), `meridian-welcome-extract-${Date.now()}`)
 

@@ -5,7 +5,7 @@ import { MeridianLogo } from './MeridianLogo'
 import type { VaultConfig } from '@shared/types'
 
 const WELCOME_DEST = `${(window as any).appInfo?.homeDir || ''}/Documents/Meridian Welcome`
-const WELCOME_REPO = 'https://github.com/bvsmma/meridian-welcome'
+const WELCOME_REPO = 'https://github.com/avedevelop/meridian-welcome'
 
 export function VaultPicker() {
   const { t } = useTranslation()

@@ -110,7 +110,7 @@ function buildMenu() {
       submenu: [
         {
           label: 'GitHub Repository',
-          click: () => shell.openExternal('https://github.com/bvsmma/meridian')
+          click: () => shell.openExternal('https://github.com/avedevelop/meridian')
         }
       ]
     }

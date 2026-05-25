@@ -131,7 +131,7 @@ export function SettingsPluginsSection() {
                   >
                     <span>{t('settings.plugins.by')}</span>
                     <span
-                      onClick={() => handleOpenLink('https://github.com/bvsmma')}
+                      onClick={() => handleOpenLink('https://github.com/avedevelop')}
                       style={{
                         color: '#7c6af7',
                         cursor: 'pointer',

@@ -292,7 +292,7 @@ export function SettingsCommunityPluginsSection({ isActive = true }: { isActive?
       <div style={{ marginTop: 24, padding: '12px 0', borderTop: '1px solid #222' }}>
         <span
           onClick={() =>
-            handleOpenLink('https://github.com/bvsmma/meridian/blob/main/PLUGIN_DEVELOPMENT.md')
+            handleOpenLink('https://github.com/avedevelop/meridian/blob/main/PLUGIN_DEVELOPMENT.md')
           }
           style={{
             fontSize: 11,

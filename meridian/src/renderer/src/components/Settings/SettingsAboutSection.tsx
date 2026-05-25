@@ -109,7 +109,7 @@ export function SettingsAboutSection() {
               {t('settings.about.developer')}
             </span>
             <span
-              onClick={() => handleOpenLink('https://github.com/bvsmma')}
+              onClick={() => handleOpenLink('https://github.com/avedevelop')}
               style={{
                 color: '#7c6af7',
                 fontWeight: 600,
@@ -132,7 +132,7 @@ export function SettingsAboutSection() {
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button
-            onClick={() => handleOpenLink('https://github.com/bvsmma/meridian/releases')}
+            onClick={() => handleOpenLink('https://github.com/avedevelop/meridian/releases')}
             style={{
               padding: '10px 16px',
               background: '#161616',
