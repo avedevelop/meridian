@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useVaultBridge } from '../hooks/useVaultBridge'
 import { MeridianLogo } from './MeridianLogo'
 import type { VaultConfig } from '@shared/types'
+import { getWelcomeVaultPath } from '../utils/defaultVault'
 
-const WELCOME_DEST = `${(window as any).appInfo?.homeDir || ''}/Documents/Meridian Welcome`
 const WELCOME_REPO = 'https://github.com/avedevelop/meridian-welcome'
 
 export function VaultPicker() {
@@ -13,6 +13,7 @@ export function VaultPicker() {
   const [recents, setRecents] = useState<VaultConfig[]>([])
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const welcomeDest = getWelcomeVaultPath((window as any).appInfo?.homeDir || '')
 
   useEffect(() => {
     window.settings
@@ -25,7 +26,7 @@ export function VaultPicker() {
     setDownloading(true)
     setDownloadError(null)
     try {
-      const dest = await (window.vault as any).downloadWelcomeVault(WELCOME_DEST)
+      const dest = await (window.vault as any).downloadWelcomeVault(welcomeDest)
       await openVaultByPath(dest)
     } catch (e: any) {
       setDownloadError(e.message || t('vaultPicker.downloadError'))
