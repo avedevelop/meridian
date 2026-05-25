@@ -459,7 +459,7 @@ git commit -m "fix: protect text input from global shortcuts"
 **Files:**
 - No new source files.
 
-- [ ] **Step 1: Run focused tests**
+- [x] **Step 1: Run focused tests**
 
 Run:
 
@@ -473,7 +473,7 @@ npm test -- \
 
 Expected: all new tests pass.
 
-- [ ] **Step 2: Run full verification**
+- [x] **Step 2: Run full verification**
 
 Run:
 
@@ -486,7 +486,7 @@ npm run check-lines
 
 Expected: all pass.
 
-- [ ] **Step 3: Build local smoke artifact**
+- [x] **Step 3: Build local smoke artifact**
 
 Run:
 
