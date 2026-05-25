@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useVaultBridge } from '../hooks/useVaultBridge'
 import { MeridianLogo } from './MeridianLogo'
 import type { VaultConfig } from '@shared/types'
-import { getWelcomeVaultPath } from '../utils/defaultVault'
+import { useSettingsStore } from '../store/useSettingsStore'
+import { getWelcomeVaultPath, getWelcomeVaultSourcePath } from '../utils/defaultVault'
 
 const WELCOME_REPO = 'https://github.com/avedevelop/meridian-welcome'
 
@@ -13,8 +14,10 @@ export function VaultPicker() {
   const [recents, setRecents] = useState<VaultConfig[]>([])
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const language = useSettingsStore((s) => s.language)
   const appInfo = (window as any).appInfo ?? {}
   const welcomeDest = getWelcomeVaultPath(appInfo.homeDir || '', appInfo.platform)
+  const welcomeSourcePath = getWelcomeVaultSourcePath(appInfo.platform, language)
 
   useEffect(() => {
     window.settings
@@ -27,7 +30,7 @@ export function VaultPicker() {
     setDownloading(true)
     setDownloadError(null)
     try {
-      const dest = await (window.vault as any).downloadWelcomeVault(welcomeDest)
+      const dest = await (window.vault as any).downloadWelcomeVault(welcomeDest, welcomeSourcePath)
       await openVaultByPath(dest)
     } catch (e: any) {
       setDownloadError(e.message || t('vaultPicker.downloadError'))

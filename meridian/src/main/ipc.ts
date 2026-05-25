@@ -476,11 +476,11 @@ export function registerIpcHandlers(settings: AppSettings): void {
     await shell.openPath(filePath)
   })
 
-  ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string) => {
+  ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string, sourcePath = 'macos/en') => {
     const https = await import('https')
     const { createWriteStream, createReadStream, mkdirSync, rmSync, renameSync, existsSync } =
       await import('fs')
-    const { join } = await import('path')
+    const { dirname, join } = await import('path')
     const { tmpdir } = await import('os')
     const unzipper = await import('unzipper')
 
@@ -516,13 +516,16 @@ export function registerIpcHandlers(settings: AppSettings): void {
         .on('error', reject)
     })
 
-    // The ZIP extracts to meridian-welcome-main/ subfolder — move its contents to destPath
+    // The ZIP extracts to meridian-welcome-main/. Copy only the selected stock vault.
     const { readdirSync } = await import('fs')
     const extracted = readdirSync(tmpExtract)[0]
     const extractedPath = join(tmpExtract, extracted)
+    const safeSourcePath = /^(macos|windows)\/(en|ru)$/.test(sourcePath) ? sourcePath : 'macos/en'
+    const selectedVaultPath = join(extractedPath, safeSourcePath)
 
     if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
-    renameSync(extractedPath, destPath)
+    mkdirSync(dirname(destPath), { recursive: true })
+    renameSync(selectedVaultPath, destPath)
 
     // Cleanup
     try {

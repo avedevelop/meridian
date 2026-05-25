@@ -12,7 +12,8 @@ import { homedir } from 'os'
 
 const appInfo = {
   version: process.env.npm_package_version ?? '1.0.0',
-  homeDir: homedir()
+  homeDir: homedir(),
+  platform: process.platform
 }
 
 const vaultAPI = {
@@ -112,7 +113,8 @@ const vaultAPI = {
   setSpellLanguage: (lang: string) => ipcRenderer.invoke(IPC.SPELL_SET_LANGUAGE, lang),
   getConfigPath: () => ipcRenderer.invoke(IPC.GET_CONFIG_PATH),
   openPath: (filePath: string) => ipcRenderer.invoke(IPC.OPEN_PATH, filePath),
-  downloadWelcomeVault: (destPath: string) => ipcRenderer.invoke(IPC.WELCOME_DOWNLOAD, destPath),
+  downloadWelcomeVault: (destPath: string, sourcePath: string) =>
+    ipcRenderer.invoke(IPC.WELCOME_DOWNLOAD, destPath, sourcePath),
   listPlugins: (): Promise<any[]> => ipcRenderer.invoke(IPC.PLUGIN_LIST),
   loadPlugin: (id: string): Promise<string> => ipcRenderer.invoke(IPC.PLUGIN_LOAD, id),
   openPluginsFolder: (): Promise<string> => ipcRenderer.invoke(IPC.PLUGIN_OPEN_FOLDER),
