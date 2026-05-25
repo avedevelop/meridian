@@ -2,6 +2,25 @@
 
 All notable changes to Meridian. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] — 2026-05-25
+
+### Added
+
+- Windows x64 beta installer published in the same GitHub Release as the macOS DMGs.
+- Platform documentation for macOS stable builds and Windows beta builds.
+- Keyboard delete support in the file tree: select a note and press `Delete` or `Backspace`.
+
+### Changed
+
+- Release workflow now builds macOS and Windows from one tag and triggers the website rebuild only after both platform jobs finish.
+- Windows installer artifact is explicitly named `Meridian-<version>-windows-beta-x64.exe`.
+
+### Fixed
+
+- Context menus are clamped to the visible viewport on small or non-fullscreen windows.
+- Window close behavior is more predictable when dirty tabs exist.
+- Global shortcuts now ignore text composition, dead keys, AltGraph-style input, and editable fields to reduce keyboard-layout issues.
+
 ## [1.0.2] — 2026-05-24
 
 ### Changed
@@ -145,10 +164,11 @@ First public release. Local-first markdown knowledge base for macOS desktop, ins
 
 ### Known limitations
 
-- Currently macOS only (Windows / Linux pending QA sign-off)
+- macOS is the stable target; Windows is published as beta; Linux is not released.
 - macOS DMG is **not** notarized — Gatekeeper will warn on first launch (right-click → Open)
 - No Obsidian plugin compatibility, no cloud sync, no mobile, no marketplace, no WebGL graph (see [SCOPE.md](SCOPE.md))
 
-[1.0.2]: https://github.com/bvsmma/meridian/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/bvsmma/meridian/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/bvsmma/meridian/releases/tag/v1.0.0
+[1.0.6]: https://github.com/avedevelop/meridian/compare/v1.0.5...v1.0.6
+[1.0.2]: https://github.com/avedevelop/meridian/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/avedevelop/meridian/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/avedevelop/meridian/releases/tag/v1.0.0

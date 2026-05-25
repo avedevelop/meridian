@@ -1,7 +1,7 @@
 # Meridian
 
-[![Meridian CI](https://github.com/bvsmma/meridian/actions/workflows/meridian-ci.yml/badge.svg?branch=main)](https://github.com/bvsmma/meridian/actions/workflows/meridian-ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/bvsmma/meridian?display_name=tag)](https://github.com/bvsmma/meridian/releases/latest)
+[![Meridian CI](https://github.com/avedevelop/meridian/actions/workflows/meridian-ci.yml/badge.svg?branch=main)](https://github.com/avedevelop/meridian/actions/workflows/meridian-ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/avedevelop/meridian?display_name=tag)](https://github.com/avedevelop/meridian/releases/latest)
 
 Local-first notes app inspired by Obsidian — not a drop-in replacement. Built with Electron 39 + React 18 + TypeScript.
 
@@ -9,12 +9,24 @@ Local-first notes app inspired by Obsidian — not a drop-in replacement. Built 
 
 ---
 
-## Install (macOS)
+## Install
 
-1. Download the latest DMG from [Releases](https://github.com/bvsmma/meridian/releases/latest).
+Meridian publishes one GitHub Release per version tag. The same tag contains the stable macOS builds and the Windows beta installer.
+
+### macOS stable
+
+1. Download the latest DMG from [Releases](https://github.com/avedevelop/meridian/releases/latest).
 2. Open the DMG, drag Meridian into Applications.
 3. **First launch:** the DMG is unsigned, so Gatekeeper will block a regular double-click. Right-click the app → **Open** → confirm once. Subsequent launches work normally.
 4. Want a signed build? Watch the releases or build it yourself (`npm run build:mac` in `meridian/`).
+
+### Windows beta
+
+1. Download `Meridian-<version>-windows-beta-x64.exe` from the same [latest release](https://github.com/avedevelop/meridian/releases/latest).
+2. Run the installer on Windows 10 or newer.
+3. Treat this build as beta: the core app is shared with macOS, but Windows-specific packaging and desktop behavior are still being validated.
+
+Platform notes live in [platforms/README.md](platforms/README.md).
 
 ---
 
@@ -187,18 +199,26 @@ your-vault/
 
 ## Build
 
-> **macOS only for now.** The app uses macOS-specific UI (`hiddenInset` traffic-light titlebar, dock behavior, DMG distribution). The `build:win` / `build:linux` scripts exist via electron-builder but are not tested or supported — Windows and Linux builds will need UI rework before they can ship.
+The app has one shared Electron/React codebase and platform-specific packaging. macOS is stable; Windows is published as beta from the same release tag. Linux packaging exists in electron-builder config but is not part of public releases yet.
 
 ```bash
 cd meridian
 npm run build:mac    # macOS DMG (arm64 + x64)
+npm run build:win    # Windows beta installer (x64)
 ```
+
+Release workflow:
+
+- Push `vX.Y.Z` to build one GitHub Release for both platforms.
+- macOS assets: `Meridian-X.Y.Z-arm64.dmg`, `Meridian-X.Y.Z.dmg`.
+- Windows beta asset: `Meridian-X.Y.Z-windows-beta-x64.exe`.
+- The site rebuild runs after both platform jobs finish, so download cards resolve all assets together.
 
 ## Tests
 
 ```bash
 cd meridian
-npm run test         # Vitest (158 tests)
+npm run test         # Vitest
 npm run typecheck    # TypeScript (node + web projects)
 npm run lint         # ESLint
 npm run check-lines  # per-component line limits (see ARCHITECTURE.md)
@@ -212,6 +232,7 @@ Run all four before committing or opening a PR: `lint && typecheck && test && ch
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — modularity rules and component file-size limits
 - [SCOPE.md](SCOPE.md) — what Meridian is and isn't
+- [platforms/README.md](platforms/README.md) — platform support, packaging, and release assets
 - [PLUGIN_DEVELOPMENT.md](PLUGIN_DEVELOPMENT.md) — community plugin authoring guide
 - [CHANGELOG.md](CHANGELOG.md) — release notes
 
