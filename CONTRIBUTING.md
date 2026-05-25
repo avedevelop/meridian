@@ -4,22 +4,23 @@ Thanks for your interest in contributing! Here's everything you need to know.
 
 ## Before You Start
 
-- Check [open issues](https://github.com/bvsmma/meridian/issues) to avoid duplicate work
+- Check [open issues](https://github.com/avedevelop/meridian/issues) to avoid duplicate work
 - For significant changes, open an issue first to discuss the approach
 - For bug fixes and small improvements, feel free to open a PR directly
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/bvsmma/meridian.git
+git clone https://github.com/avedevelop/meridian.git
 cd meridian
 npm install
 npm run dev        # start in development mode
 npm test           # run tests
-npm run build      # build for macOS
+npm run build:mac  # build macOS stable assets
+npm run build:win  # build the Windows beta installer
 ```
 
-**Requirements:** Node.js 20+, macOS (Electron builds are macOS-only for now)
+**Requirements:** Node.js 20+, macOS for the stable release build, Windows for beta packaging
 
 ## Project Structure
 
@@ -73,7 +74,7 @@ docs: add plugin API documentation
 ## Reporting Bugs
 
 Use the [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md) issue template. Include:
-- macOS version
+- platform-specific behavior on macOS or Windows
 - Steps to reproduce
 - Expected vs actual behavior
 - Screenshots if relevant
