@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { SearchIcon, FileIcon } from './Icons'
 import { useLinkStore } from '../store/useLinkStore'
 import { useVaultBridge } from '../hooks/useVaultBridge'
-import { formatShortcut } from '../utils/platformShortcuts'
 
 export function HeaderSearch() {
   const { t } = useTranslation()
@@ -112,7 +111,7 @@ export function HeaderSearch() {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
-          placeholder={t('layout.searchPlaceholder', { shortcut: formatShortcut(['mod', 'K']) })}
+          placeholder={t('layout.searchPlaceholder')}
           style={{
             flex: 1,
             background: 'transparent',
