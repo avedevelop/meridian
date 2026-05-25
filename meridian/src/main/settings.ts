@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import { AppConfig } from '../shared/types'
+import { toPortablePath } from './vault'
 
 const DEFAULT_CONFIG: AppConfig = {
   recentVaults: [],
@@ -22,9 +23,21 @@ export class AppSettings {
 
   private load(): AppConfig {
     try {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(readFileSync(this.configPath, 'utf-8')) }
+      const config = { ...DEFAULT_CONFIG, ...JSON.parse(readFileSync(this.configPath, 'utf-8')) }
+      return this.withPortablePaths(config)
     } catch {
       return { ...DEFAULT_CONFIG }
+    }
+  }
+
+  private withPortablePaths(config: AppConfig): AppConfig {
+    return {
+      ...config,
+      lastVault: config.lastVault ? toPortablePath(config.lastVault) : null,
+      recentVaults: config.recentVaults.map((vault) => ({
+        ...vault,
+        path: toPortablePath(vault.path)
+      }))
     }
   }
 
@@ -37,13 +50,14 @@ export class AppSettings {
   }
 
   setLastVault(path: string | null): void {
-    this.data.lastVault = path
+    this.data.lastVault = path ? toPortablePath(path) : null
     this.save()
   }
 
   addRecentVault(path: string, name: string): void {
-    const filtered = this.data.recentVaults.filter((v) => v.path !== path)
-    filtered.unshift({ path, name })
+    const portablePath = toPortablePath(path)
+    const filtered = this.data.recentVaults.filter((v) => v.path !== portablePath)
+    filtered.unshift({ path: portablePath, name })
     this.data.recentVaults = filtered.slice(0, 10)
     this.save()
   }

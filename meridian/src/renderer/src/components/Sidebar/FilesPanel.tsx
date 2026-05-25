@@ -9,6 +9,7 @@ import { FileIcon } from './FileIcon'
 import { VaultSwitcherDropdown } from './VaultSwitcherDropdown'
 import { sortAndFilterFiles } from './sidebarUtils'
 import type { VaultFile } from '@shared/types'
+import { formatShortcut } from '../../utils/platformShortcuts'
 
 export function FilesPanel() {
   const { t } = useTranslation()
@@ -113,7 +114,7 @@ export function FilesPanel() {
             e.stopPropagation()
             openVault()
           }}
-          title={t('sidebar.openAnotherVault')}
+          title={t('sidebar.openAnotherVault', { shortcut: formatShortcut(['mod', 'O']) })}
           style={{
             background: 'transparent',
             border: 'none',
