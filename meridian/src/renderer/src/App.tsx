@@ -65,6 +65,7 @@ import { initI18n, i18n } from './i18n/index'
 import { useAutoSave } from './hooks/useAutoSave'
 import { useGitSync } from './hooks/useGitSync'
 import { useSessionPersist } from './hooks/useSessionPersist'
+import { shouldIgnoreGlobalShortcut } from './utils/keyboardGuards'
 
 import { initCorePlugins } from './plugins/core'
 import { pluginRegistry } from './plugins/registry'
@@ -458,6 +459,8 @@ export default function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (shouldIgnoreGlobalShortcut(e)) return
+
       if (e.metaKey || e.ctrlKey) {
         if (e.key === 'k') {
           e.preventDefault()

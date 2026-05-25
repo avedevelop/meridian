@@ -359,7 +359,7 @@ git commit -m "fix: make window close behavior predictable"
 - Create: `meridian/src/renderer/src/utils/keyboardGuards.ts`
 - Create: `meridian/tests/renderer/shortcutGuards.test.ts`
 
-- [ ] **Step 1: Add a pure shortcut guard**
+- [x] **Step 1: Add a pure shortcut guard**
 
 Create `meridian/src/renderer/src/utils/keyboardGuards.ts`:
 
@@ -379,7 +379,7 @@ export function shouldIgnoreGlobalShortcut(event: KeyboardEvent): boolean {
 }
 ```
 
-- [ ] **Step 2: Apply the guard to global shortcuts**
+- [x] **Step 2: Apply the guard to global shortcuts**
 
 In `App.tsx`, import:
 
@@ -395,7 +395,7 @@ if (shouldIgnoreGlobalShortcut(e)) return
 
 Do not apply this guard to CodeMirror-local save handling inside `SinglePaneArea`; only global app shortcuts should ignore text input.
 
-- [ ] **Step 3: Add guard tests**
+- [x] **Step 3: Add guard tests**
 
 Create `meridian/tests/renderer/shortcutGuards.test.ts`:
 
@@ -430,7 +430,7 @@ describe('shouldIgnoreGlobalShortcut', () => {
 })
 ```
 
-- [ ] **Step 4: Run the test**
+- [x] **Step 4: Run the test**
 
 Run: `npm test -- tests/renderer/shortcutGuards.test.ts`
 
@@ -445,7 +445,7 @@ Check in editor text entry:
 3. US layout: existing shortcuts still work.
 4. `Cmd/Ctrl+K`, `Cmd/Ctrl+S`, `Cmd/Ctrl+D` still work outside text composition.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add meridian/src/renderer/src/App.tsx meridian/src/renderer/src/utils/keyboardGuards.ts meridian/tests/renderer/shortcutGuards.test.ts
