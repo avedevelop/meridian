@@ -496,7 +496,7 @@ CSC_IDENTITY_AUTO_DISCOVERY=false npm run build:mac -- --dir --x64 --publish nev
 
 Expected: `dist/mac*/Meridian.app` exists and opens on macOS.
 
-- [ ] **Step 4: Push to `main`**
+- [x] **Step 4: Push to `main`**
 
 Run from repository root:
 
