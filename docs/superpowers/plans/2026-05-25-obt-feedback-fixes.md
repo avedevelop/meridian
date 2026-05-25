@@ -158,7 +158,7 @@ git commit -m "fix: clamp sidebar context menu position"
 - Modify: `meridian/src/renderer/src/components/Sidebar/FileTree.tsx`
 - Create: `meridian/tests/renderer/fileTreeKeyboard.test.tsx`
 
-- [ ] **Step 1: Add selected file state and focusable rows**
+- [x] **Step 1: Add selected file state and focusable rows**
 
 In `FileTree.tsx`, add:
 
@@ -181,7 +181,7 @@ onFocus={() => setSelectedPath(file.path)}
 
 Keep the existing open/toggle behavior intact for folders.
 
-- [ ] **Step 2: Add Delete and Backspace handling**
+- [x] **Step 2: Add Delete and Backspace handling**
 
 Add a `useEffect` in `FileTree.tsx`:
 
@@ -205,7 +205,7 @@ useEffect(() => {
 }, [editing, onDelete, selectedPath])
 ```
 
-- [ ] **Step 3: Write the keyboard test**
+- [x] **Step 3: Write the keyboard test**
 
 Create `meridian/tests/renderer/fileTreeKeyboard.test.tsx`:
 
@@ -249,13 +249,13 @@ describe('FileTree keyboard deletion', () => {
 })
 ```
 
-- [ ] **Step 4: Run the test**
+- [x] **Step 4: Run the test**
 
 Run: `npm test -- tests/renderer/fileTreeKeyboard.test.tsx`
 
 Expected: `2 passed`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add meridian/src/renderer/src/components/Sidebar/FileTree.tsx meridian/tests/renderer/fileTreeKeyboard.test.tsx

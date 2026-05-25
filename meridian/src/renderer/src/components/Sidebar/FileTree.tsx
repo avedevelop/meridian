@@ -18,6 +18,8 @@ interface FileTreeProps {
   vaultPath: string
   depth?: number
   activePath?: string | null
+  selectedPath?: string | null
+  onSelectedPathChange?: (path: string) => void
 }
 
 function isAncestor(parentPath: string, childPath: string): boolean {
@@ -40,15 +42,20 @@ export function FileTree({
   collapseKey = 0,
   vaultPath,
   depth = 0,
-  activePath
+  activePath,
+  selectedPath: selectedPathProp,
+  onSelectedPathChange
 }: FileTreeProps) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [localSelectedPath, setLocalSelectedPath] = useState<string | null>(activePath ?? null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: VaultFile } | null>(
     null
   )
+  const selectedPath = selectedPathProp !== undefined ? selectedPathProp : localSelectedPath
+  const setSelectedPath = onSelectedPathChange ?? setLocalSelectedPath
   const inputRef = useRef<HTMLInputElement>(null)
   // Keep a ref to always read the latest editValue inside event handlers
   const editValueRef = useRef('')
@@ -92,6 +99,30 @@ export function FileTree({
     setExpanded(new Set())
   }, [collapseKey])
 
+  useEffect(() => {
+    if (activePath) setSelectedPath(activePath)
+  }, [activePath, setSelectedPath])
+
+  useEffect(() => {
+    if (depth !== 0) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      const isTextInput =
+        target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
+
+      if (isTextInput || editing) return
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return
+      if (!selectedPath) return
+
+      event.preventDefault()
+      onDelete?.(selectedPath)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [depth, editing, onDelete, selectedPath])
+
   const toggle = (path: string) => {
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -126,6 +157,7 @@ export function FileTree({
   const handleContextMenu = (e: React.MouseEvent, file: VaultFile) => {
     e.preventDefault()
     e.stopPropagation()
+    setSelectedPath(file.path)
     setContextMenu({ x: e.clientX, y: e.clientY, file })
   }
 
@@ -148,10 +180,15 @@ export function FileTree({
         return (
           <div key={file.path}>
             <div
+              tabIndex={0}
+              data-file-path={file.path}
+              aria-selected={selectedPath === file.path}
               onClick={() => {
                 if (editing === file.path) return
+                setSelectedPath(file.path)
                 file.isDirectory ? toggle(file.path) : onFileClick(file.path, file.name)
               }}
+              onFocus={() => setSelectedPath(file.path)}
               onDoubleClick={(e) => !file.isDirectory && startEdit(file, e)}
               onContextMenu={(e) => handleContextMenu(e, file)}
               draggable={true}
@@ -289,6 +326,8 @@ export function FileTree({
                 vaultPath={vaultPath}
                 depth={depth + 1}
                 activePath={activePath}
+                selectedPath={selectedPath}
+                onSelectedPathChange={setSelectedPath}
               />
             )}
           </div>
