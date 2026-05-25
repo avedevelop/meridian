@@ -3,6 +3,12 @@ import { useVaultStore } from '../store/useVaultStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { useVaultBridge } from './useVaultBridge'
 
+export type CloseBehavior = 'ask' | 'save' | 'discard'
+
+export function shouldBlockWindowClose(closeBehavior: CloseBehavior, dirtyCount: number): boolean {
+  return closeBehavior === 'ask' && dirtyCount > 0
+}
+
 export function useAutoSave() {
   const { openTabs, activeTabPath } = useVaultStore()
   const { autoSaveTrigger, autoSaveDelay, closeBehavior } = useSettingsStore()
@@ -88,11 +94,14 @@ export function useAutoSave() {
         dirtyTabs.forEach((tab) => {
           window.vault.writeFile(tab.path, tab.content)
         })
-      } else if (closeBehavior === 'ask') {
-        e.preventDefault()
-        e.returnValue = 'You have unsaved changes. Are you sure you want to close?'
-        return 'You have unsaved changes. Are you sure you want to close?'
       }
+
+      if (shouldBlockWindowClose(closeBehavior, dirtyTabs.length)) {
+        e.preventDefault()
+        e.returnValue = ''
+        return ''
+      }
+
       return undefined
     }
 

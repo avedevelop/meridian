@@ -270,7 +270,7 @@ git commit -m "feat: delete selected file from keyboard"
 - Modify: `meridian/src/renderer/src/hooks/useAutoSave.ts`
 - Create: `meridian/tests/renderer/closeBehavior.test.ts`
 
-- [ ] **Step 1: Extract close-decision helper**
+- [x] **Step 1: Extract close-decision helper**
 
 In `useAutoSave.ts`, add:
 
@@ -282,7 +282,7 @@ export function shouldBlockWindowClose(closeBehavior: CloseBehavior, dirtyCount:
 }
 ```
 
-- [ ] **Step 2: Use the helper in `handleBeforeUnload`**
+- [x] **Step 2: Use the helper in `handleBeforeUnload`**
 
 Replace the dirty close branch with:
 
@@ -304,7 +304,7 @@ return undefined
 
 This keeps the native browser/Electron confirmation path but avoids custom text that Electron may ignore or mishandle.
 
-- [ ] **Step 3: Add close behavior tests**
+- [x] **Step 3: Add close behavior tests**
 
 Create `meridian/tests/renderer/closeBehavior.test.ts`:
 
@@ -328,7 +328,7 @@ describe('shouldBlockWindowClose', () => {
 })
 ```
 
-- [ ] **Step 4: Run the test**
+- [x] **Step 4: Run the test**
 
 Run: `npm test -- tests/renderer/closeBehavior.test.ts`
 
@@ -343,7 +343,7 @@ Run a packaged or dev app and verify:
 3. With dirty tabs and `closeBehavior = save`, app closes after saving.
 4. With dirty tabs and `closeBehavior = discard`, app closes without blocking.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add meridian/src/renderer/src/hooks/useAutoSave.ts meridian/tests/renderer/closeBehavior.test.ts
