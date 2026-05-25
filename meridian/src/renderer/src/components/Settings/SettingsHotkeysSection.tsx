@@ -1,24 +1,25 @@
 import { useTranslation } from 'react-i18next'
+import { shortcutKeyLabels } from '../../utils/platformShortcuts'
 
 export function SettingsHotkeysSection() {
   const { t } = useTranslation()
 
   const hotkeysList = [
     { group: 'general' },
-    { actionId: 'commandPalette', keys: ['⌘', 'K'] },
-    { actionId: 'settings', keys: ['⌘', ','] },
-    { actionId: 'openVault', keys: ['⌘', 'O'] },
+    { actionId: 'commandPalette', keys: ['mod', 'K'] },
+    { actionId: 'settings', keys: ['mod', ','] },
+    { actionId: 'openVault', keys: ['mod', 'O'] },
     { group: 'files' },
-    { actionId: 'newNote', keys: ['⌘', 'N'] },
-    { actionId: 'newDailyNote', keys: ['⌘', 'D'] },
-    { actionId: 'save', keys: ['⌘', 'S'] },
-    { actionId: 'exportHtml', keys: ['⌘', 'E'] },
-    { actionId: 'closeTab', keys: ['⌘', 'W'] },
+    { actionId: 'newNote', keys: ['mod', 'N'] },
+    { actionId: 'newDailyNote', keys: ['mod', 'D'] },
+    { actionId: 'save', keys: ['mod', 'S'] },
+    { actionId: 'exportHtml', keys: ['mod', 'E'] },
+    { actionId: 'closeTab', keys: ['mod', 'W'] },
     { group: 'view' },
-    { actionId: 'graphView', keys: ['⌘', '⇧', 'G'] },
+    { actionId: 'graphView', keys: ['mod', 'shift', 'G'] },
     { group: 'sketchpad' },
-    { actionId: 'undoStroke', keys: ['⌘', 'Z'] },
-    { actionId: 'redoStroke', keys: ['⌘', '⇧', 'Z'] }
+    { actionId: 'undoStroke', keys: ['mod', 'Z'] },
+    { actionId: 'redoStroke', keys: ['mod', 'shift', 'Z'] }
   ] as const
 
   return (
@@ -82,7 +83,7 @@ export function SettingsHotkeysSection() {
                 {t('settings.hotkeys.action.' + hk.actionId)}
               </span>
               <div style={{ display: 'flex', gap: 4 }}>
-                {hk.keys.map((k, i) => (
+                {shortcutKeyLabels(hk.keys).map((k, i) => (
                   <kbd
                     key={i}
                     style={{

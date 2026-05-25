@@ -9,7 +9,15 @@ import {
   type VaultFileChangeType
 } from '../shared/types'
 import { buildAppPluginUrl, buildPluginUrl } from '../shared/pluginUrl'
-import { VaultManager } from './vault'
+import {
+  VaultManager,
+  normalizeGitPath,
+  normalizeNativePath,
+  normalizePluginEntryPath,
+  resolveExistingPathWithinRoot,
+  resolveWritablePathWithinRoot,
+  toPortablePath
+} from './vault'
 import { AppSettings } from './settings'
 import { ensureUserPluginsDir, listAppPluginManifests, resolveAppPluginFile } from './plugins'
 
@@ -47,7 +55,8 @@ async function listAvailablePluginManifests(): Promise<PluginManifest[]> {
 }
 
 function toAbsoluteVaultPath(manager: VaultManager, changedPath: string): string {
-  return isAbsolute(changedPath) ? changedPath : resolve(manager.vaultPath, changedPath)
+  const nativePath = normalizeNativePath(changedPath)
+  return isAbsolute(nativePath) ? nativePath : resolve(manager.vaultPath, nativePath)
 }
 
 async function emitVaultFileChange(
@@ -58,8 +67,8 @@ async function emitVaultFileChange(
   const absolutePath = toAbsoluteVaultPath(manager, changedPath)
   const event: VaultFileChangeEvent = {
     type,
-    path: absolutePath,
-    vaultPath: manager.vaultPath,
+    path: toPortablePath(absolutePath),
+    vaultPath: toPortablePath(manager.vaultPath),
     file: null
   }
 
@@ -110,7 +119,7 @@ export function stopVaultWatcher(): void {
 function emitPluginFileChanged(manager: VaultManager, pluginId: string): void {
   const event: PluginFileChangeEvent = {
     pluginId,
-    vaultPath: manager.vaultPath
+    vaultPath: toPortablePath(manager.vaultPath)
   }
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send(IPC.PLUGIN_FILE_CHANGED, event)
@@ -136,9 +145,10 @@ function startPluginWatcher(manager: VaultManager): void {
   pluginWatcher.on('all', (eventName, changedPath) => {
     if (session !== pluginWatcherSession || manager !== vaultManager) return
     if (eventName !== 'add' && eventName !== 'change' && eventName !== 'unlink') return
-    const absolute = isAbsolute(changedPath)
-      ? changedPath
-      : resolve(pluginsRoot, String(changedPath))
+    const nativeChangedPath = normalizeNativePath(String(changedPath))
+    const absolute = isAbsolute(nativeChangedPath)
+      ? nativeChangedPath
+      : resolve(pluginsRoot, nativeChangedPath)
     if (!absolute.startsWith(pluginsRoot + sep)) return
 
     const relative = absolute.slice(pluginsRoot.length + 1)
@@ -180,31 +190,32 @@ export function registerIpcHandlers(settings: AppSettings): void {
     })
     if (result.canceled || result.filePaths.length === 0) return null
 
-    const vaultPath = result.filePaths[0]
+    const vaultPath = normalizeNativePath(result.filePaths[0])
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
     startVaultWatcher(vaultManager)
     startPluginWatcher(vaultManager)
     settings.addRecentVault(vaultPath, name)
     settings.setLastVault(vaultPath)
-    return { path: vaultPath, name }
+    return { path: toPortablePath(vaultPath), name }
   })
 
   ipcMain.handle(IPC.VAULT_OPEN_BY_PATH, async (_event, vaultPath: string) => {
     const { stat } = await import('fs/promises')
+    const nativeVaultPath = normalizeNativePath(vaultPath)
     try {
-      const info = await stat(vaultPath)
+      const info = await stat(nativeVaultPath)
       if (!info.isDirectory()) throw new Error('Not a directory')
     } catch {
       return null
     }
-    const name = basename(vaultPath) || 'Vault'
-    vaultManager = new VaultManager(vaultPath)
+    const name = basename(nativeVaultPath) || 'Vault'
+    vaultManager = new VaultManager(nativeVaultPath)
     startVaultWatcher(vaultManager)
     startPluginWatcher(vaultManager)
-    settings.addRecentVault(vaultPath, name)
-    settings.setLastVault(vaultPath)
-    return { path: vaultPath, name }
+    settings.addRecentVault(nativeVaultPath, name)
+    settings.setLastVault(nativeVaultPath)
+    return { path: toPortablePath(nativeVaultPath), name }
   })
 
   ipcMain.handle(IPC.VAULT_LIST_FILES, async () => {
@@ -250,56 +261,57 @@ export function registerIpcHandlers(settings: AppSettings): void {
       'eot'
     ]
     if (binaryExts.includes(ext)) throw new Error(`Cannot read binary file: ${ext}`)
-    return vaultManager.readFile(filePath)
+    return vaultManager.readFile(normalizeNativePath(filePath))
   })
 
   ipcMain.handle(IPC.VAULT_WRITE_FILE, async (_event, filePath: string, content: string) => {
     if (!vaultManager) throw new Error('No vault open')
-    return vaultManager.writeFile(filePath, content)
+    return vaultManager.writeFile(normalizeNativePath(filePath), content)
   })
 
   ipcMain.handle(IPC.VAULT_CREATE_FILE, async (_event, dir: string, name: string) => {
     if (!vaultManager) throw new Error('No vault open')
-    return vaultManager.createFile(dir, name)
+    return vaultManager.createFile(normalizeNativePath(dir), name)
   })
 
   ipcMain.handle(IPC.VAULT_CREATE_DIR, async (_event, parentDir: string, name: string) => {
     if (!vaultManager) throw new Error('No vault open')
-    return vaultManager.createDirectory(parentDir, name)
+    return vaultManager.createDirectory(normalizeNativePath(parentDir), name)
   })
 
   ipcMain.handle(IPC.VAULT_WRITE_BINARY, async (_event, filePath: string, base64: string) => {
     if (!vaultManager) throw new Error('No vault open')
-    const { resolve: res, sep: s } = await import('path')
-    const resolved = res(filePath)
-    const vaultResolved = res(vaultManager.vaultPath)
-    if (!resolved.startsWith(vaultResolved + s)) throw new Error('Path outside vault')
+    const resolved = await resolveWritablePathWithinRoot(
+      vaultManager.vaultPath,
+      normalizeNativePath(filePath)
+    )
     const { writeFile: wf } = await import('fs/promises')
     const { mkdirSync } = await import('fs')
-    mkdirSync(res(resolved, '..'), { recursive: true })
-    await wf(filePath, Buffer.from(base64, 'base64'))
-    return filePath
+    const { dirname } = await import('path')
+    mkdirSync(dirname(resolved), { recursive: true })
+    await wf(resolved, Buffer.from(base64, 'base64'))
+    return toPortablePath(resolved)
   })
 
   ipcMain.handle(IPC.VAULT_DELETE_FILE, async (_event, filePath: string) => {
     if (!vaultManager) throw new Error('No vault open')
-    return vaultManager.deleteFile(filePath)
+    return vaultManager.deleteFile(normalizeNativePath(filePath))
   })
 
   ipcMain.handle(IPC.VAULT_MOVE_FILE, async (_event, sourcePath: string, targetDir: string) => {
     if (!vaultManager) throw new Error('No vault open')
-    return vaultManager.moveFile(sourcePath, targetDir)
+    return vaultManager.moveFile(normalizeNativePath(sourcePath), normalizeNativePath(targetDir))
   })
 
   ipcMain.handle(IPC.VAULT_REVEAL_FILE, async (_event, filePath: string) => {
-    shell.showItemInFolder(filePath)
+    shell.showItemInFolder(normalizeNativePath(filePath))
   })
 
   ipcMain.handle(IPC.VAULT_RENAME_FILE, async (_event, oldPath: string, newName: string) => {
     console.log('[IPC] rename:', oldPath, '->', newName)
     if (!vaultManager) throw new Error('No vault open')
     try {
-      const result = await vaultManager.renameFile(oldPath, newName)
+      const result = await vaultManager.renameFile(normalizeNativePath(oldPath), newName)
       console.log('[IPC] rename success:', result)
       return result
     } catch (e) {
@@ -473,7 +485,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
   })
 
   ipcMain.handle(IPC.OPEN_PATH, async (_event, filePath: string) => {
-    await shell.openPath(filePath)
+    await shell.openPath(normalizeNativePath(filePath))
   })
 
   ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string) => {
@@ -484,6 +496,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const { tmpdir } = await import('os')
     const unzipper = await import('unzipper')
 
+    const nativeDestPath = normalizeNativePath(destPath)
     const zipUrl = 'https://github.com/avedevelop/meridian-welcome/archive/refs/heads/main.zip'
     const tmpZip = join(tmpdir(), `meridian-welcome-${Date.now()}.zip`)
     const tmpExtract = join(tmpdir(), `meridian-welcome-extract-${Date.now()}`)
@@ -521,8 +534,8 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const extracted = readdirSync(tmpExtract)[0]
     const extractedPath = join(tmpExtract, extracted)
 
-    if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
-    renameSync(extractedPath, destPath)
+    if (existsSync(nativeDestPath)) rmSync(nativeDestPath, { recursive: true, force: true })
+    renameSync(extractedPath, nativeDestPath)
 
     // Cleanup
     try {
@@ -536,7 +549,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
       /* ignore */
     }
 
-    return destPath
+    return toPortablePath(nativeDestPath)
   })
 
   ipcMain.handle(IPC.VAULT_OPEN_EXTERNAL, async (_event, url: string) => {
@@ -753,7 +766,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const execFileAsync = promisify(execFile)
 
     try {
-      const normalizedPath = relativePath.replace(/\\/g, '/')
+      const normalizedPath = normalizeGitPath(relativePath)
       const { stdout } = await execFileAsync('git', ['show', `HEAD:${normalizedPath}`], { cwd })
       return { success: true, content: stdout }
     } catch {
@@ -863,8 +876,8 @@ export function registerIpcHandlers(settings: AppSettings): void {
 
   ipcMain.handle(IPC.PLUGIN_OPEN_FOLDER, async () => {
     const pluginsDir = await ensureUserPluginsDir()
-    await shell.openPath(pluginsDir)
-    return pluginsDir
+    await shell.openPath(normalizeNativePath(pluginsDir))
+    return toPortablePath(pluginsDir)
   })
 
   ipcMain.handle(IPC.PLUGIN_LOAD, async (_event, id: string) => {
@@ -872,27 +885,35 @@ export function registerIpcHandlers(settings: AppSettings): void {
     const manifest = manifests.find((m) => m.id === id)
     if (!manifest) throw new Error(`Plugin not found: ${id}`)
     const mainFile = manifest.main || 'main.js'
+    const pluginUrlEntry = normalizePluginEntryPath(mainFile)
     const { join } = await import('path')
     const { stat } = await import('fs/promises')
 
     if (manifest.source === 'bundled' || manifest.source === 'user') {
       const pluginFile = await resolveAppPluginFile(id, mainFile, manifest.source)
       if (!pluginFile) throw new Error(`Failed to access app plugin main file: ${mainFile}`)
-      const url = buildAppPluginUrl(id, mainFile)
+      const url = buildAppPluginUrl(id, pluginUrlEntry)
       if (!url) throw new Error(`Invalid app plugin id or main file: ${id} / ${mainFile}`)
       return url
     }
 
     if (!vaultManager) throw new Error('No vault open')
     const pluginsDir = join(vaultManager.vaultPath, '.meridian', 'plugins')
-    const mainFilePath = join(pluginsDir, id, mainFile)
+    const pluginRoot = join(pluginsDir, id)
+    let mainFilePath: string
+    try {
+      await resolveExistingPathWithinRoot(vaultManager.vaultPath, pluginRoot)
+      mainFilePath = await resolveExistingPathWithinRoot(pluginRoot, join(pluginRoot, mainFile))
+    } catch {
+      throw new Error(`Invalid plugin main file path: ${mainFile}`)
+    }
     try {
       const stats = await stat(mainFilePath)
       if (!stats.isFile()) throw new Error(`Main file is not a file: ${mainFile}`)
     } catch (err) {
       throw new Error(`Failed to access plugin main file: ${mainFile}. ${err}`)
     }
-    const url = buildPluginUrl(id, mainFile)
+    const url = buildPluginUrl(id, pluginUrlEntry)
     if (!url) throw new Error(`Invalid plugin id or main file: ${id} / ${mainFile}`)
     return url
   })

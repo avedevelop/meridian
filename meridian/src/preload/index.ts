@@ -12,7 +12,8 @@ import { homedir } from 'os'
 
 const appInfo = {
   version: process.env.npm_package_version ?? '1.0.0',
-  homeDir: homedir()
+  homeDir: homedir(),
+  platform: process.platform
 }
 
 const vaultAPI = {

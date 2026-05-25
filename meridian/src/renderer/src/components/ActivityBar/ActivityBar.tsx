@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FolderOpenBtnIcon, WebIcon, SettingsIcon, GitIcon } from '../Icons'
+import { formatShortcut } from '../../utils/platformShortcuts'
 
 type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
 
@@ -262,7 +263,9 @@ export function ActivityBar({
       {/* Settings icon pinned to bottom */}
       <button
         onClick={onSettings}
-        title={expanded ? undefined : t('activityBar.settingsTooltip')}
+        title={
+          expanded ? undefined : t('activityBar.settingsTooltip', { shortcut: formatShortcut(['mod', ',']) })
+        }
         style={{
           width: '100%',
           height: 48,

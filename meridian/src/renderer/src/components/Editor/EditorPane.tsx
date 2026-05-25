@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { FileIcon } from '../Icons'
 import { useVaultStore } from '../../store/useVaultStore'
 import { SinglePaneArea } from './SinglePaneArea'
+import { formatShortcut } from '../../utils/platformShortcuts'
 
 export function EditorArea() {
   const { t } = useTranslation()
@@ -37,7 +38,7 @@ export function EditorArea() {
           </div>
           <p>{t('editor.openNoteFromSidebar')}</p>
           <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {t('editor.pressCmdKToSearch')}
+            {t('editor.pressCmdKToSearch', { shortcut: formatShortcut(['mod', 'K']) })}
           </p>
         </div>
       </div>
