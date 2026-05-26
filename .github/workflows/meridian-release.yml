@@ -23,7 +23,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${{ github.token }}" \
+            clone --depth 1 --branch "$ref" "https://github.com/${{ github.repository }}.git" meridian
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -71,7 +76,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${{ github.token }}" \
+            clone --depth 1 --branch "$ref" "https://github.com/${{ github.repository }}.git" meridian
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
