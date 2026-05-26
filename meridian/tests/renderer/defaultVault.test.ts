@@ -11,6 +11,12 @@ describe('default vault path', () => {
     )
   })
 
+  it('keeps Windows path separators on Windows welcome vault paths', () => {
+    expect(getWelcomeVaultPath('D:\\Users\\vladyslav\\', 'win32')).toBe(
+      'D:\\Users\\vladyslav\\Documents\\Meridian Welcome (Windows)'
+    )
+  })
+
   it('keeps the macOS welcome vault name on macOS', () => {
     expect(getWelcomeVaultPath('/Users/vladyslav', 'MacIntel')).toBe(
       '/Users/vladyslav/Documents/Meridian Welcome'

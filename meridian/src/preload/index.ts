@@ -19,6 +19,7 @@ const appInfo = {
 
 const vaultAPI = {
   openDialog: (): Promise<VaultConfig | null> => ipcRenderer.invoke(IPC.VAULT_OPEN_DIALOG),
+  createDialog: (): Promise<VaultConfig | null> => ipcRenderer.invoke(IPC.VAULT_CREATE_DIALOG),
 
   listFiles: (): Promise<VaultFile[]> => ipcRenderer.invoke(IPC.VAULT_LIST_FILES),
 

@@ -45,6 +45,7 @@ export interface VaultFileChangeEvent {
 
 export const IPC = {
   VAULT_OPEN_DIALOG: 'vault:open-dialog',
+  VAULT_CREATE_DIALOG: 'vault:create-dialog',
   VAULT_OPEN_BY_PATH: 'vault:open-by-path',
   VAULT_LIST_FILES: 'vault:list-files',
   VAULT_READ_FILE: 'vault:read-file',

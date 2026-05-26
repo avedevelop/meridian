@@ -33,6 +33,7 @@ declare global {
     __meridianReloadPlugin?: (id: string) => void
     vault: {
       openDialog: () => Promise<VaultConfig | null>
+      createDialog: () => Promise<VaultConfig | null>
       listFiles: () => Promise<VaultFile[]>
       readFile: (path: string) => Promise<string>
       writeFile: (path: string, content: string) => Promise<void>
@@ -641,7 +642,7 @@ ${bodyHtml}
   }, [])
 
   const createNewVault = useCallback(async () => {
-    const config = await window.vault.openDialog()
+    const config = await window.vault.createDialog()
     if (!config) return
     await initVault(config)
 

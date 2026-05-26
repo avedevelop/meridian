@@ -190,6 +190,31 @@ export function registerIpcHandlers(settings: AppSettings): void {
     return { path: vaultPath, name }
   })
 
+  ipcMain.handle(IPC.VAULT_CREATE_DIALOG, async () => {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Create New Vault',
+      defaultPath: 'Meridian Vault',
+      buttonLabel: 'Create'
+    })
+    if (canceled || !filePath) return null
+
+    const { mkdir } = await import('fs/promises')
+    try {
+      await mkdir(filePath, { recursive: true })
+    } catch (error) {
+      console.error('[IPC] Error creating vault directory:', error)
+      throw error
+    }
+
+    const name = basename(filePath) || 'Vault'
+    vaultManager = new VaultManager(filePath)
+    startVaultWatcher(vaultManager)
+    startPluginWatcher(vaultManager)
+    settings.addRecentVault(filePath, name)
+    settings.setLastVault(filePath)
+    return { path: filePath, name }
+  })
+
   ipcMain.handle(IPC.VAULT_OPEN_BY_PATH, async (_event, vaultPath: string) => {
     const { stat } = await import('fs/promises')
     try {
@@ -478,7 +503,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
 
   ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string, sourcePath = 'macos/en') => {
     const https = await import('https')
-    const { createWriteStream, createReadStream, mkdirSync, rmSync, renameSync, existsSync } =
+    const { createWriteStream, createReadStream, mkdirSync, rmSync, cpSync, existsSync, readdirSync } =
       await import('fs')
     const { dirname, join } = await import('path')
     const { tmpdir } = await import('os')
@@ -516,16 +541,33 @@ export function registerIpcHandlers(settings: AppSettings): void {
         .on('error', reject)
     })
 
-    // The ZIP extracts to meridian-welcome-main/. Copy only the selected stock vault.
-    const { readdirSync } = await import('fs')
-    const extracted = readdirSync(tmpExtract)[0]
-    const extractedPath = join(tmpExtract, extracted)
     const safeSourcePath = /^(macos|windows)\/(en|ru)$/.test(sourcePath) ? sourcePath : 'macos/en'
-    const selectedVaultPath = join(extractedPath, safeSourcePath)
+    const safeSegments = safeSourcePath.split('/')
+
+    const findSelectedVaultPath = (root: string): string | null => {
+      const stack = [root]
+      while (stack.length > 0) {
+        const current = stack.pop()
+        if (!current) continue
+        const candidate = join(current, ...safeSegments)
+        if (existsSync(candidate)) return candidate
+        for (const entry of readdirSync(current, { withFileTypes: true })) {
+          if (entry.isDirectory() && !entry.name.startsWith('.')) {
+            stack.push(join(current, entry.name))
+          }
+        }
+      }
+      return null
+    }
+
+    const selectedVaultPath = findSelectedVaultPath(tmpExtract)
+    if (!selectedVaultPath) {
+      throw new Error(`Could not locate welcome vault source folder: ${safeSourcePath}`)
+    }
 
     if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
     mkdirSync(dirname(destPath), { recursive: true })
-    renameSync(selectedVaultPath, destPath)
+    cpSync(selectedVaultPath, destPath, { recursive: true })
 
     // Cleanup
     try {
