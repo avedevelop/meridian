@@ -1,6 +1,6 @@
 {
   "name": "meridian",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Local-first markdown notes app for macOS, inspired by Obsidian.",
   "main": "./out/main/index.js",
   "author": "avedev",
