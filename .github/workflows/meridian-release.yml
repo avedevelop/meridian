@@ -30,7 +30,7 @@ jobs:
           ref="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
           git clone --depth 1 --branch "$ref" \
             "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" \
-            meridian
+            .
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -83,7 +83,7 @@ jobs:
           ref="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
           git clone --depth 1 --branch "$ref" \
             "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" \
-            meridian
+            .
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
