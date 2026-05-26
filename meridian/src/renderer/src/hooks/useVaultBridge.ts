@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
 import { useLinkStore } from '../store/useLinkStore'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { formatPlatformShortcut } from '../utils/platformUi'
 import type {
   PluginFileChangeEvent,
   VaultConfig,
@@ -646,6 +647,8 @@ ${bodyHtml}
 
     const currentFiles = await window.vault.listFiles()
     if (currentFiles.length === 0) {
+      const platform = (window as any).appInfo?.platform
+      const shortcut = (keys: string) => formatPlatformShortcut(keys, platform)
       const welcomeContent = [
         '# Welcome to Meridian',
         '',
@@ -653,19 +656,19 @@ ${bodyHtml}
         '',
         '- **Write** — just start typing in any note',
         '- **Link notes** — type `[[Note Name]]` to create a wiki-link',
-        "- **Daily note** — press `⌘D` to open today's note",
-        '- **Search** — press `⌘K` to search across all notes',
+        `- **Daily note** — press \`${shortcut('mod+d')}\` to open today's note`,
+        `- **Search** — press \`${shortcut('mod+k')}\` to search across all notes`,
         '- **Graph** — click the Graph tab in the sidebar to see your note network',
         '',
         '## Quick shortcuts',
         '',
         '| Shortcut | Action |',
         '|----------|--------|',
-        '| `⌘S` | Save note |',
-        '| `⌘D` | Open daily note |',
-        '| `⌘K` | Command palette |',
-        '| `⌘E` | Export to HTML |',
-        '| `⌘,` | Settings |',
+        `| \`${shortcut('mod+s')}\` | Save note |`,
+        `| \`${shortcut('mod+d')}\` | Open daily note |`,
+        `| \`${shortcut('mod+k')}\` | Command palette |`,
+        `| \`${shortcut('mod+e')}\` | Export to HTML |`,
+        `| \`${shortcut('mod+,')}\` | Settings |`,
         '',
         'Happy writing! 📓'
       ].join('\n')

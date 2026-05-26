@@ -1,5 +1,6 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { getPlatformInterpolation } from '../utils/platformUi'
 
 // Bundled locales — loaded dynamically so new ones don't require code changes
 const bundled: Record<string, object> = {}
@@ -22,7 +23,10 @@ i18n.use(initReactI18next).init({
   resources,
   lng: 'en',
   fallbackLng: 'en',
-  interpolation: { escapeValue: false }
+  interpolation: {
+    escapeValue: false,
+    defaultVariables: getPlatformInterpolation()
+  }
 })
 
 export async function initI18n(language: string): Promise<void> {

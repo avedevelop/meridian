@@ -5,6 +5,7 @@ import { AppSettings } from './settings'
 import { parseAppPluginUrl, parsePluginUrl } from '../shared/pluginUrl'
 import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
 import { resolveAppPluginFile } from './plugins'
+import { buildWindowOptions } from './platform'
 
 // Must be called before app is ready — tells Chromium vault:// is a secure scheme
 // so it can be loaded from any origin (http://localhost in dev, file:// in prod)
@@ -144,13 +145,8 @@ function createWindow(): BrowserWindow {
   const y = windowBounds?.y
 
   const win = new BrowserWindow({
-    width,
-    height,
-    x,
-    y,
+    ...buildWindowOptions(process.platform, { width, height, x, y }),
     icon: join(__dirname, '../../resources/icon.png'),
-    titleBarStyle: 'hiddenInset',
-    backgroundColor: '#1a1a1a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

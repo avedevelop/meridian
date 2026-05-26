@@ -1,6 +1,6 @@
 {
   "name": "meridian",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Local-first markdown notes app for macOS, inspired by Obsidian.",
   "main": "./out/main/index.js",
   "author": "avedev",
@@ -18,10 +18,10 @@
     "dev:kill": "lsof -ti :5173 | xargs kill -9 2>/dev/null || true",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:unpack": "npm run build && electron-builder --dir --config electron-builder.yml",
+    "build:win": "npm run build && electron-builder --win --x64 --config electron-builder.yml",
+    "build:mac": "npm run build && electron-builder --mac --config electron-builder.yml",
+    "build:linux": "npm run build && electron-builder --linux --config electron-builder.yml",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -61,61 +61,6 @@
     "remark-rehype": "^11.1.2",
     "unzipper": "^0.12.3",
     "zustand": "^5.0.13"
-  },
-  "build": {
-    "appId": "com.meridian.notes",
-    "productName": "Meridian",
-    "directories": {
-      "buildResources": "resources"
-    },
-    "files": [
-      "out/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "../plugins",
-        "to": "plugins"
-      }
-    ],
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        }
-      ],
-      "icon": "resources/icon.png",
-      "category": "public.app-category.productivity",
-      "darkModeSupport": true
-    },
-    "dmg": {
-      "title": "Meridian",
-      "background": null,
-      "window": {
-        "width": 540,
-        "height": 380
-      }
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "resources/icon.png",
-      "artifactName": "Meridian-${version}-windows-beta-${arch}.${ext}"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "resources/icon.png"
-    }
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

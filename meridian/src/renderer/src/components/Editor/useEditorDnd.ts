@@ -29,7 +29,7 @@ export function useEditorDnd(
     async (e: React.DragEvent) => {
       e.preventDefault()
 
-      // Handle image files dragged from Finder
+      // Handle image files dragged from the platform file manager.
       const imageExts = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp'])
       const droppedFiles = Array.from(e.dataTransfer.files)
       const imageFile = droppedFiles.find((f) => {

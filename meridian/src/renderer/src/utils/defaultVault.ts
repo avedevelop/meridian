@@ -16,7 +16,8 @@ export function getWelcomeLanguage(language?: string): WelcomeLanguage {
 
 export function getWelcomeVaultPath(homeDir: string, platform?: PlatformName): string {
   const vaultName = isMacPlatform(platform) ? 'Meridian Welcome' : 'Meridian Welcome (Windows)'
-  return `${homeDir}/Documents/${vaultName}`
+  const separator = !isMacPlatform(platform) && homeDir.includes('\\') ? '\\' : '/'
+  return `${homeDir.replace(/[\\/]+$/, '')}${separator}Documents${separator}${vaultName}`
 }
 
 export function getWelcomeVaultSourcePath(platform?: PlatformName, language?: string): string {

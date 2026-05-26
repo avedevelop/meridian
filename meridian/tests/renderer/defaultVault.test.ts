@@ -6,8 +6,8 @@ import {
 
 describe('default vault path', () => {
   it('uses a Windows-specific welcome vault name on Windows', () => {
-    expect(getWelcomeVaultPath('/Users/vladyslav', 'Win32')).toBe(
-      '/Users/vladyslav/Documents/Meridian Welcome (Windows)'
+    expect(getWelcomeVaultPath('C:\\Users\\vladyslav', 'Win32')).toBe(
+      'C:\\Users\\vladyslav\\Documents\\Meridian Welcome (Windows)'
     )
   })
 

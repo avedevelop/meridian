@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { SearchIcon, FileIcon } from './Icons'
 import { useLinkStore } from '../store/useLinkStore'
 import { useVaultBridge } from '../hooks/useVaultBridge'
+import { dirnameForDisplay } from '../utils/platformUi'
 
 export function HeaderSearch() {
   const { t } = useTranslation()
@@ -207,7 +208,7 @@ export function HeaderSearch() {
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  {result.path.split('/').slice(0, -1).join('/')}
+                  {dirnameForDisplay(result.path)}
                 </span>
               </div>
             )
