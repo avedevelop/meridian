@@ -23,6 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
+        working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
@@ -76,6 +77,7 @@ jobs:
 
     steps:
       - name: Checkout
+        working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
