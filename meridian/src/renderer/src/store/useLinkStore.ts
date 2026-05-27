@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { LinkIndex } from '../lib/linkIndex'
+import { LinkIndex, type IndexedRelation } from '../lib/linkIndex'
 import { SearchIndex, SearchResult } from '../lib/searchIndex'
 
 interface LinkState {
@@ -11,6 +11,8 @@ interface LinkState {
   indexFile: (path: string, name: string, content: string, vaultPath: string) => void
   backlinks: (path: string) => string[]
   outlinks: (path: string) => string[]
+  relationsForFile: (path: string) => IndexedRelation[]
+  unresolvedRelationsForFile: (path: string) => IndexedRelation[]
   tagsForFile: (path: string) => string[]
   allTags: () => Map<string, string[]>
   allFiles: () => string[]
@@ -40,6 +42,8 @@ export const useLinkStore = create<LinkState>((set) => ({
 
   backlinks: (path) => linkIndex.getBacklinks(path),
   outlinks: (path) => linkIndex.getOutlinks(path),
+  relationsForFile: (path) => linkIndex.getRelations(path),
+  unresolvedRelationsForFile: (path) => linkIndex.getUnresolvedRelations(path),
   tagsForFile: (path) => linkIndex.getTags(path),
   allTags: () => linkIndex.getAllTags(),
   allFiles: () => linkIndex.getAllFiles(),

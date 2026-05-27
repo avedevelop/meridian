@@ -77,4 +77,20 @@ describe('useLinkStore', () => {
     })
     expect(result.current.searchResults).toEqual([])
   })
+
+  it('returns resolved and unresolved relation metadata', () => {
+    const { result } = renderHook(() => useLinkStore())
+    act(() => {
+      result.current.indexFile('/vault/A.md', 'A.md', '---\nrelated: [B, Missing]\n---\n\n', '/vault')
+      result.current.indexFile('/vault/B.md', 'B.md', '', '/vault')
+    })
+
+    expect(result.current.relationsForFile('/vault/A.md')).toEqual([
+      { key: 'related', target: 'B', raw: 'B', resolvedPath: '/vault/B.md' },
+      { key: 'related', target: 'Missing', raw: 'Missing', resolvedPath: null }
+    ])
+    expect(result.current.unresolvedRelationsForFile('/vault/A.md')).toEqual([
+      { key: 'related', target: 'Missing', raw: 'Missing', resolvedPath: null }
+    ])
+  })
 })

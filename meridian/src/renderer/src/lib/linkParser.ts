@@ -1,8 +1,10 @@
 import { parseFrontmatterTags } from '@shared/frontmatter'
+import { extractRelationReferences, type RelationReference } from '@shared/relationships'
 
 export interface ParseResult {
   links: string[]
   tags: string[]
+  relations: RelationReference[]
 }
 
 function extractFrontmatterTags(content: string): string[] {
@@ -29,5 +31,8 @@ export function parseLinks(content: string): ParseResult {
     tagSet.add(match[1])
   }
 
-  return { links: Array.from(linkSet), tags: Array.from(tagSet) }
+  const relations = extractRelationReferences(content)
+  for (const relation of relations) linkSet.add(relation.target)
+
+  return { links: Array.from(linkSet), tags: Array.from(tagSet), relations }
 }
