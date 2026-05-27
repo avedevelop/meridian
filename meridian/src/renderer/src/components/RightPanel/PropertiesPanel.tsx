@@ -86,6 +86,8 @@ export function PropertiesPanel() {
 
     const name = newName.trim()
     if (!name || Object.prototype.hasOwnProperty.call(frontmatter.properties, name)) return
+    if (isTagsPropertyName(name) && newType !== 'tags') return
+    if (isRelationPropertyName(name) && newType !== 'relation') return
     if (newType === 'date' && !isIsoDateValue(newDate)) return
     if (newType === 'tags' && !isTagsPropertyName(name)) return
     if (newType === 'relation' && !isRelationPropertyName(name)) return
@@ -108,12 +110,22 @@ export function PropertiesPanel() {
   const properties = frontmatter?.properties ?? {}
   const propertyEntries = Object.entries(properties)
   const name = newName.trim()
+  const hasReservedTagsName = Boolean(name) && isTagsPropertyName(name)
+  const hasReservedRelationName = Boolean(name) && isRelationPropertyName(name)
   const hasUniqueName = Boolean(name) && !Object.prototype.hasOwnProperty.call(properties, name)
   const hasRecoverableName =
+    (!hasReservedTagsName || newType === 'tags') &&
+    (!hasReservedRelationName || newType === 'relation') &&
     (newType !== 'tags' || isTagsPropertyName(name)) &&
     (newType !== 'relation' || isRelationPropertyName(name))
   const hasValidInitialValue = newType !== 'date' || isIsoDateValue(newDate)
   const canCreateProperty = hasUniqueName && hasRecoverableName && hasValidInitialValue
+  const reservedNameError =
+    hasReservedTagsName && newType !== 'tags'
+      ? t('properties.reservedTagsNameError')
+      : hasReservedRelationName && newType !== 'relation'
+        ? t('properties.reservedRelationNameError')
+        : ''
 
   return (
     <div key={activeTab.path} style={{ padding: '16px 16px 20px' }}>
@@ -229,6 +241,14 @@ export function PropertiesPanel() {
           {newType === 'relation' && (
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
               {t('properties.relationNameHint')}
+            </div>
+          )}
+          {reservedNameError && (
+            <div
+              role="alert"
+              style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}
+            >
+              {reservedNameError}
             </div>
           )}
           <div style={{ display: 'flex', gap: 8 }}>

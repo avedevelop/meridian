@@ -477,6 +477,8 @@
   "properties.relationPlaceholder": "заметка, заметка",
   "properties.tagsNameHint": "Используйте «tag» или «tags» в имени свойства, чтобы оно оставалось полем тегов.",
   "properties.relationNameHint": "Используйте «related», «relation» или «link» в имени свойства, чтобы оно оставалось полем связей.",
+  "properties.reservedTagsNameError": "Имена с «tag» или «tags» можно создать только как поле тегов.",
+  "properties.reservedRelationNameError": "Имена с «related», «relation» или «link» можно создать только как поле связей.",
   "properties.type.text": "Текст",
   "properties.type.number": "Число",
   "properties.type.checkbox": "Флажок",

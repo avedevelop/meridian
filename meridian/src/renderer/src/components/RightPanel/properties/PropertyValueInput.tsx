@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FrontmatterValue } from '@shared/frontmatter'
-import { listValue, stringValue, type PropertyType } from './propertyType'
+import { isIsoDateValue, listValue, stringValue, type PropertyType } from './propertyType'
 
 interface PropertyValueInputProps {
   id: string
@@ -49,7 +49,22 @@ export function PropertyValueInput({ id, label, type, value, onChange }: Propert
   const commitValue = () => {
     if (type === 'number') {
       const number = Number(draft)
-      onChange(draft.trim() && Number.isFinite(number) ? number : null)
+      if (!draft.trim() || !Number.isFinite(number)) {
+        setDraft(sourceValue)
+        return
+      }
+
+      onChange(number)
+      return
+    }
+
+    if (type === 'date') {
+      if (!isIsoDateValue(draft)) {
+        setDraft(sourceValue)
+        return
+      }
+
+      onChange(draft)
       return
     }
 

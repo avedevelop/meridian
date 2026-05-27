@@ -477,6 +477,8 @@
   "properties.relationPlaceholder": "note, note",
   "properties.tagsNameHint": "Use \"tag\" or \"tags\" in the property name so this remains a tags field.",
   "properties.relationNameHint": "Use \"related\", \"relation\", or \"link\" in the property name so this remains a relation field.",
+  "properties.reservedTagsNameError": "Names containing \"tag\" or \"tags\" can only be created as tags fields.",
+  "properties.reservedRelationNameError": "Names containing \"related\", \"relation\", or \"link\" can only be created as relation fields.",
   "properties.type.text": "Text",
   "properties.type.number": "Number",
   "properties.type.checkbox": "Checkbox",

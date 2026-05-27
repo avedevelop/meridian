@@ -202,6 +202,36 @@ describe('PropertiesPanel', () => {
     expect(properties.related).toEqual(['Roadmap', 'Archive'])
   })
 
+  it('keeps number properties typed when a cleared value is committed', () => {
+    openNote('---\npriority: 3\n---\n\nBody')
+
+    const { unmount } = render(<PropertiesPanel />)
+    const priority = screen.getByLabelText('priority')
+    fireEvent.change(priority, { target: { value: '' } })
+    fireEvent.blur(priority)
+
+    expect(parseMarkdownFrontmatter(activeTab().content).properties.priority).toBe(3)
+    unmount()
+    render(<PropertiesPanel />)
+    expect(screen.getByLabelText('priority')).toHaveAttribute('type', 'number')
+    expect(screen.getByLabelText('priority')).toHaveValue(3)
+  })
+
+  it('keeps date properties typed when a cleared value is committed', () => {
+    openNote('---\ndue: 2026-05-28\n---\n\nBody')
+
+    const { unmount } = render(<PropertiesPanel />)
+    const due = screen.getByLabelText('due')
+    fireEvent.change(due, { target: { value: '' } })
+    fireEvent.blur(due)
+
+    expect(parseMarkdownFrontmatter(activeTab().content).properties.due).toBe('2026-05-28')
+    unmount()
+    render(<PropertiesPanel />)
+    expect(screen.getByLabelText('due')).toHaveAttribute('type', 'date')
+    expect(screen.getByLabelText('due')).toHaveValue('2026-05-28')
+  })
+
   it('keeps non-ISO date-key content visible until it is edited to a valid ISO date', () => {
     openNote('---\ndue: next Friday\n---\n\nBody')
 
@@ -218,11 +248,47 @@ describe('PropertiesPanel', () => {
     expect(screen.getByLabelText('due')).toHaveValue('2026-06-05')
   })
 
+  it('blocks date properties that use a reserved tags name', () => {
+    openNote('# Note\n\nBody')
+
+    render(<PropertiesPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'properties.addProperty' }))
+    fireEvent.change(screen.getByLabelText('properties.propertyName'), {
+      target: { value: 'tags' }
+    })
+    fireEvent.change(screen.getByLabelText('properties.newPropertyType'), {
+      target: { value: 'date' }
+    })
+    fireEvent.change(screen.getByLabelText('properties.initialDate'), {
+      target: { value: '2026-06-10' }
+    })
+
+    expect(screen.getByText('properties.reservedTagsNameError')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'properties.createProperty' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'properties.createProperty' }))
+    expect(parseMarkdownFrontmatter(activeTab().content).properties).toEqual({})
+  })
+
+  it('blocks text properties that use a reserved relation name', () => {
+    openNote('# Note\n\nBody')
+
+    render(<PropertiesPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'properties.addProperty' }))
+    fireEvent.change(screen.getByLabelText('properties.propertyName'), {
+      target: { value: 'related' }
+    })
+
+    expect(screen.getByText('properties.reservedRelationNameError')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'properties.createProperty' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'properties.createProperty' }))
+    expect(parseMarkdownFrontmatter(activeTab().content).properties).toEqual({})
+  })
+
   it('reconstructs created property controls after note navigation and remount', () => {
     openNote('# Note\n\nBody')
 
     const { unmount } = render(<PropertiesPanel />)
-    addProperty('tags')
+    addTypedProperty('tags', 'tags')
     expect(screen.getByLabelText('tags')).toHaveAttribute(
       'placeholder',
       'properties.tagsPlaceholder'
@@ -230,7 +296,7 @@ describe('PropertiesPanel', () => {
     fireEvent.change(screen.getByLabelText('tags'), { target: { value: 'work, ideas' } })
     fireEvent.blur(screen.getByLabelText('tags'))
 
-    addProperty('related')
+    addTypedProperty('related', 'relation')
     expect(screen.getByLabelText('related')).toHaveAttribute(
       'placeholder',
       'properties.relationPlaceholder'
