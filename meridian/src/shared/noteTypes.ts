@@ -16,7 +16,7 @@ interface TypedNoteContentInput {
   date: string
 }
 
-const INVALID_FILENAME_CHARS_RE = /[<>:"/\\|?*\u0000-\u001f]/g
+const INVALID_FILENAME_CHARS_RE = /[<>:"/\\|?*]/g
 const WHITESPACE_RE = /\s+/g
 
 function schema(
@@ -95,6 +95,9 @@ export function getDefaultNoteTypes(): NoteTypeDefinition[] {
 export function sanitizeNoteFileName(title: string): string {
   const cleanBase =
     title
+      .split('')
+      .filter((char) => char.charCodeAt(0) >= 32)
+      .join('')
       .replace(INVALID_FILENAME_CHARS_RE, ' ')
       .replace(WHITESPACE_RE, ' ')
       .trim()
