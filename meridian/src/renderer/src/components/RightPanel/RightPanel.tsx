@@ -5,10 +5,11 @@ import { TagsPanel } from './TagsPanel'
 import { TocPanel } from './TocPanel'
 import { LocalGraphView } from './LocalGraphView'
 import { PropertiesPanel } from './PropertiesPanel'
+import { RelationshipsPanel } from './RelationshipsPanel'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { SlidersIcon, LinkIcon, TagIcon, OutlineIcon, WebIcon } from '../Icons'
 
-type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties'
+type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties' | 'relationships'
 
 export function RightPanel() {
   const { t } = useTranslation()
@@ -20,6 +21,11 @@ export function RightPanel() {
       id: 'properties',
       label: t('rightPanel.properties'),
       Icon: (props: any) => <SlidersIcon size={15} {...props} />
+    },
+    {
+      id: 'relationships',
+      label: t('rightPanel.relationships'),
+      Icon: (props: any) => <LinkIcon size={15} {...props} />
     },
     plugins.backlinksPanel
       ? {
@@ -76,6 +82,7 @@ export function RightPanel() {
       )}
       <div className="right-panel-content">
         {effectiveTab === 'properties' && <PropertiesPanel />}
+        {effectiveTab === 'relationships' && <RelationshipsPanel />}
         {effectiveTab === 'backlinks' && <BacklinksPanel />}
         {effectiveTab === 'tags' && <TagsPanel />}
         {effectiveTab === 'toc' && <TocPanel />}

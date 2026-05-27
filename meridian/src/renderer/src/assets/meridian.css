@@ -243,6 +243,61 @@ button {
   gap: 8px;
 }
 
+.properties-section-heading {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.relationship-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--utility-divider);
+  border-radius: var(--utility-radius);
+  background: var(--utility-surface);
+}
+
+.relationship-key {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.relationship-link,
+.relationship-unresolved {
+  min-height: 28px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.relationship-link {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--accent-color);
+  cursor: pointer;
+}
+
+.relationship-link:hover {
+  background: var(--utility-surface-raised);
+  color: var(--text-primary);
+}
+
+.relationship-link:focus-visible {
+  outline: none;
+  box-shadow: var(--utility-focus-ring);
+}
+
+.relationship-unresolved {
+  border: 1px dashed var(--utility-divider);
+  color: var(--text-secondary);
+}
+
 .property-row,
 .properties-form {
   padding: 10px;
