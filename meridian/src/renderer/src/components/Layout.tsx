@@ -14,8 +14,10 @@ interface LayoutProps {
   setSidebarCollapsed: (c: boolean) => void
   rightPanelCollapsed: boolean
   setRightPanelCollapsed: (c: boolean) => void
-  activeSidebarTab?: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
-  onSidebarTabChange?: (tab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git') => void
+  activeSidebarTab?: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
+  onSidebarTabChange?: (
+    tab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
+  ) => void
 }
 
 const SIDEBAR_MIN_WIDTH = 180

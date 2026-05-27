@@ -4,7 +4,9 @@ import { getDefaultSavedViews, type SavedView } from '@shared/views'
 interface ViewsState {
   vaultPath: string | null
   views: SavedView[]
+  activeViewId: string
   load: (vaultPath: string) => void
+  setActiveView: (id: string) => void
   saveView: (view: SavedView) => void
   deleteView: (id: string) => void
   reset: () => void
@@ -43,10 +45,13 @@ function mergedViews(custom: SavedView[]): SavedView[] {
 export const useViewsStore = create<ViewsState>((set, get) => ({
   vaultPath: null,
   views: getDefaultSavedViews(),
+  activeViewId: 'inbox',
 
   load: (vaultPath) => {
     set({ vaultPath, views: mergedViews(readCustomViews(vaultPath)) })
   },
+
+  setActiveView: (id) => set({ activeViewId: id }),
 
   saveView: (view) => {
     const { vaultPath, views } = get()
@@ -66,5 +71,5 @@ export const useViewsStore = create<ViewsState>((set, get) => ({
     set({ views: next })
   },
 
-  reset: () => set({ vaultPath: null, views: getDefaultSavedViews() })
+  reset: () => set({ vaultPath: null, views: getDefaultSavedViews(), activeViewId: 'inbox' })
 }))

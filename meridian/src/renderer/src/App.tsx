@@ -60,6 +60,7 @@ import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
 import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
 import { useSettingsStore } from './store/useSettingsStore'
+import { useViewsStore } from './store/useViewsStore'
 import { initI18n, i18n } from './i18n/index'
 import type { NoteTypeDefinition } from '@shared/types'
 
@@ -298,7 +299,7 @@ export default function App() {
   }, [vault, pluginsEnabled, pluginAPI, pluginReloadCounter])
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<
-    'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
+    'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
   >('files')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('layout-sidebar-collapsed') === 'true'
@@ -606,6 +607,19 @@ export default function App() {
 
   const paletteCommands = useMemo(() => {
     const staticCmds = [
+      ...['inbox', 'projects', 'tasks', 'daily'].map((viewId) => ({
+        id: `open-view-${viewId}`,
+        label: i18n.t('views.commandOpen', {
+          view: i18n.t(`views.defaults.${viewId}`)
+        }),
+        icon: '☰',
+        onSelect: () => {
+          useViewsStore.getState().setActiveView(viewId)
+          setActiveSidebarTab('views')
+          setSidebarCollapsed(false)
+          localStorage.setItem('layout-sidebar-collapsed', 'false')
+        }
+      })),
       ...noteTypes.slice(0, 6).map((type) => ({
         id: `create-as-${type.id}`,
         label: i18n.t('noteTypes.commandCreateAs', {
