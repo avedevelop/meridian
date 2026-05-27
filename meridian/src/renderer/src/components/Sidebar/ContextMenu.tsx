@@ -102,8 +102,8 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
           <div
             key={item.label}
             onClick={() => {
-              item.onClick()
               onClose()
+              item.onClick()
             }}
             style={{
               padding: '7px 14px',

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell, protocol, Menu } from 'electron'
 import { join, resolve, sep, extname } from 'path'
 import { readFile } from 'fs/promises'
+import { existsSync, readFileSync } from 'fs'
 import { AppSettings } from './settings'
 import { parseAppPluginUrl, parsePluginUrl } from '../shared/pluginUrl'
 import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
@@ -41,76 +42,213 @@ const MIME: Record<string, string> = {
 
 const settings = new AppSettings()
 
+type MenuLanguage = 'en' | 'ru'
+
+const menuLabels: Record<
+  MenuLanguage,
+  {
+    file: string
+    edit: string
+    view: string
+    window: string
+    help: string
+    newNote: string
+    newDailyNote: string
+    openVault: string
+    save: string
+    exportHtml: string
+    exportPdf: string
+    closeTab: string
+    undo: string
+    redo: string
+    cut: string
+    copy: string
+    paste: string
+    selectAll: string
+    commandPalette: string
+    settings: string
+    graphView: string
+    resetLayout: string
+    reload: string
+    toggleDevTools: string
+    resetZoom: string
+    zoomIn: string
+    zoomOut: string
+    toggleFullscreen: string
+    minimize: string
+    zoom: string
+    front: string
+    githubRepository: string
+  }
+> = {
+  en: {
+    file: 'File',
+    edit: 'Edit',
+    view: 'View',
+    window: 'Window',
+    help: 'Help',
+    newNote: 'New Note',
+    newDailyNote: 'New Daily Note',
+    openVault: 'Open Vault…',
+    save: 'Save',
+    exportHtml: 'Export to HTML…',
+    exportPdf: 'Export to PDF…',
+    closeTab: 'Close Tab',
+    undo: 'Undo',
+    redo: 'Redo',
+    cut: 'Cut',
+    copy: 'Copy',
+    paste: 'Paste',
+    selectAll: 'Select All',
+    commandPalette: 'Command Palette',
+    settings: 'Settings',
+    graphView: 'Graph View',
+    resetLayout: 'Reset Layout',
+    reload: 'Reload',
+    toggleDevTools: 'Toggle Developer Tools',
+    resetZoom: 'Actual Size',
+    zoomIn: 'Zoom In',
+    zoomOut: 'Zoom Out',
+    toggleFullscreen: 'Toggle Full Screen',
+    minimize: 'Minimize',
+    zoom: 'Zoom',
+    front: 'Bring All to Front',
+    githubRepository: 'GitHub Repository'
+  },
+  ru: {
+    file: 'Файл',
+    edit: 'Правка',
+    view: 'Вид',
+    window: 'Окно',
+    help: 'Справка',
+    newNote: 'Новая заметка',
+    newDailyNote: 'Новая ежедневная заметка',
+    openVault: 'Открыть хранилище…',
+    save: 'Сохранить',
+    exportHtml: 'Экспорт в HTML…',
+    exportPdf: 'Экспорт в PDF…',
+    closeTab: 'Закрыть вкладку',
+    undo: 'Отменить',
+    redo: 'Повторить',
+    cut: 'Вырезать',
+    copy: 'Копировать',
+    paste: 'Вставить',
+    selectAll: 'Выделить всё',
+    commandPalette: 'Палитра команд',
+    settings: 'Настройки',
+    graphView: 'Граф',
+    resetLayout: 'Сбросить макет',
+    reload: 'Перезагрузить',
+    toggleDevTools: 'Инструменты разработчика',
+    resetZoom: 'Реальный размер',
+    zoomIn: 'Увеличить',
+    zoomOut: 'Уменьшить',
+    toggleFullscreen: 'Во весь экран',
+    minimize: 'Свернуть',
+    zoom: 'Масштабировать',
+    front: 'Все окна на передний план',
+    githubRepository: 'Репозиторий GitHub'
+  }
+}
+
+let currentMenuLanguage: MenuLanguage = 'en'
+
+function normalizeMenuLanguage(language: unknown): MenuLanguage {
+  return language === 'ru' ? 'ru' : 'en'
+}
+
+function readMenuLanguage(): MenuLanguage {
+  try {
+    const prefPath = join(app.getPath('userData'), 'meridian', 'preferences.json')
+    if (!existsSync(prefPath)) return 'en'
+    const prefs = JSON.parse(readFileSync(prefPath, 'utf-8')) as { language?: unknown }
+    return normalizeMenuLanguage(prefs.language)
+  } catch {
+    return 'en'
+  }
+}
+
 function send(action: string) {
   BrowserWindow.getFocusedWindow()?.webContents.send('menu:action', action)
 }
 
 function buildMenu() {
+  currentMenuLanguage = readMenuLanguage()
+  const labels = menuLabels[currentMenuLanguage]
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'File',
+      label: labels.file,
       submenu: [
-        { label: 'New Note', accelerator: 'CmdOrCtrl+N', click: () => send('new-file') },
-        { label: 'New Daily Note', accelerator: 'CmdOrCtrl+D', click: () => send('daily-note') },
-        { type: 'separator' },
-        { label: 'Open Vault…', accelerator: 'CmdOrCtrl+O', click: () => send('open-vault') },
-        { type: 'separator' },
-        { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => send('save') },
-        { label: 'Export to HTML…', accelerator: 'CmdOrCtrl+E', click: () => send('export-html') },
+        { label: labels.newNote, accelerator: 'CmdOrCtrl+N', click: () => send('new-file') },
         {
-          label: 'Export to PDF…',
+          label: labels.newDailyNote,
+          accelerator: 'CmdOrCtrl+D',
+          click: () => send('daily-note')
+        },
+        { type: 'separator' },
+        { label: labels.openVault, accelerator: 'CmdOrCtrl+O', click: () => send('open-vault') },
+        { type: 'separator' },
+        { label: labels.save, accelerator: 'CmdOrCtrl+S', click: () => send('save') },
+        { label: labels.exportHtml, accelerator: 'CmdOrCtrl+E', click: () => send('export-html') },
+        {
+          label: labels.exportPdf,
           accelerator: 'CmdOrCtrl+Shift+E',
           click: () => send('export-pdf')
         },
         { type: 'separator' },
-        { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => send('close-tab') }
+        { label: labels.closeTab, accelerator: 'CmdOrCtrl+W', click: () => send('close-tab') }
       ]
     },
     {
-      label: 'Edit',
+      label: labels.edit,
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { label: labels.undo, role: 'undo' },
+        { label: labels.redo, role: 'redo' },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
+        { label: labels.cut, role: 'cut' },
+        { label: labels.copy, role: 'copy' },
+        { label: labels.paste, role: 'paste' },
+        { label: labels.selectAll, role: 'selectAll' },
         { type: 'separator' },
         {
-          label: 'Command Palette',
+          label: labels.commandPalette,
           accelerator: 'CmdOrCtrl+K',
           click: () => send('command-palette')
         }
       ]
     },
     {
-      label: 'View',
+      label: labels.view,
       submenu: [
-        { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => send('settings') },
+        { label: labels.settings, accelerator: 'CmdOrCtrl+,', click: () => send('settings') },
         { type: 'separator' },
-        { label: 'Graph View', accelerator: 'CmdOrCtrl+Shift+G', click: () => send('graph-view') },
-        { label: 'Reset Layout', click: () => send('reset-layout') },
+        { label: labels.graphView, accelerator: 'CmdOrCtrl+Shift+G', click: () => send('graph-view') },
+        { label: labels.resetLayout, click: () => send('reset-layout') },
         { type: 'separator' },
-        { role: 'reload' },
-        { role: 'toggleDevTools' },
+        { label: labels.reload, role: 'reload' },
+        { label: labels.toggleDevTools, role: 'toggleDevTools' },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
+        { label: labels.resetZoom, role: 'resetZoom' },
+        { label: labels.zoomIn, role: 'zoomIn' },
+        { label: labels.zoomOut, role: 'zoomOut' },
         { type: 'separator' },
-        { role: 'togglefullscreen' }
+        { label: labels.toggleFullscreen, role: 'togglefullscreen' }
       ]
     },
     {
-      label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }]
+      label: labels.window,
+      submenu: [
+        { label: labels.minimize, role: 'minimize' },
+        { label: labels.zoom, role: 'zoom' },
+        { type: 'separator' },
+        { label: labels.front, role: 'front' }
+      ]
     },
     {
-      label: 'Help',
+      label: labels.help,
       submenu: [
         {
-          label: 'GitHub Repository',
+          label: labels.githubRepository,
           click: () => shell.openExternal('https://github.com/avedevelop/meridian')
         }
       ]
@@ -256,7 +394,10 @@ app.whenReady().then(() => {
     }
   })
 
-  registerIpcHandlers(settings)
+  registerIpcHandlers(settings, (preferences) => {
+    const nextLanguage = normalizeMenuLanguage(preferences.language)
+    if (nextLanguage !== currentMenuLanguage) buildMenu()
+  })
   createWindow()
   buildMenu()
 

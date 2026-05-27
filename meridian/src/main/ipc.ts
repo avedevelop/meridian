@@ -171,7 +171,10 @@ function stopPluginWatcher(): void {
   pluginChangeDebounce.clear()
 }
 
-export function registerIpcHandlers(settings: AppSettings): void {
+export function registerIpcHandlers(
+  settings: AppSettings,
+  onPreferencesChanged?: (preferences: Record<string, unknown>) => void
+): void {
   ipcMain.handle(IPC.VAULT_OPEN_DIALOG, async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
@@ -363,6 +366,7 @@ export function registerIpcHandlers(settings: AppSettings): void {
       const { app } = await import('electron')
       const prefPath = join(app.getPath('userData'), 'meridian', 'preferences.json')
       writeFileSync(prefPath, JSON.stringify(prefs, null, 2), 'utf-8')
+      onPreferencesChanged?.(prefs)
     } catch (e) {
       console.error('[IPC] Error writing preferences:', e)
     }

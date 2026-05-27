@@ -48,6 +48,8 @@
   "tasks.completed": "Completed",
   "tasks.all": "All",
   "tasks.scanning": "Scanning vault…",
+  "tasks.newTask": "New task",
+  "tasks.newTaskText": "New task",
 
   "search.placeholder": "Search notes…",
   "search.noResults": "No results",
@@ -403,6 +405,11 @@
   "calendar.today": "Today",
   "calendar.recentEdits": "Recent Edits",
   "calendar.noFiles": "No files found.",
+  "calendar.noFilesForDates": "No files for selected dates.",
+  "calendar.selectedDates": "{{count}} selected",
+  "calendar.clearDates": "Clear",
+  "calendar.filterByDate": "Click to filter by date",
+  "calendar.openDailyNote": "Click to filter, double-click to open daily note",
 
   "gitPanel.setupDesc": "Complete these steps to back up your notes automatically.",
   "gitPanel.connectRepo": "Connect Repository",

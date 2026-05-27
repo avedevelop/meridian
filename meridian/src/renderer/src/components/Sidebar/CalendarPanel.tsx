@@ -15,6 +15,7 @@ export function CalendarPanel() {
   }, [indexVersion])
 
   const [currentDate, setCurrentDate] = useState(() => new Date())
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set())
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
@@ -63,8 +64,17 @@ export function CalendarPanel() {
     return allFiles.find((f) => f.replace(/\\/g, '/').endsWith(target)) || null
   }
 
-  // Handle clicking a calendar day cell
-  const handleDayClick = async (dayNum: number) => {
+  const handleDayClick = (dayNum: number) => {
+    const dateStr = formatDateStr(dayNum)
+    setSelectedDates((prev) => {
+      const next = new Set(prev)
+      next.has(dateStr) ? next.delete(dateStr) : next.add(dateStr)
+      return next
+    })
+  }
+
+  // Handle opening or creating a daily note for a date
+  const handleDayDoubleClick = async (dayNum: number) => {
     if (!vault) return
     const dateStr = formatDateStr(dayNum)
     const existingPath = getDailyNotePath(dateStr)
@@ -117,9 +127,18 @@ export function CalendarPanel() {
     }
     recurse(files)
 
+    const selected = Array.from(selectedDates)
+    const filtered =
+      selected.length === 0
+        ? flat
+        : flat.filter((item) => {
+            const normalized = `${item.path}/${item.name}`.replace(/\\/g, '/')
+            return selected.some((date) => normalized.includes(date))
+          })
+
     // Sort descending by modified time
-    return flat.sort((a, b) => b.mtime - a.mtime).slice(0, 10)
-  }, [files, indexVersion])
+    return filtered.sort((a, b) => b.mtime - a.mtime).slice(0, 10)
+  }, [files, indexVersion, selectedDates])
 
   const todayStr = useMemo(() => {
     const d = new Date()
@@ -239,11 +258,14 @@ export function CalendarPanel() {
             const dateStr = formatDateStr(day)
             const isToday = dateStr === todayStr
             const existingPath = getDailyNotePath(dateStr)
+            const isSelected = selectedDates.has(dateStr)
 
             return (
               <div
                 key={`day-${day}`}
                 onClick={() => handleDayClick(day)}
+                onDoubleClick={() => handleDayDoubleClick(day)}
+                title={existingPath ? t('calendar.openDailyNote') : t('calendar.filterByDate')}
                 style={{
                   position: 'relative',
                   aspectRatio: '1',
@@ -254,21 +276,33 @@ export function CalendarPanel() {
                   borderRadius: 6,
                   color: existingPath ? 'var(--accent-color)' : 'var(--text-primary)',
                   fontWeight: existingPath ? '700' : 'normal',
-                  background: existingPath
+                  background: isSelected
+                    ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.24)'
+                    : existingPath
                     ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.12)'
                     : 'transparent',
-                  border: isToday ? '1px solid var(--accent-color)' : '1px solid transparent',
-                  boxShadow: existingPath
+                  border: isSelected
+                    ? '1px solid var(--accent-color)'
+                    : isToday
+                      ? '1px solid var(--accent-color)'
+                      : '1px solid transparent',
+                  boxShadow: isSelected
+                    ? '0 0 0 1px rgba(var(--accent-rgb, 100, 108, 255), 0.35)'
+                    : existingPath
                     ? '0 0 8px rgba(var(--accent-rgb, 100, 108, 255), 0.2)'
                     : 'none'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = existingPath
+                  e.currentTarget.style.background = isSelected
+                    ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.32)'
+                    : existingPath
                     ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.22)'
                     : 'var(--bg-surface)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = existingPath
+                  e.currentTarget.style.background = isSelected
+                    ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.24)'
+                    : existingPath
                     ? 'rgba(var(--accent-rgb, 100, 108, 255), 0.12)'
                     : 'transparent'
                 }}
@@ -290,6 +324,36 @@ export function CalendarPanel() {
             )
           })}
         </div>
+        {selectedDates.size > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 10,
+              color: 'var(--text-secondary)',
+              fontSize: 11
+            }}
+          >
+            <span style={{ flex: 1 }}>
+              {t('calendar.selectedDates', { count: selectedDates.size })}
+            </span>
+            <button
+              onClick={() => setSelectedDates(new Set())}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border-color)',
+                borderRadius: 5,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontSize: 11,
+                padding: '3px 7px'
+              }}
+            >
+              {t('calendar.clearDates')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Recent edits list */}
@@ -339,7 +403,7 @@ export function CalendarPanel() {
           ))}
           {recentEdits.length === 0 && (
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '4px 8px' }}>
-              {t('calendar.noFiles')}
+              {selectedDates.size > 0 ? t('calendar.noFilesForDates') : t('calendar.noFiles')}
             </span>
           )}
         </div>

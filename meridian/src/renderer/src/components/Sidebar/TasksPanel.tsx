@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
-import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { useVaultBridge, uniqueFileName } from '../../hooks/useVaultBridge'
 import { FileIcon } from '../Icons'
 
 interface TaskItem {
@@ -16,8 +16,8 @@ interface TaskItem {
 
 export function TasksPanel() {
   const { t } = useTranslation()
-  const { openFile, saveFile } = useVaultBridge()
-  const { openTabs, setTabContent } = useVaultStore()
+  const { openFile, saveFile, refreshFiles } = useVaultBridge()
+  const { vault, files, openTabs, activeTabPath, setTabContent } = useVaultStore()
   const indexVersion = useLinkStore((s) => s.indexVersion)
   const allFiles = useMemo(() => {
     return useLinkStore.getState().allFiles()
@@ -27,6 +27,43 @@ export function TasksPanel() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'all'>('pending')
   const [searchQuery, setSearchQuery] = useState('')
+
+  const handleCreateTask = async () => {
+    if (!vault) return
+
+    try {
+      const activeTab = openTabs.find((tab) => tab.path === activeTabPath)
+      const activeMarkdownTab =
+        activeTab && activeTab.path.toLowerCase().endsWith('.md') ? activeTab : null
+      const existingTasksPath =
+        allFiles.find((path) => path.replace(/\\/g, '/').endsWith('/Tasks.md')) ??
+        allFiles.find((path) => path.replace(/\\/g, '/').endsWith('/tasks.md'))
+
+      let targetPath = activeMarkdownTab?.path ?? existingTasksPath
+      let targetName = activeMarkdownTab?.name ?? targetPath?.split(/[\\/]/).pop() ?? 'Tasks.md'
+      let content = activeMarkdownTab?.content
+
+      if (!targetPath) {
+        targetName = uniqueFileName(vault.path, 'Tasks', 'md', files)
+        targetPath = await window.vault.createFile(vault.path, targetName)
+        content = ''
+        await refreshFiles()
+      }
+
+      if (content === undefined) {
+        content = await window.vault.readFile(targetPath)
+      }
+
+      const suffix = content.trim().length > 0 ? '\n' : ''
+      const nextContent = `${content}${suffix}- [ ] ${t('tasks.newTaskText')}\n`
+      await saveFile(targetPath, nextContent)
+      setTabContent(targetPath, nextContent)
+      await openFile(targetPath, targetName)
+      setActiveTab('pending')
+    } catch (err) {
+      console.error('[TasksPanel] Error creating task:', err)
+    }
+  }
 
   // Scan all markdown files for checklists
   useEffect(() => {
@@ -138,22 +175,62 @@ export function TasksPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Search Filter Header */}
       <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-color)' }}>
-        <input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t('tasks.filter')}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('tasks.filter')}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: '6px 10px',
+              borderRadius: 6,
+              background: 'var(--bg-surface)',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--text-primary)',
+              fontSize: 12
+            }}
+          />
+          <button
+            onClick={handleCreateTask}
+            title={t('tasks.newTask')}
+            disabled={!vault}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 6,
+              background: 'var(--accent-glow)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--accent-color)',
+              cursor: vault ? 'pointer' : 'not-allowed',
+              fontSize: 18,
+              lineHeight: 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            +
+          </button>
+        </div>
+        <button
+          onClick={handleCreateTask}
           style={{
             width: '100%',
-            padding: '6px 10px',
+            padding: '6px 0',
             borderRadius: 6,
-            background: 'var(--bg-surface)',
-            border: 'none',
-            outline: 'none',
-            color: 'var(--text-primary)',
+            background: 'transparent',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-secondary)',
             fontSize: 12,
+            cursor: 'pointer',
             marginBottom: 8
           }}
-        />
+        >
+          {t('tasks.newTask')}
+        </button>
 
         {/* Categories Tab Selector */}
         <div

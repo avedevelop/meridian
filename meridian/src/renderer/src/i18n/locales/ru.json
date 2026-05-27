@@ -48,6 +48,8 @@
   "tasks.completed": "Завершено",
   "tasks.all": "Все",
   "tasks.scanning": "Сканирование хранилища…",
+  "tasks.newTask": "Новая задача",
+  "tasks.newTaskText": "Новая задача",
 
   "search.placeholder": "Поиск заметок…",
   "search.noResults": "Нет результатов",
@@ -403,6 +405,11 @@
   "calendar.today": "Сегодня",
   "calendar.recentEdits": "Недавние изменения",
   "calendar.noFiles": "Файлы не найдены.",
+  "calendar.noFilesForDates": "Файлы за выбранные даты не найдены.",
+  "calendar.selectedDates": "Выбрано: {{count}}",
+  "calendar.clearDates": "Сбросить",
+  "calendar.filterByDate": "Нажмите, чтобы фильтровать по дате",
+  "calendar.openDailyNote": "Нажмите для фильтра, дважды нажмите, чтобы открыть ежедневную заметку",
 
   "gitPanel.setupDesc": "Выполните эти шаги, чтобы автоматически создавать резервные копии ваших заметок.",
   "gitPanel.connectRepo": "Подключить репозиторий",
