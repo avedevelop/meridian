@@ -110,9 +110,8 @@ function normalizeProperties(value: unknown): NormalizePropertiesResult {
     }
 
     if (Array.isArray(rawValue)) {
-      const items = rawValue.map(normalizePrimitive)
-      if (items.every((item): item is FrontmatterPrimitive => item !== undefined)) {
-        properties[key] = items
+      if (rawValue.every((item): item is string => typeof item === 'string')) {
+        properties[key] = rawValue
         continue
       }
     }

@@ -32,7 +32,7 @@ describe('parseMarkdownFrontmatter', () => {
     expect(result.raw).toBe('')
   })
 
-  it('parses YAML strings, arrays, numbers, booleans, and null values', () => {
+  it('parses YAML strings, string arrays, numbers, booleans, and null values', () => {
     const result = parseMarkdownFrontmatter(
       [
         '---',
@@ -111,6 +111,17 @@ describe('parseMarkdownFrontmatter', () => {
 
   it('returns an error result for unsupported nested list values', () => {
     const result = parseMarkdownFrontmatter('---\ntitle: Note\nitems:\n  - name: One\n---\n\nBody')
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    if (!result.ok) {
+      expect(result.error).toContain('unsupported')
+    }
+  })
+
+  it('returns an error result for unsupported non-string array values', () => {
+    const result = parseMarkdownFrontmatter('---\ntitle: Note\nscores: [1, 2]\n---\n\nBody')
 
     expect(result.ok).toBe(false)
     expect(result.hasFrontmatter).toBe(true)
@@ -281,6 +292,14 @@ describe('frontmatter updates', () => {
 
     expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
     expect(removeFrontmatterProperty(content, 'title')).toBe(content)
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves unsupported non-string array frontmatter unchanged for all write helpers', () => {
+    const content = '---\ntitle: Note\nscores: [1, 2]\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+    expect(removeFrontmatterProperty(content, 'scores')).toBe(content)
     expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
   })
 
