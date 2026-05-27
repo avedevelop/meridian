@@ -2,9 +2,18 @@ import type { FrontmatterValue } from '@shared/frontmatter'
 
 export type PropertyType = 'text' | 'number' | 'checkbox' | 'date' | 'tags' | 'relation'
 
+export const PROPERTY_TYPES: PropertyType[] = [
+  'text',
+  'number',
+  'checkbox',
+  'date',
+  'tags',
+  'relation'
+]
+
 const dateValuePattern = /^\d{4}-\d{2}-\d{2}$/
 
-function isIsoDateValue(value: string): boolean {
+export function isIsoDateValue(value: string): boolean {
   if (!dateValuePattern.test(value)) return false
 
   const [year, month, day] = value.split('-').map(Number)
@@ -16,17 +25,39 @@ function isIsoDateValue(value: string): boolean {
   )
 }
 
-export function inferPropertyType(name: string, value: FrontmatterValue): PropertyType {
-  const normalizedName = name.toLowerCase()
+export function isTagsPropertyName(name: string): boolean {
+  return /(^|[-_ ])tags?([-_ ]|$)/.test(name.toLowerCase())
+}
 
+export function isRelationPropertyName(name: string): boolean {
+  return /(^|[-_ ])(relations?|related|links?)([-_ ]|$)/.test(name.toLowerCase())
+}
+
+export function inferPropertyType(name: string, value: FrontmatterValue): PropertyType {
   if (typeof value === 'boolean') return 'checkbox'
   if (typeof value === 'number') return 'number'
-  if (/(^|[-_ ])tags?([-_ ]|$)/.test(normalizedName)) return 'tags'
-  if (/(^|[-_ ])(relations?|related|links?)([-_ ]|$)/.test(normalizedName)) return 'relation'
+  if (isTagsPropertyName(name)) return 'tags'
+  if (isRelationPropertyName(name)) return 'relation'
   if (typeof value === 'string' && isIsoDateValue(value)) return 'date'
   if (Array.isArray(value)) return 'tags'
 
   return 'text'
+}
+
+export function initialPropertyValue(type: PropertyType, date: string): FrontmatterValue {
+  switch (type) {
+    case 'number':
+      return 0
+    case 'checkbox':
+      return false
+    case 'date':
+      return date
+    case 'tags':
+    case 'relation':
+      return []
+    case 'text':
+      return ''
+  }
 }
 
 export function stringValue(value: FrontmatterValue): string {

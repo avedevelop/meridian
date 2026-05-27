@@ -35,6 +35,22 @@ function addProperty(name: string) {
   fireEvent.click(screen.getByRole('button', { name: 'properties.createProperty' }))
 }
 
+function addTypedProperty(name: string, type: string, initialDate?: string) {
+  fireEvent.click(screen.getByRole('button', { name: 'properties.addProperty' }))
+  fireEvent.change(screen.getByLabelText('properties.propertyName'), {
+    target: { value: name }
+  })
+  fireEvent.change(screen.getByLabelText('properties.newPropertyType'), {
+    target: { value: type }
+  })
+  if (initialDate) {
+    fireEvent.change(screen.getByLabelText('properties.initialDate'), {
+      target: { value: initialDate }
+    })
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'properties.createProperty' }))
+}
+
 beforeEach(() => {
   useVaultStore.setState({
     panes: [{ id: PANE_ID, openTabs: [], activeTabPath: null }],
@@ -75,6 +91,65 @@ describe('PropertiesPanel', () => {
     expect(prompt).not.toHaveBeenCalled()
     expect(parseMarkdownFrontmatter(activeTab().content).properties.priority).toBe('')
     expect(activeTab().isDirty).toBe(true)
+  })
+
+  it('creates number and checkbox properties that remount as typed controls', () => {
+    openNote('# Note\n\nBody')
+
+    const { unmount } = render(<PropertiesPanel />)
+    addTypedProperty('priority', 'number')
+    addTypedProperty('done', 'checkbox')
+
+    expect(parseMarkdownFrontmatter(activeTab().content).properties).toMatchObject({
+      priority: 0,
+      done: false
+    })
+    unmount()
+    render(<PropertiesPanel />)
+    expect(screen.getByLabelText('priority')).toHaveAttribute('type', 'number')
+    expect(screen.getByRole('checkbox', { name: 'done' })).not.toBeChecked()
+  })
+
+  it('creates date, tags, and relation properties with recoverable controls', () => {
+    openNote('# Note\n\nBody')
+
+    const { unmount } = render(<PropertiesPanel />)
+    addTypedProperty('due', 'date', '2026-06-10')
+    addTypedProperty('tags', 'tags')
+    addTypedProperty('related', 'relation')
+
+    expect(parseMarkdownFrontmatter(activeTab().content).properties).toMatchObject({
+      due: '2026-06-10',
+      tags: [],
+      related: []
+    })
+    unmount()
+    render(<PropertiesPanel />)
+    expect(screen.getByLabelText('due')).toHaveAttribute('type', 'date')
+    expect(screen.getByLabelText('tags')).toHaveAttribute(
+      'placeholder',
+      'properties.tagsPlaceholder'
+    )
+    expect(screen.getByLabelText('related')).toHaveAttribute(
+      'placeholder',
+      'properties.relationPlaceholder'
+    )
+  })
+
+  it('requires a recognizable relation name during typed creation', () => {
+    openNote('# Note\n\nBody')
+
+    render(<PropertiesPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'properties.addProperty' }))
+    fireEvent.change(screen.getByLabelText('properties.propertyName'), {
+      target: { value: 'connections' }
+    })
+    fireEvent.change(screen.getByLabelText('properties.newPropertyType'), {
+      target: { value: 'relation' }
+    })
+
+    expect(screen.getByText('properties.relationNameHint')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'properties.createProperty' })).toBeDisabled()
   })
 
   it('edits a text property and marks its tab dirty', () => {

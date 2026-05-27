@@ -8,7 +8,15 @@ import {
 } from '@shared/frontmatter'
 import { useVaultStore } from '../../store/useVaultStore'
 import { PropertyRow } from './properties/PropertyRow'
-import { inferPropertyType } from './properties/propertyType'
+import {
+  PROPERTY_TYPES,
+  inferPropertyType,
+  initialPropertyValue,
+  isIsoDateValue,
+  isRelationPropertyName,
+  isTagsPropertyName,
+  type PropertyType
+} from './properties/propertyType'
 
 const formInputStyle = {
   width: '100%',
@@ -32,10 +40,14 @@ export function PropertiesPanel() {
   const activeTab = activePane?.openTabs.find((tab) => tab.path === activePane.activeTabPath)
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newType, setNewType] = useState<PropertyType>('text')
+  const [newDate, setNewDate] = useState('')
 
   useEffect(() => {
     setIsAdding(false)
     setNewName('')
+    setNewType('text')
+    setNewDate('')
   }, [activeTab?.path])
 
   const frontmatter = useMemo(() => {
@@ -74,9 +86,14 @@ export function PropertiesPanel() {
 
     const name = newName.trim()
     if (!name || Object.prototype.hasOwnProperty.call(frontmatter.properties, name)) return
+    if (newType === 'date' && !isIsoDateValue(newDate)) return
+    if (newType === 'tags' && !isTagsPropertyName(name)) return
+    if (newType === 'relation' && !isRelationPropertyName(name)) return
 
-    handleChange(name, '')
+    handleChange(name, initialPropertyValue(newType, newDate))
     setNewName('')
+    setNewType('text')
+    setNewDate('')
     setIsAdding(false)
   }
 
@@ -90,8 +107,13 @@ export function PropertiesPanel() {
 
   const properties = frontmatter?.properties ?? {}
   const propertyEntries = Object.entries(properties)
-  const canCreateProperty =
-    Boolean(newName.trim()) && !Object.prototype.hasOwnProperty.call(properties, newName.trim())
+  const name = newName.trim()
+  const hasUniqueName = Boolean(name) && !Object.prototype.hasOwnProperty.call(properties, name)
+  const hasRecoverableName =
+    (newType !== 'tags' || isTagsPropertyName(name)) &&
+    (newType !== 'relation' || isRelationPropertyName(name))
+  const hasValidInitialValue = newType !== 'date' || isIsoDateValue(newDate)
+  const canCreateProperty = hasUniqueName && hasRecoverableName && hasValidInitialValue
 
   return (
     <div key={activeTab.path} style={{ padding: '16px 16px 20px' }}>
@@ -170,6 +192,45 @@ export function PropertiesPanel() {
               style={{ ...formInputStyle, marginTop: 4 }}
             />
           </label>
+          <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {t('properties.newPropertyType')}
+            <select
+              value={newType}
+              onChange={(event) => {
+                const type = event.target.value as PropertyType
+                setNewType(type)
+                if (type !== 'date') setNewDate('')
+              }}
+              style={{ ...formInputStyle, marginTop: 4 }}
+            >
+              {PROPERTY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`properties.type.${type}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {newType === 'date' && (
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              {t('properties.initialDate')}
+              <input
+                type="date"
+                value={newDate}
+                onChange={(event) => setNewDate(event.target.value)}
+                style={{ ...formInputStyle, marginTop: 4 }}
+              />
+            </label>
+          )}
+          {newType === 'tags' && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              {t('properties.tagsNameHint')}
+            </div>
+          )}
+          {newType === 'relation' && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              {t('properties.relationNameHint')}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               type="submit"
