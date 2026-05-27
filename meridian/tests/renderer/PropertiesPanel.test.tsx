@@ -80,6 +80,21 @@ describe('PropertiesPanel', () => {
     expect(screen.getByText('properties.empty')).toBeInTheDocument()
   })
 
+  it('exposes soft workspace structure and reusable control classes', () => {
+    openNote('---\ntitle: Note\nsummary: Brief\n---\n\nBody')
+
+    render(<PropertiesPanel />)
+
+    const workspace = screen.getByRole('region', { name: 'rightPanel.properties' })
+    expect(workspace).toHaveClass('properties-workspace')
+    expect(screen.getByText('title').closest('.property-row')).toBeInTheDocument()
+    expect(screen.getByLabelText('title')).toHaveClass('properties-control')
+    expect(screen.getByRole('button', { name: 'properties.deleteProperty title' })).toHaveClass(
+      'properties-icon-button',
+      'properties-icon-button--danger'
+    )
+  })
+
   it('adds a property inline without opening a browser prompt', () => {
     const prompt = vi.fn()
     vi.stubGlobal('prompt', prompt)

@@ -17,24 +17,16 @@ export function PropertyRow({ name, type, value, onValueChange, onDelete }: Prop
   const inputId = useId()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <label htmlFor={inputId} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+    <div className="property-row">
+      <div className="property-row__header">
+        <label htmlFor={inputId} className="property-row__label">
           {name}
         </label>
         <button
           type="button"
           aria-label={`${t('properties.deleteProperty')} ${name}`}
           onClick={onDelete}
-          style={{
-            border: 0,
-            background: 'transparent',
-            color: 'var(--text-secondary)',
-            fontSize: 16,
-            lineHeight: 1,
-            padding: '2px 4px',
-            cursor: 'pointer'
-          }}
+          className="properties-icon-button properties-icon-button--danger"
         >
           &times;
         </button>

@@ -11,19 +11,6 @@ interface PropertyValueInputProps {
   onChange: (value: FrontmatterValue) => void
 }
 
-const inputStyle = {
-  width: '100%',
-  padding: '6px 10px',
-  background: 'var(--bg-surface)',
-  border: '1px solid var(--border-color)',
-  borderRadius: 6,
-  color: 'var(--text-primary)',
-  fontSize: 13,
-  outline: 'none',
-  boxSizing: 'border-box' as const,
-  transition: 'border-color 0.15s ease'
-}
-
 export function PropertyValueInput({ id, label, type, value, onChange }: PropertyValueInputProps) {
   const { t } = useTranslation()
   const sourceValue = stringValue(value)
@@ -41,7 +28,7 @@ export function PropertyValueInput({ id, label, type, value, onChange }: Propert
         type="checkbox"
         checked={value === true}
         onChange={(event) => onChange(event.target.checked)}
-        style={{ width: 16, height: 16, accentColor: 'var(--accent-color)' }}
+        className="properties-checkbox"
       />
     )
   }
@@ -90,15 +77,11 @@ export function PropertyValueInput({ id, label, type, value, onChange }: Propert
       value={draft}
       placeholder={placeholder}
       onChange={(event) => setDraft(event.target.value)}
-      onBlur={(event) => {
-        event.currentTarget.style.borderColor = 'var(--border-color)'
-        commitValue()
-      }}
+      onBlur={commitValue}
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.currentTarget.blur()
       }}
-      onFocus={(event) => (event.currentTarget.style.borderColor = 'var(--accent-color)')}
-      style={inputStyle}
+      className="properties-control"
     />
   )
 }

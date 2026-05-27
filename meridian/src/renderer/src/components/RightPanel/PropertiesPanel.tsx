@@ -18,18 +18,6 @@ import {
   type PropertyType
 } from './properties/propertyType'
 
-const formInputStyle = {
-  width: '100%',
-  padding: '6px 10px',
-  background: 'var(--bg-surface)',
-  border: '1px solid var(--border-color)',
-  borderRadius: 6,
-  color: 'var(--text-primary)',
-  fontSize: 13,
-  outline: 'none',
-  boxSizing: 'border-box' as const
-}
-
 export function PropertiesPanel() {
   const { t } = useTranslation()
   const panes = useVaultStore((state) => state.panes)
@@ -100,11 +88,7 @@ export function PropertiesPanel() {
   }
 
   if (!activeTab) {
-    return (
-      <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>
-        {t('properties.noFileOpen')}
-      </div>
-    )
+    return <div className="properties-workspace--empty">{t('properties.noFileOpen')}</div>
   }
 
   const properties = frontmatter?.properties ?? {}
@@ -128,45 +112,28 @@ export function PropertiesPanel() {
         : ''
 
   return (
-    <div key={activeTab.path} style={{ padding: '16px 16px 20px' }}>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          color: 'var(--text-secondary)',
-          marginBottom: 12
-        }}
-      >
+    <section
+      key={activeTab.path}
+      className="properties-workspace"
+      role="region"
+      aria-labelledby="properties-panel-title"
+    >
+      <h2 id="properties-panel-title" className="properties-heading">
         {t('rightPanel.properties')}
-      </div>
+      </h2>
 
       {frontmatter && !frontmatter.ok && (
-        <div
-          role="alert"
-          style={{
-            padding: 10,
-            marginBottom: 12,
-            border: '1px solid var(--border-color)',
-            borderRadius: 6,
-            color: 'var(--text-secondary)',
-            fontSize: 12,
-            lineHeight: 1.4
-          }}
-        >
+        <div role="alert" className="properties-alert properties-hint">
           {t('properties.invalidYaml')}
         </div>
       )}
 
       {frontmatter?.ok && propertyEntries.length === 0 && (
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-          {t('properties.empty')}
-        </div>
+        <div className="properties-message">{t('properties.empty')}</div>
       )}
 
       {frontmatter?.ok && propertyEntries.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="properties-list">
           {propertyEntries.map(([key, value]) => {
             const type = inferPropertyType(key, value)
             return (
@@ -184,27 +151,17 @@ export function PropertiesPanel() {
       )}
 
       {isAdding && frontmatter?.ok && (
-        <form
-          onSubmit={handleCreateProperty}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            marginTop: 16,
-            paddingTop: 12,
-            borderTop: '1px solid var(--border-color)'
-          }}
-        >
-          <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+        <form onSubmit={handleCreateProperty} className="properties-form">
+          <label className="properties-label">
             {t('properties.propertyName')}
             <input
               autoFocus
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
-              style={{ ...formInputStyle, marginTop: 4 }}
+              className="properties-control"
             />
           </label>
-          <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+          <label className="properties-label">
             {t('properties.newPropertyType')}
             <select
               value={newType}
@@ -213,7 +170,7 @@ export function PropertiesPanel() {
                 setNewType(type)
                 if (type !== 'date') setNewDate('')
               }}
-              style={{ ...formInputStyle, marginTop: 4 }}
+              className="properties-control"
             >
               {PROPERTY_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -223,64 +180,36 @@ export function PropertiesPanel() {
             </select>
           </label>
           {newType === 'date' && (
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            <label className="properties-label">
               {t('properties.initialDate')}
               <input
                 type="date"
                 value={newDate}
                 onChange={(event) => setNewDate(event.target.value)}
-                style={{ ...formInputStyle, marginTop: 4 }}
+                className="properties-control"
               />
             </label>
           )}
           {newType === 'tags' && (
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              {t('properties.tagsNameHint')}
-            </div>
+            <div className="properties-hint">{t('properties.tagsNameHint')}</div>
           )}
           {newType === 'relation' && (
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              {t('properties.relationNameHint')}
-            </div>
+            <div className="properties-hint">{t('properties.relationNameHint')}</div>
           )}
           {reservedNameError && (
-            <div
-              role="alert"
-              style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}
-            >
+            <div role="alert" className="properties-hint">
               {reservedNameError}
             </div>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="properties-form-actions">
             <button
               type="submit"
               disabled={!canCreateProperty}
-              style={{
-                flex: 1,
-                padding: '7px 8px',
-                background: 'var(--accent-glow)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 6,
-                color: 'var(--text-primary)',
-                fontSize: 13,
-                cursor: canCreateProperty ? 'pointer' : 'default'
-              }}
+              className="properties-button properties-button--primary"
             >
               {t('properties.createProperty')}
             </button>
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              style={{
-                padding: '7px 8px',
-                background: 'transparent',
-                border: '1px solid var(--border-color)',
-                borderRadius: 6,
-                color: 'var(--text-secondary)',
-                fontSize: 13,
-                cursor: 'pointer'
-              }}
-            >
+            <button type="button" onClick={() => setIsAdding(false)} className="properties-button">
               {t('common.cancel')}
             </button>
           </div>
@@ -291,23 +220,10 @@ export function PropertiesPanel() {
         type="button"
         disabled={!frontmatter?.ok}
         onClick={() => setIsAdding(true)}
-        style={{
-          marginTop: 16,
-          width: '100%',
-          padding: '8px 0',
-          background: 'var(--accent-glow)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 6,
-          color: 'var(--text-secondary)',
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: frontmatter?.ok ? 'pointer' : 'not-allowed',
-          opacity: frontmatter?.ok ? 1 : 0.55,
-          transition: 'all 0.15s ease'
-        }}
+        className="properties-button properties-button--full"
       >
         {t('properties.addProperty')}
       </button>
-    </div>
+    </section>
   )
 }
