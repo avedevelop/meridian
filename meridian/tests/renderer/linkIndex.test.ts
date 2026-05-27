@@ -47,6 +47,33 @@ describe('LinkIndex', () => {
     expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['project', 'todo']))
   })
 
+  it('indexes tags from YAML frontmatter array syntax', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags: [work, ideas]\n---\n\nContent', '/vault')
+    expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['work', 'ideas']))
+  })
+
+  it('indexes tags from multiline YAML frontmatter list syntax', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags:\n  - work\n  - ideas\n---\n\nContent', '/vault')
+    expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['work', 'ideas']))
+  })
+
+  it('indexes a string tag from YAML frontmatter', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags: work\n---\n\nContent', '/vault')
+    expect(idx.getTags('/vault/A.md')).toEqual(['work'])
+  })
+
+  it('still indexes inline tags and links when frontmatter YAML is malformed', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags: [work\n---\n\nSee [[B]] #inline', '/vault')
+    idx.update('/vault/B.md', '', '/vault')
+
+    expect(idx.getTags('/vault/A.md')).toEqual(['inline'])
+    expect(idx.getOutlinks('/vault/A.md')).toEqual(['/vault/B.md'])
+  })
+
   it('returns all tags across vault', () => {
     const idx = new LinkIndex()
     idx.update('/vault/A.md', '#project', '/vault')
