@@ -1,4 +1,4 @@
-import { isMap, parseDocument, stringify, visit } from 'yaml'
+import { isAlias, isMap, parseDocument, stringify, visit } from 'yaml'
 
 export type FrontmatterPrimitive = string | number | boolean | null
 export type FrontmatterValue = FrontmatterPrimitive | FrontmatterPrimitive[]
@@ -44,6 +44,8 @@ const UNSUPPORTED_FRONTMATTER_ERROR =
   'Frontmatter contains unsupported YAML for property editing. Edit it in the editor first.'
 const COMMENTED_FRONTMATTER_ERROR =
   'Frontmatter comments cannot be safely preserved by property editing. Edit it in the editor first.'
+const ADVANCED_FRONTMATTER_ERROR =
+  'Frontmatter uses advanced YAML features that cannot be safely preserved by property editing. Edit it in the editor first.'
 
 function findFrontmatterBlock(content: string): FrontmatterBlock {
   const opening = readLine(content, 0)
@@ -140,6 +142,41 @@ function hasYamlComments(document: ReturnType<typeof parseDocument>): boolean {
   return hasComments
 }
 
+function hasAdvancedYamlFeatures(document: ReturnType<typeof parseDocument>): boolean {
+  let hasAdvancedFeatures = false
+  visit(document, {
+    Node(_, node) {
+      if (isAlias(node) || node.anchor || node.tag) {
+        hasAdvancedFeatures = true
+        return visit.BREAK
+      }
+      return undefined
+    }
+  })
+
+  return hasAdvancedFeatures
+}
+
+export function parseFrontmatterTags(content: string): string[] {
+  const block = findFrontmatterBlock(content)
+  if (block.type !== 'found') return []
+
+  const document = parseDocument(block.raw, {
+    prettyErrors: false,
+    schema: 'core'
+  })
+
+  if (document.errors.length > 0 || !document.contents || !isMap(document.contents)) {
+    return []
+  }
+
+  const tags = document.toJS()?.tags
+  if (typeof tags === 'string') return tags ? [tags] : []
+  if (!Array.isArray(tags)) return []
+
+  return tags.filter((tag): tag is string => typeof tag === 'string' && tag.length > 0)
+}
+
 export function parseMarkdownFrontmatter(content: string): FrontmatterParseResult {
   const block = findFrontmatterBlock(content)
   if (block.type === 'none') {
@@ -187,6 +224,17 @@ export function parseMarkdownFrontmatter(content: string): FrontmatterParseResul
       body: block.body,
       properties: {},
       error: COMMENTED_FRONTMATTER_ERROR
+    }
+  }
+
+  if (hasAdvancedYamlFeatures(document)) {
+    return {
+      ok: false,
+      hasFrontmatter: true,
+      raw: block.raw,
+      body: block.body,
+      properties: {},
+      error: ADVANCED_FRONTMATTER_ERROR
     }
   }
 

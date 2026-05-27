@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  parseFrontmatterTags,
   parseMarkdownFrontmatter,
   removeFrontmatterProperty,
   replaceFrontmatter,
@@ -138,6 +139,28 @@ describe('parseMarkdownFrontmatter', () => {
     expect(result.properties).toEqual({})
     if (!result.ok) {
       expect(result.error).toContain('comments')
+    }
+  })
+
+  it('returns an error result for anchor and alias frontmatter', () => {
+    const result = parseMarkdownFrontmatter('---\ntitle: &main Note\ncopy: *main\n---\n\nBody')
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    if (!result.ok) {
+      expect(result.error).toContain('advanced YAML')
+    }
+  })
+
+  it('returns an error result for explicit tagged frontmatter', () => {
+    const result = parseMarkdownFrontmatter('---\ntitle: !!str 123\n---\n\nBody')
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    if (!result.ok) {
+      expect(result.error).toContain('advanced YAML')
     }
   })
 
@@ -283,5 +306,41 @@ describe('frontmatter updates', () => {
     expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
     expect(removeFrontmatterProperty(content, 'title')).toBe(content)
     expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves anchor and alias frontmatter unchanged for all write helpers', () => {
+    const content = '---\ntitle: &main Note\ncopy: *main\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+    expect(removeFrontmatterProperty(content, 'copy')).toBe(content)
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves explicit tagged frontmatter unchanged for all write helpers', () => {
+    const content = '---\ntitle: !!str 123\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+    expect(removeFrontmatterProperty(content, 'title')).toBe(content)
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+})
+
+describe('parseFrontmatterTags', () => {
+  it('reads tags from otherwise edit-unsupported nested frontmatter', () => {
+    const content = '---\ntags: [work, ideas]\nmeta:\n  author: Ada\n---\n\nBody'
+
+    expect(parseFrontmatterTags(content)).toEqual(['work', 'ideas'])
+  })
+
+  it('reads tags from comment-containing frontmatter without making it editable', () => {
+    const content = '---\ntags:\n  - work\n# keep me\n---\n\nBody'
+
+    expect(parseFrontmatterTags(content)).toEqual(['work'])
+    expect(parseMarkdownFrontmatter(content).ok).toBe(false)
+  })
+
+  it('returns no tags for malformed or unterminated frontmatter', () => {
+    expect(parseFrontmatterTags('---\ntags: [work\n---\n\nBody')).toEqual([])
+    expect(parseFrontmatterTags('---\ntags: [work]\nBody')).toEqual([])
   })
 })

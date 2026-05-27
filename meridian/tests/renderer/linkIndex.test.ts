@@ -74,6 +74,16 @@ describe('LinkIndex', () => {
     expect(idx.getOutlinks('/vault/A.md')).toEqual(['/vault/B.md'])
   })
 
+  it('indexes frontmatter tags even when other YAML fields are not property-editable', () => {
+    const idx = new LinkIndex()
+    idx.update(
+      '/vault/A.md',
+      '---\ntags: [work, ideas]\nmeta:\n  author: Ada\n---\n\nContent',
+      '/vault'
+    )
+    expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['work', 'ideas']))
+  })
+
   it('returns all tags across vault', () => {
     const idx = new LinkIndex()
     idx.update('/vault/A.md', '#project', '/vault')

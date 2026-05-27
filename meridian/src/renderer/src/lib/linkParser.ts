@@ -1,4 +1,4 @@
-import { parseMarkdownFrontmatter, type FrontmatterValue } from '../../../shared/frontmatter'
+import { parseFrontmatterTags } from '@shared/frontmatter'
 
 export interface ParseResult {
   links: string[]
@@ -6,24 +6,7 @@ export interface ParseResult {
 }
 
 function extractFrontmatterTags(content: string): string[] {
-  const parsed = parseMarkdownFrontmatter(content)
-  if (!parsed.ok) {
-    return []
-  }
-
-  return normalizeTags(parsed.properties.tags)
-}
-
-function normalizeTags(value: FrontmatterValue | undefined): string[] {
-  if (typeof value === 'string') {
-    return value ? [value] : []
-  }
-
-  if (Array.isArray(value)) {
-    return value.filter((tag): tag is string => typeof tag === 'string' && tag.length > 0)
-  }
-
-  return []
+  return parseFrontmatterTags(content)
 }
 
 export function parseLinks(content: string): ParseResult {
