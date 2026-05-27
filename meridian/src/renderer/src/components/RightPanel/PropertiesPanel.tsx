@@ -1,79 +1,109 @@
-import { useMemo, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import {
+  parseMarkdownFrontmatter,
+  removeFrontmatterProperty,
+  setFrontmatterProperty,
+  type FrontmatterValue
+} from '@shared/frontmatter'
 import { useVaultStore } from '../../store/useVaultStore'
+import { PropertyRow } from './properties/PropertyRow'
+import {
+  PROPERTY_TYPES,
+  convertPropertyValue,
+  defaultValueForType,
+  inferPropertyType,
+  type PropertyType
+} from './properties/propertyType'
 
-type FrontmatterValue = string | string[]
-type Frontmatter = Record<string, FrontmatterValue>
-
-function parseFrontmatter(content: string): Frontmatter | null {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
-  if (!match) return null
-  const lines = match[1].split(/\r?\n/)
-  const result: Frontmatter = {}
-  for (const line of lines) {
-    const colonIdx = line.indexOf(':')
-    if (colonIdx === -1) continue
-    const key = line.slice(0, colonIdx).trim()
-    if (!key) continue
-    const rawVal = line.slice(colonIdx + 1).trim()
-    if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
-      result[key] = rawVal
-        .slice(1, -1)
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-    } else {
-      result[key] = rawVal
-    }
-  }
-  return Object.keys(result).length > 0 ? result : null
-}
-
-function serializeFrontmatter(fm: Frontmatter): string {
-  const lines = Object.entries(fm).map(([k, v]) => {
-    if (Array.isArray(v)) return `${k}: [${v.join(', ')}]`
-    return `${k}: ${v}`
-  })
-  return `---\n${lines.join('\n')}\n---`
-}
-
-function updateContent(content: string, key: string, value: string): string {
-  const fm = parseFrontmatter(content) ?? {}
-  fm[key] = value
-  const newHeader = serializeFrontmatter(fm)
-  if (/^---[\s\S]*?---/.test(content)) {
-    return content.replace(/^---[\s\S]*?---/, newHeader)
-  }
-  return newHeader + '\n\n' + content
+const formInputStyle = {
+  width: '100%',
+  padding: '6px 10px',
+  background: 'var(--bg-surface)',
+  border: '1px solid var(--border-color)',
+  borderRadius: 6,
+  color: 'var(--text-primary)',
+  fontSize: 13,
+  outline: 'none',
+  boxSizing: 'border-box' as const
 }
 
 export function PropertiesPanel() {
   const { t } = useTranslation()
-  const { panes, activePaneId, setTabContent, markTabDirty } = useVaultStore()
-  const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0]
-  const activeTab = activePane?.openTabs.find((t) => t.path === activePane?.activeTabPath)
+  const panes = useVaultStore((state) => state.panes)
+  const activePaneId = useVaultStore((state) => state.activePaneId)
+  const setTabContent = useVaultStore((state) => state.setTabContent)
+  const markTabDirty = useVaultStore((state) => state.markTabDirty)
+  const activePane = panes.find((pane) => pane.id === activePaneId) ?? panes[0]
+  const activeTab = activePane?.openTabs.find((tab) => tab.path === activePane.activeTabPath)
+  const [isAdding, setIsAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newType, setNewType] = useState<PropertyType>('text')
+  const [propertyTypes, setPropertyTypes] = useState<Record<string, PropertyType>>({})
+
+  useEffect(() => {
+    setIsAdding(false)
+    setNewName('')
+    setNewType('text')
+    setPropertyTypes({})
+  }, [activeTab?.path])
 
   const frontmatter = useMemo(() => {
     if (!activeTab) return null
-    return parseFrontmatter(activeTab.content)
+    return parseMarkdownFrontmatter(activeTab.content)
   }, [activeTab?.content])
 
-  const handleChange = useCallback(
-    (key: string, value: string) => {
-      if (!activeTab) return
-      const newContent = updateContent(activeTab.content, key, value)
+  const updateContent = useCallback(
+    (newContent: string) => {
+      if (!activeTab || newContent === activeTab.content) return
       setTabContent(activeTab.path, newContent)
       markTabDirty(activeTab.path, true)
     },
     [activeTab, setTabContent, markTabDirty]
   )
 
-  const handleAddProperty = useCallback(() => {
-    if (!activeTab) return
-    const key = window.prompt(t('properties.namePrompt'))
-    if (!key?.trim()) return
-    handleChange(key.trim(), '')
-  }, [activeTab, handleChange, t])
+  const handleChange = useCallback(
+    (key: string, value: FrontmatterValue) => {
+      if (!activeTab || !frontmatter?.ok) return
+      updateContent(setFrontmatterProperty(activeTab.content, key, value))
+    },
+    [activeTab, frontmatter, updateContent]
+  )
+
+  const handleDelete = useCallback(
+    (key: string) => {
+      if (!activeTab || !frontmatter?.ok) return
+      updateContent(removeFrontmatterProperty(activeTab.content, key))
+      setPropertyTypes((types) => {
+        const nextTypes = { ...types }
+        delete nextTypes[key]
+        return nextTypes
+      })
+    },
+    [activeTab, frontmatter, updateContent]
+  )
+
+  const handleTypeChange = useCallback(
+    (key: string, value: FrontmatterValue, type: PropertyType) => {
+      setPropertyTypes((types) => ({ ...types, [key]: type }))
+      handleChange(key, convertPropertyValue(value, type))
+    },
+    [handleChange]
+  )
+
+  const handleCreateProperty = (event: FormEvent) => {
+    event.preventDefault()
+    if (!activeTab || !frontmatter?.ok) return
+
+    const name = newName.trim()
+    if (!name || Object.prototype.hasOwnProperty.call(frontmatter.properties, name)) return
+
+    setPropertyTypes((types) => ({ ...types, [name]: newType }))
+    handleChange(name, defaultValueForType(newType))
+    setNewName('')
+    setNewType('text')
+    setIsAdding(false)
+  }
 
   if (!activeTab) {
     return (
@@ -82,6 +112,11 @@ export function PropertiesPanel() {
       </div>
     )
   }
+
+  const properties = frontmatter?.properties ?? {}
+  const propertyEntries = Object.entries(properties)
+  const canCreateProperty =
+    Boolean(newName.trim()) && !Object.prototype.hasOwnProperty.call(properties, newName.trim())
 
   return (
     <div key={activeTab.path} style={{ padding: '16px 16px 20px' }}>
@@ -98,49 +133,123 @@ export function PropertiesPanel() {
         {t('rightPanel.properties')}
       </div>
 
-      {frontmatter === null && (
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-          {t('properties.noFrontmatter')}
+      {frontmatter && !frontmatter.ok && (
+        <div
+          role="alert"
+          style={{
+            padding: 10,
+            marginBottom: 12,
+            border: '1px solid var(--border-color)',
+            borderRadius: 6,
+            color: 'var(--text-secondary)',
+            fontSize: 12,
+            lineHeight: 1.4
+          }}
+        >
+          {t('properties.invalidYaml')}
         </div>
       )}
 
-      {frontmatter !== null && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {Object.entries(frontmatter).map(([key, val]) => (
-            <div key={key}>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                {key}
-              </div>
-              <input
-                defaultValue={Array.isArray(val) ? val.join(', ') : val}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-color)'
-                  handleChange(key, e.target.value)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent-color)')}
-                style={{
-                  width: '100%',
-                  padding: '6px 10px',
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 6,
-                  color: 'var(--text-primary)',
-                  fontSize: 13,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.15s ease'
-                }}
-              />
-            </div>
-          ))}
+      {frontmatter?.ok && propertyEntries.length === 0 && (
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+          {t('properties.empty')}
         </div>
+      )}
+
+      {frontmatter?.ok && propertyEntries.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {propertyEntries.map(([key, value]) => {
+            const type = propertyTypes[key] ?? inferPropertyType(key, value)
+            return (
+              <PropertyRow
+                key={key}
+                name={key}
+                type={type}
+                value={value}
+                onTypeChange={(nextType) => handleTypeChange(key, value, nextType)}
+                onValueChange={(nextValue) => handleChange(key, nextValue)}
+                onDelete={() => handleDelete(key)}
+              />
+            )
+          })}
+        </div>
+      )}
+
+      {isAdding && frontmatter?.ok && (
+        <form
+          onSubmit={handleCreateProperty}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            marginTop: 16,
+            paddingTop: 12,
+            borderTop: '1px solid var(--border-color)'
+          }}
+        >
+          <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {t('properties.propertyName')}
+            <input
+              autoFocus
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              style={{ ...formInputStyle, marginTop: 4 }}
+            />
+          </label>
+          <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {t('properties.propertyType')}
+            <select
+              value={newType}
+              onChange={(event) => setNewType(event.target.value as PropertyType)}
+              style={{ ...formInputStyle, marginTop: 4 }}
+            >
+              {PROPERTY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`properties.type.${type}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="submit"
+              disabled={!canCreateProperty}
+              style={{
+                flex: 1,
+                padding: '7px 8px',
+                background: 'var(--accent-glow)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 6,
+                color: 'var(--text-primary)',
+                fontSize: 13,
+                cursor: canCreateProperty ? 'pointer' : 'default'
+              }}
+            >
+              {t('properties.createProperty')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              style={{
+                padding: '7px 8px',
+                background: 'transparent',
+                border: '1px solid var(--border-color)',
+                borderRadius: 6,
+                color: 'var(--text-secondary)',
+                fontSize: 13,
+                cursor: 'pointer'
+              }}
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </form>
       )}
 
       <button
-        onClick={handleAddProperty}
+        type="button"
+        disabled={!frontmatter?.ok}
+        onClick={() => setIsAdding(true)}
         style={{
           marginTop: 16,
           width: '100%',
@@ -151,16 +260,9 @@ export function PropertiesPanel() {
           color: 'var(--text-secondary)',
           fontSize: 13,
           fontWeight: 500,
-          cursor: 'pointer',
+          cursor: frontmatter?.ok ? 'pointer' : 'not-allowed',
+          opacity: frontmatter?.ok ? 1 : 0.55,
           transition: 'all 0.15s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--text-primary)'
-          e.currentTarget.style.background = 'var(--bg-surface)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--text-secondary)'
-          e.currentTarget.style.background = 'var(--accent-glow)'
         }}
       >
         {t('properties.addProperty')}
