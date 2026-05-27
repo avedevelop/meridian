@@ -1,4 +1,4 @@
-import { parseDocument, stringify } from 'yaml'
+import { isMap, parseDocument, stringify, visit } from 'yaml'
 
 export type FrontmatterPrimitive = string | number | boolean | null
 export type FrontmatterValue = FrontmatterPrimitive | FrontmatterPrimitive[]
@@ -15,10 +15,10 @@ export type FrontmatterParseResult =
   | (ParsedFrontmatter & { ok: true; error?: undefined })
   | (ParsedFrontmatter & { ok: false; error: string })
 
-interface FrontmatterBlock {
-  raw: string
-  body: string
-}
+type FrontmatterBlock =
+  | { type: 'none' }
+  | { type: 'found'; raw: string; body: string }
+  | { type: 'unterminated'; raw: string }
 
 function readLine(content: string, start: number): { line: string; lineEnd: number; next: number } {
   let lineEnd = start
@@ -40,10 +40,15 @@ function readLine(content: string, start: number): { line: string; lineEnd: numb
   }
 }
 
-function findFrontmatterBlock(content: string): FrontmatterBlock | null {
+const UNSUPPORTED_FRONTMATTER_ERROR =
+  'Frontmatter contains unsupported YAML for property editing. Edit it in the editor first.'
+const COMMENTED_FRONTMATTER_ERROR =
+  'Frontmatter comments cannot be safely preserved by property editing. Edit it in the editor first.'
+
+function findFrontmatterBlock(content: string): FrontmatterBlock {
   const opening = readLine(content, 0)
-  if (opening.line !== '---' || opening.next === opening.lineEnd) {
-    return null
+  if (opening.line !== '---') {
+    return { type: 'none' }
   }
 
   const rawStart = opening.next
@@ -55,19 +60,20 @@ function findFrontmatterBlock(content: string): FrontmatterBlock | null {
     if (current.line === '---') {
       const raw = content.slice(rawStart, cursor).replace(/\r?\n$|\r$/, '')
       return {
+        type: 'found',
         raw,
         body: content.slice(current.lineEnd)
       }
     }
 
     if (current.next === current.lineEnd) {
-      return null
+      return { type: 'unterminated', raw: content.slice(rawStart) }
     }
 
     cursor = current.next
   }
 
-  return null
+  return { type: 'unterminated', raw: content.slice(rawStart) }
 }
 
 function normalizePrimitive(value: unknown): FrontmatterPrimitive | undefined {
@@ -82,9 +88,15 @@ function normalizePrimitive(value: unknown): FrontmatterPrimitive | undefined {
   return undefined
 }
 
-function normalizeProperties(value: unknown): FrontmatterProperties {
+type NormalizePropertiesResult =
+  | { ok: true; properties: FrontmatterProperties }
+  | { ok: false; error: string }
+
+function normalizeProperties(value: unknown): NormalizePropertiesResult {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {}
+    return value == null
+      ? { ok: true, properties: {} }
+      : { ok: false, error: UNSUPPORTED_FRONTMATTER_ERROR }
   }
 
   const properties: FrontmatterProperties = {}
@@ -99,22 +111,55 @@ function normalizeProperties(value: unknown): FrontmatterProperties {
       const items = rawValue.map(normalizePrimitive)
       if (items.every((item): item is FrontmatterPrimitive => item !== undefined)) {
         properties[key] = items
+        continue
       }
     }
+
+    return { ok: false, error: UNSUPPORTED_FRONTMATTER_ERROR }
   }
 
-  return properties
+  return { ok: true, properties }
+}
+
+function hasYamlComments(document: ReturnType<typeof parseDocument>): boolean {
+  if (document.comment || document.commentBefore) {
+    return true
+  }
+
+  let hasComments = false
+  visit(document, {
+    Node(_, node) {
+      if (node.comment || node.commentBefore) {
+        hasComments = true
+        return visit.BREAK
+      }
+      return undefined
+    }
+  })
+
+  return hasComments
 }
 
 export function parseMarkdownFrontmatter(content: string): FrontmatterParseResult {
   const block = findFrontmatterBlock(content)
-  if (!block) {
+  if (block.type === 'none') {
     return {
       ok: true,
       hasFrontmatter: false,
       raw: '',
       body: content,
       properties: {}
+    }
+  }
+
+  if (block.type === 'unterminated') {
+    return {
+      ok: false,
+      hasFrontmatter: true,
+      raw: block.raw,
+      body: '',
+      properties: {},
+      error: 'Missing closing frontmatter delimiter.'
     }
   }
 
@@ -134,12 +179,46 @@ export function parseMarkdownFrontmatter(content: string): FrontmatterParseResul
     }
   }
 
+  if (hasYamlComments(document)) {
+    return {
+      ok: false,
+      hasFrontmatter: true,
+      raw: block.raw,
+      body: block.body,
+      properties: {},
+      error: COMMENTED_FRONTMATTER_ERROR
+    }
+  }
+
+  if (document.contents && !isMap(document.contents)) {
+    return {
+      ok: false,
+      hasFrontmatter: true,
+      raw: block.raw,
+      body: block.body,
+      properties: {},
+      error: UNSUPPORTED_FRONTMATTER_ERROR
+    }
+  }
+
+  const normalized = normalizeProperties(document.toJS())
+  if (!normalized.ok) {
+    return {
+      ok: false,
+      hasFrontmatter: true,
+      raw: block.raw,
+      body: block.body,
+      properties: {},
+      error: normalized.error
+    }
+  }
+
   return {
     ok: true,
     hasFrontmatter: true,
     raw: block.raw,
     body: block.body,
-    properties: normalizeProperties(document.toJS())
+    properties: normalized.properties
   }
 }
 

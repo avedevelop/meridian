@@ -82,6 +82,65 @@ describe('parseMarkdownFrontmatter', () => {
     }
   })
 
+  it('returns an error result for frontmatter without a closing delimiter', () => {
+    const content = '---\ntitle: Draft\n\nBody'
+
+    const result = parseMarkdownFrontmatter(content)
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    expect(result.raw).toBe('title: Draft\n\nBody')
+    expect(result.body).toBe('')
+    if (!result.ok) {
+      expect(result.error).toContain('closing frontmatter delimiter')
+    }
+  })
+
+  it('returns an error result for unsupported nested object values', () => {
+    const result = parseMarkdownFrontmatter('---\ntitle: Note\nmeta:\n  author: Ada\n---\n\nBody')
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    if (!result.ok) {
+      expect(result.error).toContain('unsupported')
+    }
+  })
+
+  it('returns an error result for unsupported nested list values', () => {
+    const result = parseMarkdownFrontmatter('---\ntitle: Note\nitems:\n  - name: One\n---\n\nBody')
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    if (!result.ok) {
+      expect(result.error).toContain('unsupported')
+    }
+  })
+
+  it('returns an error result for unsupported root arrays', () => {
+    const result = parseMarkdownFrontmatter('---\n- title: Note\n---\n\nBody')
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    if (!result.ok) {
+      expect(result.error).toContain('unsupported')
+    }
+  })
+
+  it('returns an error result for comment-containing frontmatter', () => {
+    const result = parseMarkdownFrontmatter('---\ntitle: Note # keep this note\n---\n\nBody')
+
+    expect(result.ok).toBe(false)
+    expect(result.hasFrontmatter).toBe(true)
+    expect(result.properties).toEqual({})
+    if (!result.ok) {
+      expect(result.error).toContain('comments')
+    }
+  })
+
   it('preserves markdown body content exactly after frontmatter', () => {
     const body = '\n\n# Heading\n\nBody with --- inside\n\n```yaml\n---\n```'
     const result = parseMarkdownFrontmatter(`---\ntitle: Note\n---${body}`)
@@ -173,6 +232,56 @@ describe('frontmatter updates', () => {
   it('leaves malformed frontmatter unchanged when replacing properties', () => {
     const content = '---\ntitle: [broken\n---\n\nBody'
 
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves frontmatter without a closing delimiter unchanged when setting a property', () => {
+    const content = '---\ntitle: Draft\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+  })
+
+  it('leaves frontmatter without a closing delimiter unchanged when removing a property', () => {
+    const content = '---\ntitle: Draft\n\nBody'
+
+    expect(removeFrontmatterProperty(content, 'title')).toBe(content)
+  })
+
+  it('leaves frontmatter without a closing delimiter unchanged when replacing properties', () => {
+    const content = '---\ntitle: Draft\n\nBody'
+
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves unsupported nested object frontmatter unchanged for all write helpers', () => {
+    const content = '---\ntitle: Note\nmeta:\n  author: Ada\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+    expect(removeFrontmatterProperty(content, 'title')).toBe(content)
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves unsupported nested list frontmatter unchanged for all write helpers', () => {
+    const content = '---\ntitle: Note\nitems:\n  - name: One\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+    expect(removeFrontmatterProperty(content, 'title')).toBe(content)
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves unsupported root-array frontmatter unchanged for all write helpers', () => {
+    const content = '---\n- title: Note\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+    expect(removeFrontmatterProperty(content, 'title')).toBe(content)
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
+  })
+
+  it('leaves comment-containing frontmatter unchanged for all write helpers', () => {
+    const content = '---\ntitle: Note # keep this note\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+    expect(removeFrontmatterProperty(content, 'title')).toBe(content)
     expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
   })
 })
