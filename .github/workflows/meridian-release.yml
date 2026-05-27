@@ -64,8 +64,8 @@ jobs:
           path: meridian/dist/*.dmg
           if-no-files-found: error
 
-  build-windows-beta:
-    name: Build Windows beta installer
+  build-windows:
+    name: Build Windows installer
     runs-on: windows-latest
     timeout-minutes: 30
     permissions:
@@ -93,7 +93,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows beta installer
+      - name: Build Windows installer
         run: npm run build:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -102,11 +102,11 @@ jobs:
         shell: pwsh
         run: Get-ChildItem dist | Format-Table Name, Length
 
-      - name: Upload Windows beta as workflow artifact
+      - name: Upload Windows installer as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: meridian-windows-beta
-          path: meridian/dist/*windows-beta*.exe
+          name: meridian-windows
+          path: meridian/dist/*windows*.exe
           if-no-files-found: error
 
   publish-release:
@@ -115,23 +115,43 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
-    needs: [build-macos, build-windows-beta]
+    needs: [build-macos, build-windows]
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
+      - name: Checkout changelog
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
       - name: Download macOS DMG artifact
         uses: actions/download-artifact@v4
         with:
           name: meridian-dmg
           path: release-assets
 
-      - name: Download Windows beta artifact
+      - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: meridian-windows-beta
+          name: meridian-windows
           path: release-assets
 
       - name: List release assets
         run: find release-assets -maxdepth 2 -type f | sort
+
+      - name: Create release notes from changelog
+        env:
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          awk -v version="$version" '
+            $0 ~ "^## \\[" version "\\]" { capture=1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "Meridian $TAG" > release-notes.md
+          fi
 
       - name: Publish release assets
         env:
@@ -146,8 +166,9 @@ jobs:
           fi
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file release-notes.md
           else
-            gh release create "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes ""
+            gh release create "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file release-notes.md
           fi
 
   trigger-site-rebuild:

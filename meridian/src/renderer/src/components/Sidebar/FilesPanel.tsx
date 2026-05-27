@@ -309,6 +309,7 @@ export function FilesPanel() {
           borderTop: '1px solid var(--border-color)',
           flexShrink: 0,
           display: 'flex',
+          flexDirection: 'column',
           gap: 6
         }}
       >
@@ -317,8 +318,9 @@ export function FilesPanel() {
             createFile(vault.path, uniqueFileName(vault.path, 'Untitled', 'md', files))
           }
           style={{
-            flex: 1,
-            padding: '6px 0',
+            width: '100%',
+            minHeight: 40,
+            padding: '6px 10px',
             borderRadius: 6,
             background: 'var(--accent-glow)',
             color: 'var(--text-primary)',
@@ -329,113 +331,137 @@ export function FilesPanel() {
         >
           {t('sidebar.newNote')}
         </button>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 6, minWidth: 0 }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+            <button
+              onClick={() => setCreateAsOpen((open) => !open)}
+              title={t('noteTypes.createAs')}
+              aria-label={t('noteTypes.createAs')}
+              style={{
+                width: '100%',
+                minHeight: 38,
+                padding: '6px 8px',
+                borderRadius: 6,
+                background: 'var(--bg-surface)',
+                color: 'var(--accent-color)',
+                border: '1px solid var(--border-color)',
+                fontSize: 12,
+                cursor: 'pointer'
+              }}
+            >
+              {t('noteTypes.typeMenu')}
+            </button>
+            {createAsOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 6px)',
+                  left: 0,
+                  width: 230,
+                  maxWidth: 'calc(100vw - 24px)',
+                  padding: 6,
+                  borderRadius: 8,
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-subtle)',
+                  boxShadow: '0 12px 28px rgba(0,0,0,0.28)',
+                  zIndex: 30
+                }}
+              >
+                <div
+                  style={{
+                    padding: '6px 8px 10px',
+                    color: 'var(--text-secondary)',
+                    fontSize: 11,
+                    fontWeight: 600
+                  }}
+                >
+                  {t('noteTypes.createAsHeading')}
+                </div>
+                {noteTypes.slice(0, 6).map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => handleCreateTypedNote(type.id)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 8px',
+                      border: 'none',
+                      borderRadius: 6,
+                      background: 'transparent',
+                      color: 'var(--text-primary)',
+                      textAlign: 'left',
+                      fontSize: 12,
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--bg-surface)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                    }}
+                  >
+                    {t(`noteTypes.createAction.${type.id}`, {
+                      defaultValue: t('noteTypes.createTypedNote', {
+                        type: t(`noteTypes.${type.id}`, { defaultValue: type.label })
+                      }),
+                      type: t(`noteTypes.${type.id}`, { defaultValue: type.label })
+                    })}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
-            onClick={() => setCreateAsOpen((open) => !open)}
-            title={t('noteTypes.createAs')}
+            onClick={() => createDrawing(vault.path, `Drawing ${Date.now()}`)}
+            title={t('sidebar.newDrawing')}
             style={{
-              padding: '6px 10px',
-              minWidth: 34,
+              width: 42,
+              minHeight: 38,
+              borderRadius: 6,
+              background: 'var(--bg-surface)',
+              color: 'var(--accent-color)',
+              border: '1px solid var(--border-color)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M8 2a6 6 0 1 0 6 6c0-.8-.6-1.5-1.5-1.5h-1c-.8 0-1.5-.7-1.5-1.5v-1C10 3 9 2 8 2z" />
+              <circle cx="5.5" cy="6.5" r="1" fill="currentColor" />
+              <circle cx="8" cy="5" r="1" fill="currentColor" />
+              <circle cx="10.5" cy="8.5" r="1" fill="currentColor" />
+            </svg>
+          </button>
+          <button
+            onClick={() => createCanvas(vault.path, `Canvas ${Date.now()}`)}
+            title={t('sidebar.newCanvas')}
+            style={{
+              width: 42,
+              minHeight: 38,
               borderRadius: 6,
               background: 'var(--bg-surface)',
               color: 'var(--accent-color)',
               border: '1px solid var(--border-color)',
               fontSize: 12,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
             }}
           >
-            ▾
+            ⊞
           </button>
-          {createAsOpen && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 'calc(100% + 6px)',
-                left: 0,
-                width: 180,
-                padding: 6,
-                borderRadius: 8,
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: '0 12px 28px rgba(0,0,0,0.28)',
-                zIndex: 30
-              }}
-            >
-              {noteTypes.slice(0, 6).map((type) => (
-                <button
-                  key={type.id}
-                  onClick={() => handleCreateTypedNote(type.id)}
-                  style={{
-                    width: '100%',
-                    padding: '7px 8px',
-                    border: 'none',
-                    borderRadius: 6,
-                    background: 'transparent',
-                    color: 'var(--text-primary)',
-                    textAlign: 'left',
-                    fontSize: 12,
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--bg-surface)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
-                >
-                  {t(`noteTypes.${type.id}`, { defaultValue: type.label })}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
-        <button
-          onClick={() => createDrawing(vault.path, `Drawing ${Date.now()}`)}
-          title={t('sidebar.newDrawing')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 6,
-            background: 'var(--bg-surface)',
-            color: 'var(--accent-color)',
-            border: '1px solid var(--border-color)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
-          }}
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M8 2a6 6 0 1 0 6 6c0-.8-.6-1.5-1.5-1.5h-1c-.8 0-1.5-.7-1.5-1.5v-1C10 3 9 2 8 2z" />
-            <circle cx="5.5" cy="6.5" r="1" fill="currentColor" />
-            <circle cx="8" cy="5" r="1" fill="currentColor" />
-            <circle cx="10.5" cy="8.5" r="1" fill="currentColor" />
-          </svg>
-        </button>
-        <button
-          onClick={() => createCanvas(vault.path, `Canvas ${Date.now()}`)}
-          title={t('sidebar.newCanvas')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 6,
-            background: 'var(--bg-surface)',
-            color: 'var(--accent-color)',
-            border: '1px solid var(--border-color)',
-            fontSize: 12,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          ⊞
-        </button>
       </div>
     </>
   )

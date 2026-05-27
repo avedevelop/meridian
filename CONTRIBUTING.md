@@ -17,10 +17,10 @@ npm install
 npm run dev        # start in development mode
 npm test           # run tests
 npm run build:mac  # build macOS stable assets
-npm run build:win  # build the Windows beta installer
+npm run build:win  # build the Windows installer
 ```
 
-**Requirements:** Node.js 20+, macOS for the stable release build, Windows for beta packaging
+**Requirements:** Node.js 20+, macOS for macOS packaging, Windows for Windows packaging
 
 ## Project Structure
 

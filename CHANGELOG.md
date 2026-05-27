@@ -2,6 +2,34 @@
 
 All notable changes to Meridian. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.12] — 2026-05-27
+
+### Added
+
+- Editable right-panel properties backed by YAML frontmatter.
+- Built-in note types and template-based creation for projects, people, daily notes, and tasks.
+- Relationship indexing from frontmatter fields with right-panel relationship browsing.
+- Saved Views sidebar for Inbox, Projects, Tasks, and Daily workflows.
+- Per-note Git history with committed-version preview and restore controls.
+- Read-only Ask Vault panel that searches local note context and cites source notes.
+- Ask Vault settings with explicit local/external provider and privacy controls.
+- Bundled welcome-vault fallback for Windows and macOS when the remote sample vault cannot be downloaded.
+
+### Changed
+
+- Windows is now published as a regular release asset, not a beta asset.
+- Windows installer artifact is now `Meridian-<version>-windows-x64.exe`.
+- Release workflow now publishes changelog-derived GitHub Release notes.
+- Sidebar note creation copy now uses clearer template wording and actions.
+- Documentation now describes Windows and macOS as first-class release targets.
+
+### Fixed
+
+- Restored synchronized scrolling between the editor and Markdown preview after editor reinitialization.
+- Windows welcome-vault shortcuts use Windows-style keys and no macOS command symbols.
+- Welcome vault download failure now falls back to bundled local onboarding content.
+- Russian localization now covers newly added properties, relationships, views, Git history, templates, and Ask Vault UI.
+
 ## [1.0.6] — 2026-05-25
 
 ### Added
@@ -168,6 +196,7 @@ First public release. Local-first markdown knowledge base for macOS desktop, ins
 - macOS DMG is **not** notarized — Gatekeeper will warn on first launch (right-click → Open)
 - No Obsidian plugin compatibility, no cloud sync, no mobile, no marketplace, no WebGL graph (see [SCOPE.md](SCOPE.md))
 
+[1.0.12]: https://github.com/avedevelop/meridian/compare/v1.0.6...v1.0.12
 [1.0.6]: https://github.com/avedevelop/meridian/compare/v1.0.5...v1.0.6
 [1.0.2]: https://github.com/avedevelop/meridian/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/avedevelop/meridian/compare/v1.0.0...v1.0.1

@@ -2,7 +2,7 @@
 
 ## What Meridian is
 
-Local-first markdown knowledge base for macOS / desktop.
+Local-first markdown knowledge base for macOS and Windows desktop.
 Plain `.md` files on disk, wiki-links, graph, canvas — no cloud lock-in.
 
 ## In scope (shipped / maintaining)
@@ -11,6 +11,10 @@ Plain `.md` files on disk, wiki-links, graph, canvas — no cloud lock-in.
 - **Editor** — CodeMirror 6 with syntax highlighting, live preview, split panes, tabs
 - **Wiki-links & backlinks** — `[[Note]]`, autocomplete, backlinks panel
 - **Tags** — inline `#tag` and frontmatter `tags:` with tag panel
+- **Properties** — editable YAML frontmatter in the right panel
+- **Note types** — project, person, daily note, and task templates
+- **Relationships** — frontmatter relationship fields with right-panel browsing
+- **Saved Views** — Inbox, Projects, Tasks, and Daily workflow views
 - **Search** — full-text (MiniSearch) + Command Palette (⌘K)
 - **Graph view** — force-directed (D3), timeline animation, WebM export, performance limits documented
 - **Canvas** — infinite canvas with cards (Konva, `.canvas` files)
@@ -18,6 +22,8 @@ Plain `.md` files on disk, wiki-links, graph, canvas — no cloud lock-in.
 - **Daily notes & templates** — `_templates/` folder, `{{date}}` / `{{title}}` placeholders
 - **Export** — HTML (⌘E) and PDF (⌘⇧E)
 - **Git panel** — status, diff, commit + optional autocommit plugin
+- **Note history** — per-note Git history, preview, and restore
+- **Ask Vault** — read-only local question panel with cited source notes
 - **Core plugins** — built-in, toggleable in Settings
 - **Community plugins** — loaded from `{vault}/.meridian/plugins/` (after Plugin API v1)
 - **i18n** — English + Russian
@@ -56,6 +62,6 @@ Remaining backlog (post-v1.0, not blocking release):
 - Sandboxed iframe permission layer for untrusted community plugins
 - Plugin marketplace + signing
 - WebGL / GPU-accelerated force layout for very large vaults (10k+ nodes)
-- Windows / Linux QA sign-off and release artifacts
+- Linux QA sign-off and release artifacts
 - Notarized / signed macOS DMG (currently unsigned)
 - Granular per-plugin permission prompts (vault read, network, settings write)

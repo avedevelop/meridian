@@ -3,7 +3,7 @@
 [![Meridian CI](https://github.com/avedevelop/meridian/actions/workflows/meridian-ci.yml/badge.svg?branch=main)](https://github.com/avedevelop/meridian/actions/workflows/meridian-ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/avedevelop/meridian?display_name=tag)](https://github.com/avedevelop/meridian/releases/latest)
 
-Local-first notes app inspired by Obsidian — not a drop-in replacement. Built with Electron 39 + React 18 + TypeScript.
+Local-first notes app inspired by Obsidian — not a drop-in replacement. Built with Electron 39 + React 19 + TypeScript.
 
 ![Editor and Markdown preview](docs/screenshots/02-editor-preview.png)
 
@@ -11,20 +11,20 @@ Local-first notes app inspired by Obsidian — not a drop-in replacement. Built 
 
 ## Install
 
-Meridian publishes one GitHub Release per version tag. The same tag contains the stable macOS builds and the Windows beta installer.
+Meridian publishes one GitHub Release per version tag. The same tag contains macOS and Windows desktop builds.
 
-### macOS stable
+### macOS
 
 1. Download the latest DMG from [Releases](https://github.com/avedevelop/meridian/releases/latest).
 2. Open the DMG, drag Meridian into Applications.
 3. **First launch:** the DMG is unsigned, so Gatekeeper will block a regular double-click. Right-click the app → **Open** → confirm once. Subsequent launches work normally.
 4. Want a signed build? Watch the releases or build it yourself (`npm run build:mac` in `meridian/`).
 
-### Windows beta
+### Windows
 
-1. Download `Meridian-<version>-windows-beta-x64.exe` from the same [latest release](https://github.com/avedevelop/meridian/releases/latest).
+1. Download `Meridian-<version>-windows-x64.exe` from the same [latest release](https://github.com/avedevelop/meridian/releases/latest).
 2. Run the installer on Windows 10 or newer.
-3. Treat this build as beta: the core app is shared with macOS, but Windows-specific packaging and desktop behavior are still being validated.
+3. Open Meridian from the Start Menu or desktop shortcut.
 
 Platform notes live in [platforms/README.md](platforms/README.md).
 
@@ -87,6 +87,7 @@ npm run dev
 ### File tree
 
 - Create / rename / delete files and folders
+- Create new notes from built-in templates: project, person, daily note, and task
 - **Drag-drop both files AND folders** between directories
 - **Sorting:** A→Z, Z→A, by modification date (sidebar button)
 - Context menu: Reveal in Finder, Copy Path, Copy Relative Path
@@ -115,6 +116,14 @@ npm run dev
 - **Props** tab in the right panel
 - Shows and edits YAML frontmatter as form fields
 - "+ Add property" button
+
+### Note types, relationships, and views
+
+- Built-in note types for projects, people, daily notes, and tasks
+- Relationship properties in frontmatter resolve between notes and show in the right panel
+- Saved Views in the sidebar for Inbox, Projects, Tasks, and Daily workflows
+- Per-note Git history in the right panel with preview and restore controls
+- Read-only Ask Vault panel that searches local note context and cites source notes
 
 ### Templates
 
@@ -199,19 +208,19 @@ your-vault/
 
 ## Build
 
-The app has one shared Electron/React codebase and platform-specific packaging. macOS is stable; Windows is published as beta from the same release tag. Linux packaging exists in electron-builder config but is not part of public releases yet.
+The app has one shared Electron/React codebase and platform-specific packaging. macOS and Windows are both published from the same release tag. Linux packaging exists in electron-builder config but is not part of public releases yet.
 
 ```bash
 cd meridian
 npm run build:mac    # macOS DMG (arm64 + x64)
-npm run build:win    # Windows beta installer (x64)
+npm run build:win    # Windows installer (x64)
 ```
 
 Release workflow:
 
 - Push `vX.Y.Z` to build one GitHub Release for both platforms.
 - macOS assets: `Meridian-X.Y.Z-arm64.dmg`, `Meridian-X.Y.Z.dmg`.
-- Windows beta asset: `Meridian-X.Y.Z-windows-beta-x64.exe`.
+- Windows asset: `Meridian-X.Y.Z-windows-x64.exe`.
 - The site rebuild runs after both platform jobs finish, so download cards resolve all assets together.
 
 ## Tests

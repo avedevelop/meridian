@@ -1,12 +1,12 @@
-# Windows Beta
+# Windows
 
-Windows is published as a beta build from the same Meridian source tree and the same release tag as macOS.
+Windows is published from the same Meridian source tree and the same release tag as macOS.
 
 ## Supported build
 
-- Windows x64 installer: `Meridian-X.Y.Z-windows-beta-x64.exe`
+- Windows x64 installer: `Meridian-X.Y.Z-windows-x64.exe`
 
-The `windows-beta` marker is part of the filename on purpose. It should stay there until Windows packaging and desktop behavior are validated enough to call it stable.
+Windows builds are first-class release assets. The installer should open from the Start Menu and desktop shortcut after installation.
 
 ## Build
 
@@ -15,11 +15,11 @@ cd meridian
 npm run build:win
 ```
 
-The release workflow runs this on `windows-latest` and uploads `dist/*windows-beta*.exe`.
+The release workflow runs this on `windows-latest` and uploads `dist/*windows*.exe`.
 
-## Beta scope
+## QA scope
 
-The Windows beta uses the same renderer, editor, vault, default-vault, plugin, and settings code as macOS. The beta label is for platform-specific risk:
+Windows uses the same renderer, editor, vault, welcome-vault, plugin, settings, and Ask Vault code as macOS. QA should still verify platform-specific behavior:
 
 - installer behavior;
 - window close/minimize behavior;
