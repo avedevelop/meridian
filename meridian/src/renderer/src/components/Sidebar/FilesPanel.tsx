@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useVaultBridge, uniqueFileName } from '../../hooks/useVaultBridge'
@@ -8,7 +8,7 @@ import { FolderOpenBtnIcon, CollapseAllIcon } from '../Icons'
 import { FileIcon } from './FileIcon'
 import { VaultSwitcherDropdown } from './VaultSwitcherDropdown'
 import { sortAndFilterFiles } from './sidebarUtils'
-import type { VaultFile } from '@shared/types'
+import type { NoteTypeDefinition, VaultFile } from '@shared/types'
 
 export function FilesPanel() {
   const { t } = useTranslation()
@@ -16,6 +16,7 @@ export function FilesPanel() {
   const {
     openFile,
     createFile,
+    createTypedNote,
     createCanvas,
     createDrawing,
     createFolder,
@@ -35,6 +36,8 @@ export function FilesPanel() {
   const [filterQuery, setFilterQuery] = useState('')
   const [collapseKey, setCollapseKey] = useState(0)
   const [vaultMenuOpen, setVaultMenuOpen] = useState(false)
+  const [createAsOpen, setCreateAsOpen] = useState(false)
+  const [noteTypes, setNoteTypes] = useState<NoteTypeDefinition[]>([])
 
   const excludedList = useMemo(
     () =>
@@ -63,6 +66,26 @@ export function FilesPanel() {
     walk(files)
     return result.slice(0, 100)
   }, [files, filterQuery])
+
+  useEffect(() => {
+    if (!vault) return
+    let cancelled = false
+    window.vault
+      .getNoteTypes()
+      .then((types) => {
+        if (!cancelled) setNoteTypes(types)
+      })
+      .catch((error) => console.error('[FilesPanel] failed to load note types', error))
+    return () => {
+      cancelled = true
+    }
+  }, [vault])
+
+  const handleCreateTypedNote = (typeId: string, dir?: string) => {
+    if (!vault) return
+    setCreateAsOpen(false)
+    void createTypedNote(typeId, dir ?? vault.path)
+  }
 
   if (!vault) return null
 
@@ -270,8 +293,10 @@ export function FilesPanel() {
             onDelete={deleteFile}
             onNewFolder={createFolder}
             onCreateFile={createFile}
+            onCreateTypedNote={handleCreateTypedNote}
             onMove={moveFile}
             onReveal={revealFile}
+            noteTypes={noteTypes}
             collapseKey={collapseKey}
             vaultPath={vault.path}
             activePath={activeTabPath}
@@ -304,6 +329,66 @@ export function FilesPanel() {
         >
           {t('sidebar.newNote')}
         </button>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setCreateAsOpen((open) => !open)}
+            title={t('noteTypes.createAs')}
+            style={{
+              padding: '6px 10px',
+              minWidth: 34,
+              borderRadius: 6,
+              background: 'var(--bg-surface)',
+              color: 'var(--accent-color)',
+              border: '1px solid var(--border-color)',
+              fontSize: 12,
+              cursor: 'pointer'
+            }}
+          >
+            ▾
+          </button>
+          {createAsOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 'calc(100% + 6px)',
+                left: 0,
+                width: 180,
+                padding: 6,
+                borderRadius: 8,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: '0 12px 28px rgba(0,0,0,0.28)',
+                zIndex: 30
+              }}
+            >
+              {noteTypes.slice(0, 6).map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => handleCreateTypedNote(type.id)}
+                  style={{
+                    width: '100%',
+                    padding: '7px 8px',
+                    border: 'none',
+                    borderRadius: 6,
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    textAlign: 'left',
+                    fontSize: 12,
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-surface)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  {t(`noteTypes.${type.id}`, { defaultValue: type.label })}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           onClick={() => createDrawing(vault.path, `Drawing ${Date.now()}`)}
           title={t('sidebar.newDrawing')}

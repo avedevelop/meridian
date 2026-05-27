@@ -61,6 +61,7 @@ import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
 import { useSettingsStore } from './store/useSettingsStore'
 import { initI18n, i18n } from './i18n/index'
+import type { NoteTypeDefinition } from '@shared/types'
 
 import { useAutoSave } from './hooks/useAutoSave'
 import { useGitSync } from './hooks/useGitSync'
@@ -94,6 +95,7 @@ export default function App() {
     exportNote,
     exportPdf,
     createFile,
+    createTypedNote,
     saveFile,
     listTemplates,
     applyTemplate
@@ -102,6 +104,7 @@ export default function App() {
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [noteTypes, setNoteTypes] = useState<NoteTypeDefinition[]>([])
   const [pluginCommands, setPluginCommands] = useState(() => pluginRegistry.getCommands())
 
   const [toasts, setToasts] = useState<{ id: string; message: string }[]>([])
@@ -148,6 +151,20 @@ export default function App() {
   useEffect(() => {
     initCorePlugins(pluginAPI)
   }, [pluginAPI])
+
+  useEffect(() => {
+    if (!vault) return
+    let cancelled = false
+    window.vault
+      .getNoteTypes()
+      .then((types) => {
+        if (!cancelled) setNoteTypes(types)
+      })
+      .catch((error) => console.error('[App] failed to load note types', error))
+    return () => {
+      cancelled = true
+    }
+  }, [vault])
 
   useEffect(() => {
     setPluginCommands(pluginRegistry.getCommands())
@@ -589,6 +606,17 @@ export default function App() {
 
   const paletteCommands = useMemo(() => {
     const staticCmds = [
+      ...noteTypes.slice(0, 6).map((type) => ({
+        id: `create-as-${type.id}`,
+        label: i18n.t('noteTypes.commandCreateAs', {
+          type: i18n.t(`noteTypes.${type.id}`, { defaultValue: type.label })
+        }),
+        icon: '＋',
+        onSelect: async () => {
+          if (!vault) return
+          await createTypedNote(type.id, vault.path)
+        }
+      })),
       {
         id: 'insert-template',
         label: 'Insert Template…',
@@ -619,7 +647,7 @@ export default function App() {
     }))
 
     return [...staticCmds, ...dynamicCmds]
-  }, [pluginAPI, listTemplates, applyTemplate, pluginCommands])
+  }, [pluginAPI, listTemplates, applyTemplate, pluginCommands, noteTypes, createTypedNote, vault])
 
   const handlePaletteFileSelect = useCallback(
     (path: string, name: string) => {

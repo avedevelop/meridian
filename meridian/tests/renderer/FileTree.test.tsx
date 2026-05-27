@@ -43,4 +43,29 @@ describe('FileTree', () => {
     fireEvent.click(screen.getByText('Projects'))
     expect(screen.getByText('Alpha.md')).toBeInTheDocument()
   })
+
+  it('shows typed note creation in a directory context menu', () => {
+    const onCreateTypedNote = vi.fn()
+    render(
+      <FileTree
+        files={mockFiles}
+        onFileClick={vi.fn()}
+        onCreateTypedNote={onCreateTypedNote}
+        noteTypes={[
+          {
+            id: 'project',
+            label: 'Project',
+            properties: [],
+            template: '# {{title}}'
+          }
+        ]}
+        vaultPath="/v"
+      />
+    )
+
+    fireEvent.contextMenu(screen.getByText('Projects'))
+    fireEvent.click(screen.getByText('Create as Project'))
+
+    expect(onCreateTypedNote).toHaveBeenCalledWith('project', '/v/Projects')
+  })
 })
