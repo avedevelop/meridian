@@ -8,13 +8,7 @@ import {
 } from '@shared/frontmatter'
 import { useVaultStore } from '../../store/useVaultStore'
 import { PropertyRow } from './properties/PropertyRow'
-import {
-  PROPERTY_TYPES,
-  convertPropertyValue,
-  defaultValueForType,
-  inferPropertyType,
-  type PropertyType
-} from './properties/propertyType'
+import { inferPropertyType } from './properties/propertyType'
 
 const formInputStyle = {
   width: '100%',
@@ -38,14 +32,10 @@ export function PropertiesPanel() {
   const activeTab = activePane?.openTabs.find((tab) => tab.path === activePane.activeTabPath)
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newType, setNewType] = useState<PropertyType>('text')
-  const [propertyTypes, setPropertyTypes] = useState<Record<string, PropertyType>>({})
 
   useEffect(() => {
     setIsAdding(false)
     setNewName('')
-    setNewType('text')
-    setPropertyTypes({})
   }, [activeTab?.path])
 
   const frontmatter = useMemo(() => {
@@ -74,21 +64,8 @@ export function PropertiesPanel() {
     (key: string) => {
       if (!activeTab || !frontmatter?.ok) return
       updateContent(removeFrontmatterProperty(activeTab.content, key))
-      setPropertyTypes((types) => {
-        const nextTypes = { ...types }
-        delete nextTypes[key]
-        return nextTypes
-      })
     },
     [activeTab, frontmatter, updateContent]
-  )
-
-  const handleTypeChange = useCallback(
-    (key: string, value: FrontmatterValue, type: PropertyType) => {
-      setPropertyTypes((types) => ({ ...types, [key]: type }))
-      handleChange(key, convertPropertyValue(value, type))
-    },
-    [handleChange]
   )
 
   const handleCreateProperty = (event: FormEvent) => {
@@ -98,10 +75,8 @@ export function PropertiesPanel() {
     const name = newName.trim()
     if (!name || Object.prototype.hasOwnProperty.call(frontmatter.properties, name)) return
 
-    setPropertyTypes((types) => ({ ...types, [name]: newType }))
-    handleChange(name, defaultValueForType(newType))
+    handleChange(name, '')
     setNewName('')
-    setNewType('text')
     setIsAdding(false)
   }
 
@@ -159,14 +134,13 @@ export function PropertiesPanel() {
       {frontmatter?.ok && propertyEntries.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {propertyEntries.map(([key, value]) => {
-            const type = propertyTypes[key] ?? inferPropertyType(key, value)
+            const type = inferPropertyType(key, value)
             return (
               <PropertyRow
                 key={key}
                 name={key}
                 type={type}
                 value={value}
-                onTypeChange={(nextType) => handleTypeChange(key, value, nextType)}
                 onValueChange={(nextValue) => handleChange(key, nextValue)}
                 onDelete={() => handleDelete(key)}
               />
@@ -195,20 +169,6 @@ export function PropertiesPanel() {
               onChange={(event) => setNewName(event.target.value)}
               style={{ ...formInputStyle, marginTop: 4 }}
             />
-          </label>
-          <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {t('properties.propertyType')}
-            <select
-              value={newType}
-              onChange={(event) => setNewType(event.target.value as PropertyType)}
-              style={{ ...formInputStyle, marginTop: 4 }}
-            >
-              {PROPERTY_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {t(`properties.type.${type}`)}
-                </option>
-              ))}
-            </select>
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
             <button

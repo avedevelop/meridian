@@ -1,26 +1,18 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FrontmatterValue } from '@shared/frontmatter'
-import { PROPERTY_TYPES, type PropertyType } from './propertyType'
+import type { PropertyType } from './propertyType'
 import { PropertyValueInput } from './PropertyValueInput'
 
 interface PropertyRowProps {
   name: string
   type: PropertyType
   value: FrontmatterValue
-  onTypeChange: (type: PropertyType) => void
   onValueChange: (value: FrontmatterValue) => void
   onDelete: () => void
 }
 
-export function PropertyRow({
-  name,
-  type,
-  value,
-  onTypeChange,
-  onValueChange,
-  onDelete
-}: PropertyRowProps) {
+export function PropertyRow({ name, type, value, onValueChange, onDelete }: PropertyRowProps) {
   const { t } = useTranslation()
   const inputId = useId()
 
@@ -32,7 +24,7 @@ export function PropertyRow({
         </label>
         <button
           type="button"
-          aria-label={t('properties.deleteProperty')}
+          aria-label={`${t('properties.deleteProperty')} ${name}`}
           onClick={onDelete}
           style={{
             border: 0,
@@ -47,37 +39,13 @@ export function PropertyRow({
           &times;
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <div style={{ flex: 1 }}>
-          <PropertyValueInput
-            id={inputId}
-            label={name}
-            type={type}
-            value={value}
-            onChange={onValueChange}
-          />
-        </div>
-        <select
-          aria-label={t('properties.propertyType')}
-          value={type}
-          onChange={(event) => onTypeChange(event.target.value as PropertyType)}
-          style={{
-            maxWidth: 94,
-            padding: '6px 4px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 6,
-            color: 'var(--text-secondary)',
-            fontSize: 12
-          }}
-        >
-          {PROPERTY_TYPES.map((propertyType) => (
-            <option key={propertyType} value={propertyType}>
-              {t(`properties.type.${propertyType}`)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <PropertyValueInput
+        id={inputId}
+        label={name}
+        type={type}
+        value={value}
+        onChange={onValueChange}
+      />
     </div>
   )
 }

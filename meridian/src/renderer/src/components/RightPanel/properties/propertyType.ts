@@ -2,16 +2,19 @@ import type { FrontmatterValue } from '@shared/frontmatter'
 
 export type PropertyType = 'text' | 'number' | 'checkbox' | 'date' | 'tags' | 'relation'
 
-export const PROPERTY_TYPES: PropertyType[] = [
-  'text',
-  'number',
-  'checkbox',
-  'date',
-  'tags',
-  'relation'
-]
-
 const dateValuePattern = /^\d{4}-\d{2}-\d{2}$/
+
+function isIsoDateValue(value: string): boolean {
+  if (!dateValuePattern.test(value)) return false
+
+  const [year, month, day] = value.split('-').map(Number)
+  if (year < 1) return false
+
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  )
+}
 
 export function inferPropertyType(name: string, value: FrontmatterValue): PropertyType {
   const normalizedName = name.toLowerCase()
@@ -20,26 +23,10 @@ export function inferPropertyType(name: string, value: FrontmatterValue): Proper
   if (typeof value === 'number') return 'number'
   if (/(^|[-_ ])tags?([-_ ]|$)/.test(normalizedName)) return 'tags'
   if (/(^|[-_ ])(relations?|related|links?)([-_ ]|$)/.test(normalizedName)) return 'relation'
-  if (/(^|[-_ ])(date|deadline|due)([-_ ]|$)/.test(normalizedName)) return 'date'
-  if (typeof value === 'string' && dateValuePattern.test(value)) return 'date'
+  if (typeof value === 'string' && isIsoDateValue(value)) return 'date'
   if (Array.isArray(value)) return 'tags'
 
   return 'text'
-}
-
-export function defaultValueForType(type: PropertyType): FrontmatterValue {
-  switch (type) {
-    case 'number':
-      return 0
-    case 'checkbox':
-      return false
-    case 'tags':
-    case 'relation':
-      return []
-    case 'text':
-    case 'date':
-      return ''
-  }
 }
 
 export function stringValue(value: FrontmatterValue): string {
@@ -53,26 +40,4 @@ export function listValue(value: string): FrontmatterValue {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean)
-}
-
-export function convertPropertyValue(
-  value: FrontmatterValue,
-  type: PropertyType
-): FrontmatterValue {
-  const text = stringValue(value)
-
-  switch (type) {
-    case 'text':
-    case 'date':
-      return text
-    case 'number': {
-      const number = Number(text)
-      return text.trim() && Number.isFinite(number) ? number : 0
-    }
-    case 'checkbox':
-      return typeof value === 'boolean' ? value : false
-    case 'tags':
-    case 'relation':
-      return Array.isArray(value) ? value : listValue(text)
-  }
 }

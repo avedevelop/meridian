@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PropertiesPanel } from '../../src/renderer/src/components/RightPanel/PropertiesPanel'
@@ -25,6 +25,14 @@ function openNote(content: string) {
 
 function activeTab() {
   return useVaultStore.getState().panes[0].openTabs[0]
+}
+
+function addProperty(name: string) {
+  fireEvent.click(screen.getByRole('button', { name: 'properties.addProperty' }))
+  fireEvent.change(screen.getByLabelText('properties.propertyName'), {
+    target: { value: name }
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'properties.createProperty' }))
 }
 
 beforeEach(() => {
@@ -62,11 +70,7 @@ describe('PropertiesPanel', () => {
     openNote('# Note\n\nBody')
 
     render(<PropertiesPanel />)
-    fireEvent.click(screen.getByRole('button', { name: 'properties.addProperty' }))
-    fireEvent.change(screen.getByLabelText('properties.propertyName'), {
-      target: { value: 'priority' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'properties.createProperty' }))
+    addProperty('priority')
 
     expect(prompt).not.toHaveBeenCalled()
     expect(parseMarkdownFrontmatter(activeTab().content).properties.priority).toBe('')
@@ -123,14 +127,100 @@ describe('PropertiesPanel', () => {
     expect(properties.related).toEqual(['Roadmap', 'Archive'])
   })
 
+  it('keeps non-ISO date-key content visible until it is edited to a valid ISO date', () => {
+    openNote('---\ndue: next Friday\n---\n\nBody')
+
+    render(<PropertiesPanel />)
+    const due = screen.getByLabelText('due')
+
+    expect(due).toHaveAttribute('type', 'text')
+    expect(due).toHaveValue('next Friday')
+    fireEvent.change(due, { target: { value: '2026-06-05' } })
+    fireEvent.blur(due)
+
+    expect(parseMarkdownFrontmatter(activeTab().content).properties.due).toBe('2026-06-05')
+    expect(screen.getByLabelText('due')).toHaveAttribute('type', 'date')
+    expect(screen.getByLabelText('due')).toHaveValue('2026-06-05')
+  })
+
+  it('reconstructs created property controls after note navigation and remount', () => {
+    openNote('# Note\n\nBody')
+
+    const { unmount } = render(<PropertiesPanel />)
+    addProperty('tags')
+    expect(screen.getByLabelText('tags')).toHaveAttribute(
+      'placeholder',
+      'properties.tagsPlaceholder'
+    )
+    fireEvent.change(screen.getByLabelText('tags'), { target: { value: 'work, ideas' } })
+    fireEvent.blur(screen.getByLabelText('tags'))
+
+    addProperty('related')
+    expect(screen.getByLabelText('related')).toHaveAttribute(
+      'placeholder',
+      'properties.relationPlaceholder'
+    )
+    fireEvent.change(screen.getByLabelText('related'), { target: { value: 'Roadmap, Journal' } })
+    fireEvent.blur(screen.getByLabelText('related'))
+
+    addProperty('due')
+    fireEvent.change(screen.getByLabelText('due'), { target: { value: '2026-06-10' } })
+    fireEvent.blur(screen.getByLabelText('due'))
+    expect(screen.getByLabelText('due')).toHaveAttribute('type', 'date')
+
+    act(() => {
+      useVaultStore.getState().openTab('/vault/other.md', 'other.md')
+    })
+    expect(screen.queryByLabelText('tags')).not.toBeInTheDocument()
+    act(() => {
+      useVaultStore.getState().setActiveTab(PATH)
+    })
+    expect(screen.getByLabelText('tags')).toHaveAttribute(
+      'placeholder',
+      'properties.tagsPlaceholder'
+    )
+    expect(screen.getByLabelText('related')).toHaveAttribute(
+      'placeholder',
+      'properties.relationPlaceholder'
+    )
+    expect(screen.getByLabelText('due')).toHaveAttribute('type', 'date')
+
+    unmount()
+    render(<PropertiesPanel />)
+    expect(screen.getByLabelText('tags')).toHaveValue('work, ideas')
+    expect(screen.getByLabelText('related')).toHaveValue('Roadmap, Journal')
+    expect(screen.getByLabelText('due')).toHaveAttribute('type', 'date')
+  })
+
+  it('does not expose transient type changes for existing properties', () => {
+    openNote('---\ntitle: Note\n---\n\nBody')
+
+    render(<PropertiesPanel />)
+
+    expect(screen.queryByLabelText('properties.propertyType')).not.toBeInTheDocument()
+  })
+
   it('deletes a property', () => {
     openNote('---\ntitle: Keep or delete\n---\n\nBody')
 
     render(<PropertiesPanel />)
-    fireEvent.click(screen.getByRole('button', { name: 'properties.deleteProperty' }))
+    fireEvent.click(screen.getByRole('button', { name: 'properties.deleteProperty title' }))
 
     expect(parseMarkdownFrontmatter(activeTab().content).properties).toEqual({})
     expect(activeTab().isDirty).toBe(true)
+  })
+
+  it('provides a distinct accessible delete label for each property row', () => {
+    openNote('---\ntitle: Note\nsummary: Brief\n---\n\nBody')
+
+    render(<PropertiesPanel />)
+
+    expect(
+      screen.getByRole('button', { name: 'properties.deleteProperty title' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'properties.deleteProperty summary' })
+    ).toBeInTheDocument()
   })
 
   it('reports malformed YAML and prevents mutation', () => {
