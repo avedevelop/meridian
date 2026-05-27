@@ -4,12 +4,22 @@ import { BacklinksPanel } from './BacklinksPanel'
 import { TagsPanel } from './TagsPanel'
 import { TocPanel } from './TocPanel'
 import { LocalGraphView } from './LocalGraphView'
+import { AskVaultPanel } from './AskVaultPanel'
+import { NoteHistoryPanel } from './NoteHistoryPanel'
 import { PropertiesPanel } from './PropertiesPanel'
 import { RelationshipsPanel } from './RelationshipsPanel'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { SlidersIcon, LinkIcon, TagIcon, OutlineIcon, WebIcon } from '../Icons'
 
-type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties' | 'relationships'
+type RightTab =
+  | 'backlinks'
+  | 'tags'
+  | 'toc'
+  | 'local-graph'
+  | 'properties'
+  | 'relationships'
+  | 'history'
+  | 'ask-vault'
 
 export function RightPanel() {
   const { t } = useTranslation()
@@ -26,6 +36,16 @@ export function RightPanel() {
       id: 'relationships',
       label: t('rightPanel.relationships'),
       Icon: (props: any) => <LinkIcon size={15} {...props} />
+    },
+    {
+      id: 'ask-vault',
+      label: t('rightPanel.askVault'),
+      Icon: (props: any) => <WebIcon size={15} {...props} />
+    },
+    {
+      id: 'history',
+      label: t('rightPanel.history'),
+      Icon: (props: any) => <OutlineIcon size={15} {...props} />
     },
     plugins.backlinksPanel
       ? {
@@ -83,6 +103,8 @@ export function RightPanel() {
       <div className="right-panel-content">
         {effectiveTab === 'properties' && <PropertiesPanel />}
         {effectiveTab === 'relationships' && <RelationshipsPanel />}
+        {effectiveTab === 'ask-vault' && <AskVaultPanel />}
+        {effectiveTab === 'history' && <NoteHistoryPanel />}
         {effectiveTab === 'backlinks' && <BacklinksPanel />}
         {effectiveTab === 'tags' && <TagsPanel />}
         {effectiveTab === 'toc' && <TocPanel />}

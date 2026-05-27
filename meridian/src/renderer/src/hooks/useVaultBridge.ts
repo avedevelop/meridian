@@ -6,6 +6,8 @@ import { formatPlatformShortcut } from '../utils/platformUi'
 import type {
   CreatedTypedNote,
   CreateTypedNoteInput,
+  GitCommitSummary,
+  GitFileRestoreResult,
   MeridianVaultConfig,
   NoteTypeDefinition,
   PluginFileChangeEvent,
@@ -101,6 +103,14 @@ declare global {
         }[]
       }>
       gitShowHead: (relativePath: string) => Promise<{ success: boolean; content: string }>
+      gitFileLog: (
+        filePath: string
+      ) => Promise<{ success: boolean; error?: string; commits?: GitCommitSummary[] }>
+      gitShowFileAtCommit: (
+        filePath: string,
+        hash: string
+      ) => Promise<{ success: boolean; content?: string; error?: string }>
+      gitRestoreFile: (filePath: string, hash: string) => Promise<GitFileRestoreResult>
       gitSetRemote: (url: string) => Promise<{ success: boolean; error?: string }>
       githubDeviceCode: () => Promise<{
         success: boolean

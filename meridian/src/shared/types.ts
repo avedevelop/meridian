@@ -51,6 +51,20 @@ export interface CreatedTypedNote {
   type: NoteTypeDefinition
 }
 
+export interface GitCommitSummary {
+  hash: string
+  shortHash: string
+  author: string
+  date: string
+  subject: string
+}
+
+export interface GitFileRestoreResult {
+  success: boolean
+  content?: string
+  error?: string
+}
+
 export interface AppConfig {
   recentVaults: VaultConfig[]
   lastVault: string | null // path of last opened vault
@@ -113,6 +127,9 @@ export const IPC = {
   GIT_INIT: 'git:init',
   GIT_LOG: 'git:log',
   GIT_SHOW_HEAD: 'git:show-head',
+  GIT_FILE_LOG: 'git:file-log',
+  GIT_SHOW_FILE_AT_COMMIT: 'git:show-file-at-commit',
+  GIT_RESTORE_FILE: 'git:restore-file',
   GIT_SET_REMOTE: 'git:set-remote',
   GIT_GITHUB_DEVICE_CODE: 'git:github-device-code',
   GIT_GITHUB_POLL_TOKEN: 'git:github-poll-token',

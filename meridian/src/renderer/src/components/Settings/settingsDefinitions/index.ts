@@ -6,6 +6,7 @@ import { buildAppearanceSettings } from './appearanceSettings'
 import { buildCanvasSettings } from './canvasSettings'
 import { buildExportSettings } from './exportSettings'
 import { buildSyncSettings } from './syncSettings'
+import { buildAiSettings } from './aiSettings'
 
 export function buildSettingsDefinitions(t: TFunction): SettingDefinition[] {
   return [
@@ -13,6 +14,7 @@ export function buildSettingsDefinitions(t: TFunction): SettingDefinition[] {
     ...buildFilesSettings(t),
     ...buildAppearanceSettings(t),
     ...buildCanvasSettings(t),
+    ...buildAiSettings(t),
     ...buildExportSettings(t),
     ...buildSyncSettings(t)
   ]

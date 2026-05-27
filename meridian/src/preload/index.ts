@@ -8,6 +8,8 @@ import type {
   AppConfig,
   CreatedTypedNote,
   CreateTypedNoteInput,
+  GitCommitSummary,
+  GitFileRestoreResult,
   MeridianVaultConfig,
   NoteTypeDefinition
 } from '../shared/types'
@@ -103,6 +105,20 @@ const vaultAPI = {
 
   gitShowHead: (relativePath: string): Promise<{ success: boolean; content: string }> =>
     ipcRenderer.invoke(IPC.GIT_SHOW_HEAD, relativePath),
+
+  gitFileLog: (
+    filePath: string
+  ): Promise<{ success: boolean; error?: string; commits?: GitCommitSummary[] }> =>
+    ipcRenderer.invoke(IPC.GIT_FILE_LOG, filePath),
+
+  gitShowFileAtCommit: (
+    filePath: string,
+    hash: string
+  ): Promise<{ success: boolean; content?: string; error?: string }> =>
+    ipcRenderer.invoke(IPC.GIT_SHOW_FILE_AT_COMMIT, filePath, hash),
+
+  gitRestoreFile: (filePath: string, hash: string): Promise<GitFileRestoreResult> =>
+    ipcRenderer.invoke(IPC.GIT_RESTORE_FILE, filePath, hash),
 
   gitSetRemote: (url: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC.GIT_SET_REMOTE, url),

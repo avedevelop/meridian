@@ -24,6 +24,7 @@ export function SettingsNav({
     { id: 'files', label: t('settings.nav.files') },
     { id: 'appearance', label: t('settings.nav.appearance') },
     { id: 'canvas', label: t('settings.nav.canvas') },
+    { id: 'ai', label: t('settings.nav.ai') },
     { id: 'plugins', label: t('settings.nav.plugins') },
     { id: 'export', label: t('settings.nav.export') },
     { id: 'sync', label: t('settings.nav.sync') },
