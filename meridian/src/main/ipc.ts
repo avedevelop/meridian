@@ -2,6 +2,8 @@ import { BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { basename, isAbsolute, resolve, sep } from 'path'
 import chokidar, { type FSWatcher } from 'chokidar'
 import {
+  type CreateTypedNoteInput,
+  type MeridianVaultConfig,
   IPC,
   type PluginManifest,
   type PluginFileChangeEvent,
@@ -289,6 +291,21 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.VAULT_CREATE_FILE, async (_event, dir: string, name: string) => {
     if (!vaultManager) throw new Error('No vault open')
     return vaultManager.createFile(dir, name)
+  })
+
+  ipcMain.handle(IPC.VAULT_GET_NOTE_TYPES, async () => {
+    if (!vaultManager) throw new Error('No vault open')
+    return vaultManager.listNoteTypes()
+  })
+
+  ipcMain.handle(IPC.VAULT_SAVE_NOTE_TYPES, async (_event, config: MeridianVaultConfig) => {
+    if (!vaultManager) throw new Error('No vault open')
+    return vaultManager.saveMeridianConfig(config)
+  })
+
+  ipcMain.handle(IPC.VAULT_CREATE_TYPED_NOTE, async (_event, input: CreateTypedNoteInput) => {
+    if (!vaultManager) throw new Error('No vault open')
+    return vaultManager.createTypedNote(input)
   })
 
   ipcMain.handle(IPC.VAULT_CREATE_DIR, async (_event, parentDir: string, name: string) => {

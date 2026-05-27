@@ -4,6 +4,10 @@ import { useLinkStore } from '../store/useLinkStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { formatPlatformShortcut } from '../utils/platformUi'
 import type {
+  CreatedTypedNote,
+  CreateTypedNoteInput,
+  MeridianVaultConfig,
+  NoteTypeDefinition,
   PluginFileChangeEvent,
   VaultConfig,
   VaultFile,
@@ -38,6 +42,9 @@ declare global {
       readFile: (path: string) => Promise<string>
       writeFile: (path: string, content: string) => Promise<void>
       createFile: (dir: string, name: string) => Promise<string>
+      getNoteTypes: () => Promise<NoteTypeDefinition[]>
+      saveNoteTypes: (config: MeridianVaultConfig) => Promise<void>
+      createTypedNote: (input: CreateTypedNoteInput) => Promise<CreatedTypedNote>
       createDir: (parentDir: string, name: string) => Promise<string>
       deleteFile: (path: string) => Promise<void>
       renameFile: (oldPath: string, newName: string) => Promise<string>
@@ -236,6 +243,22 @@ export function useVaultBridge() {
       if (vault) useLinkStore.getState().indexFile(filePath, fileName, '', vault.path)
       await refreshFiles()
       await openFile(filePath, fileName)
+    },
+    [refreshFiles, openFile]
+  )
+
+  const createTypedNote = useCallback(
+    async (typeId: string, dir: string, title?: string) => {
+      const created = await window.vault.createTypedNote({ typeId, dir, title })
+      const vault = useVaultStore.getState().vault
+      if (vault) {
+        useLinkStore
+          .getState()
+          .indexFile(created.path, created.name, created.content, vault.path)
+      }
+      await refreshFiles()
+      await openFile(created.path, created.name)
+      return created
     },
     [refreshFiles, openFile]
   )
@@ -693,6 +716,7 @@ ${bodyHtml}
     openFile,
     saveFile,
     createFile,
+    createTypedNote,
     createCanvas,
     createDrawing,
     createFolder,

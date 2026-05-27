@@ -5,7 +5,11 @@ import type {
   VaultFileChangeEvent,
   VaultFile,
   VaultConfig,
-  AppConfig
+  AppConfig,
+  CreatedTypedNote,
+  CreateTypedNoteInput,
+  MeridianVaultConfig,
+  NoteTypeDefinition
 } from '../shared/types'
 
 import { homedir } from 'os'
@@ -31,6 +35,14 @@ const vaultAPI = {
 
   createFile: (dir: string, name: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_CREATE_FILE, dir, name),
+
+  getNoteTypes: (): Promise<NoteTypeDefinition[]> => ipcRenderer.invoke(IPC.VAULT_GET_NOTE_TYPES),
+
+  saveNoteTypes: (config: MeridianVaultConfig): Promise<void> =>
+    ipcRenderer.invoke(IPC.VAULT_SAVE_NOTE_TYPES, config),
+
+  createTypedNote: (input: CreateTypedNoteInput): Promise<CreatedTypedNote> =>
+    ipcRenderer.invoke(IPC.VAULT_CREATE_TYPED_NOTE, input),
 
   createDir: (parentDir: string, name: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_CREATE_DIR, parentDir, name),
