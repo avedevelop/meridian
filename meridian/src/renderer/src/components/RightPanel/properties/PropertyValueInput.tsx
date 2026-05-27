@@ -34,6 +34,8 @@ export function PropertyValueInput({ id, label, type, value, onChange }: Propert
   }
 
   const commitValue = () => {
+    if (draft === sourceValue) return
+
     if (type === 'number') {
       const number = Number(draft)
       if (!draft.trim() || !Number.isFinite(number)) {

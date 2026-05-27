@@ -164,6 +164,20 @@ describe('PropertiesPanel', () => {
     expect(activeTab().isDirty).toBe(true)
   })
 
+  it('does not rewrite a null property when blurred without changes', () => {
+    const content = '---\nassignee: null\n---\n\nBody'
+    openNote(content)
+
+    render(<PropertiesPanel />)
+    const assignee = screen.getByLabelText('assignee')
+    fireEvent.focus(assignee)
+    fireEvent.blur(assignee)
+
+    expect(activeTab().content).toBe(content)
+    expect(parseMarkdownFrontmatter(activeTab().content).properties.assignee).toBeNull()
+    expect(activeTab().isDirty).toBe(false)
+  })
+
   it('toggles a checkbox property', () => {
     openNote('---\ndone: false\n---\n\nBody')
 
