@@ -150,9 +150,15 @@ export function serializeFrontmatter(properties: FrontmatterProperties): string 
 
 export function replaceFrontmatter(content: string, properties: FrontmatterProperties): string {
   const parsed = parseMarkdownFrontmatter(content)
-  const body = parsed.hasFrontmatter ? parsed.body : content
+  if (!parsed.ok) {
+    return content
+  }
 
-  return `${serializeFrontmatter(properties)}${body}`
+  if (!parsed.hasFrontmatter) {
+    return `${serializeFrontmatter(properties)}\n\n${content}`
+  }
+
+  return `${serializeFrontmatter(properties)}${parsed.body}`
 }
 
 export function setFrontmatterProperty(
@@ -161,7 +167,11 @@ export function setFrontmatterProperty(
   value: FrontmatterValue
 ): string {
   const parsed = parseMarkdownFrontmatter(content)
-  const properties = parsed.ok ? { ...parsed.properties } : {}
+  if (!parsed.ok) {
+    return content
+  }
+
+  const properties = { ...parsed.properties }
   properties[key] = value
 
   if (parsed.hasFrontmatter) {
@@ -173,7 +183,11 @@ export function setFrontmatterProperty(
 
 export function removeFrontmatterProperty(content: string, key: string): string {
   const parsed = parseMarkdownFrontmatter(content)
-  const properties = parsed.ok ? { ...parsed.properties } : {}
+  if (!parsed.ok) {
+    return content
+  }
+
+  const properties = { ...parsed.properties }
   delete properties[key]
 
   if (parsed.hasFrontmatter) {

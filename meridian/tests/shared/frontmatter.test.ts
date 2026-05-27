@@ -144,6 +144,10 @@ describe('frontmatter updates', () => {
     expect(result.body).toBe('\n\nBody')
   })
 
+  it('adds replacement frontmatter before body content with a blank line separator', () => {
+    expect(replaceFrontmatter('# Title', { title: 'X' })).toBe('---\ntitle: X\n---\n\n# Title')
+  })
+
   it('replaces frontmatter without changing body text', () => {
     const body = '\n\nBody\n\n- item\n'
     const updated = replaceFrontmatter(`---\ntitle: Old\n---${body}`, {
@@ -152,5 +156,23 @@ describe('frontmatter updates', () => {
     })
 
     expect(updated).toBe('---\ntitle: New\ncount: 2\n---' + body)
+  })
+
+  it('leaves malformed frontmatter unchanged when setting a property', () => {
+    const content = '---\ntitle: [broken\n---\n\nBody'
+
+    expect(setFrontmatterProperty(content, 'title', 'New')).toBe(content)
+  })
+
+  it('leaves malformed frontmatter unchanged when removing a property', () => {
+    const content = '---\ntitle: [broken\n---\n\nBody'
+
+    expect(removeFrontmatterProperty(content, 'title')).toBe(content)
+  })
+
+  it('leaves malformed frontmatter unchanged when replacing properties', () => {
+    const content = '---\ntitle: [broken\n---\n\nBody'
+
+    expect(replaceFrontmatter(content, { title: 'New' })).toBe(content)
   })
 })
