@@ -5,7 +5,13 @@ import type {
   VaultFileChangeEvent,
   VaultFile,
   VaultConfig,
-  AppConfig
+  AppConfig,
+  CreatedTypedNote,
+  CreateTypedNoteInput,
+  GitCommitSummary,
+  GitFileRestoreResult,
+  MeridianVaultConfig,
+  NoteTypeDefinition
 } from '../shared/types'
 
 import { homedir } from 'os'
@@ -31,6 +37,14 @@ const vaultAPI = {
 
   createFile: (dir: string, name: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_CREATE_FILE, dir, name),
+
+  getNoteTypes: (): Promise<NoteTypeDefinition[]> => ipcRenderer.invoke(IPC.VAULT_GET_NOTE_TYPES),
+
+  saveNoteTypes: (config: MeridianVaultConfig): Promise<void> =>
+    ipcRenderer.invoke(IPC.VAULT_SAVE_NOTE_TYPES, config),
+
+  createTypedNote: (input: CreateTypedNoteInput): Promise<CreatedTypedNote> =>
+    ipcRenderer.invoke(IPC.VAULT_CREATE_TYPED_NOTE, input),
 
   createDir: (parentDir: string, name: string): Promise<string> =>
     ipcRenderer.invoke(IPC.VAULT_CREATE_DIR, parentDir, name),
@@ -91,6 +105,20 @@ const vaultAPI = {
 
   gitShowHead: (relativePath: string): Promise<{ success: boolean; content: string }> =>
     ipcRenderer.invoke(IPC.GIT_SHOW_HEAD, relativePath),
+
+  gitFileLog: (
+    filePath: string
+  ): Promise<{ success: boolean; error?: string; commits?: GitCommitSummary[] }> =>
+    ipcRenderer.invoke(IPC.GIT_FILE_LOG, filePath),
+
+  gitShowFileAtCommit: (
+    filePath: string,
+    hash: string
+  ): Promise<{ success: boolean; content?: string; error?: string }> =>
+    ipcRenderer.invoke(IPC.GIT_SHOW_FILE_AT_COMMIT, filePath, hash),
+
+  gitRestoreFile: (filePath: string, hash: string): Promise<GitFileRestoreResult> =>
+    ipcRenderer.invoke(IPC.GIT_RESTORE_FILE, filePath, hash),
 
   gitSetRemote: (url: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC.GIT_SET_REMOTE, url),

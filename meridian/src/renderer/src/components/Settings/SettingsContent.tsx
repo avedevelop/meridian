@@ -197,6 +197,31 @@ export function SettingsContent({ activeCategory, searchQuery, isOpen }: Setting
               </div>
             )}
 
+            {activeCategory === 'ai' && (
+              <div>
+                <h3
+                  style={{
+                    margin: '0 0 4px 0',
+                    color: 'var(--text-primary)',
+                    fontSize: 16,
+                    fontWeight: 600
+                  }}
+                >
+                  {t('settings.ai.title')}
+                </h3>
+                <p style={{ margin: '0 0 20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
+                  {t('settings.ai.description')}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {settingsDefinitions
+                    .filter((s) => s.category === 'ai')
+                    .map((s) => (
+                      <div key={s.id}>{s.render(store)}</div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {activeCategory === 'plugins' && <SettingsPluginsSection />}
 
             {activeCategory === 'hotkeys' && <SettingsHotkeysSection />}

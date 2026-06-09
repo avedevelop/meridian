@@ -14,7 +14,6 @@ import { useEditorStore } from '../../store/useEditorStore'
 import { CanvasView } from '../Canvas/CanvasView'
 import { SketchpadView } from './SketchpadView'
 import { DiffPane } from './DiffPane'
-
 import { flattenVaultFiles } from './markdownUtils'
 import { EditorContextMenu } from './EditorContextMenu'
 import { useEditorDnd } from './useEditorDnd'
@@ -35,7 +34,8 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const previewScrollRef = useRef<HTMLDivElement>(null)
+  const [editorView, setEditorView] = React.useState<EditorView | null>(null)
+  const [previewScrollEl, setPreviewScrollEl] = React.useState<HTMLDivElement | null>(null)
   const scrollSyncRef = useRef(false)
   const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number } | null>(null)
   const [splitRatio, setSplitRatio] = React.useState<number>(() => {
@@ -69,6 +69,8 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [])
+
+  const setPreviewScrollRef = useCallback((el: HTMLDivElement | null) => setPreviewScrollEl(el), [])
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -251,9 +253,11 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
     })
 
     viewRef.current = view
+    setEditorView(view)
     return () => {
       view.destroy()
       viewRef.current = null
+      setEditorView((current) => (current === view ? null : current))
       if (isActive) {
         useEditorStore.getState().setCursorPos(null)
         useEditorStore.getState().setActiveHeading(null)
@@ -299,8 +303,8 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
 
   // Scroll sync between editor and preview
   useEffect(() => {
-    const view = viewRef.current
-    const preview = previewScrollRef.current
+    const view = editorView
+    const preview = previewScrollEl
     if (!view || !preview || isCanvasFile || isDrawingFile || isDiffFile) return
 
     let rafId: number
@@ -336,7 +340,7 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
       cancelAnimationFrame(rafId)
       scrollSyncRef.current = false
     }
-  }, [activeTabPath, isCanvasFile, isDrawingFile, isDiffFile])
+  }, [editorView, previewScrollEl, isCanvasFile, isDrawingFile, isDiffFile])
 
   // Reset focus mode opacity when typingMode changes away from 'focus'
   useEffect(() => {
@@ -470,7 +474,7 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border-color)')}
               />
               <MarkdownPreview
-                ref={previewScrollRef}
+                ref={setPreviewScrollRef}
                 content={activeTab.content}
                 onLinkClick={handleLinkClick}
                 fontSize={fontSize}

@@ -1,10 +1,18 @@
 import { parseLinks } from './linkParser'
+import type { RelationReference } from '@shared/relationships'
+
+export interface IndexedRelation extends RelationReference {
+  resolvedPath: string | null
+}
 
 export class LinkIndex {
   // filePath → resolved outlink paths
   private outlinks = new Map<string, string[]>()
   // filePath → raw link texts
   private rawLinks = new Map<string, string[]>()
+  // filePath → relation references from frontmatter
+  private rawRelations = new Map<string, RelationReference[]>()
+  private relations = new Map<string, IndexedRelation[]>()
   // filePath → tags
   private fileTags = new Map<string, string[]>()
   // all known file paths (for resolution)
@@ -15,6 +23,7 @@ export class LinkIndex {
 
     let extractedLinks: string[] = []
     let extractedTags: string[] = []
+    let extractedRelations: RelationReference[] = []
 
     if (filePath.endsWith('.canvas')) {
       try {
@@ -36,16 +45,19 @@ export class LinkIndex {
         const parsedText = parseLinks(allText)
         extractedLinks.push(...parsedText.links)
         extractedTags.push(...parsedText.tags)
+        extractedRelations.push(...parsedText.relations)
       } catch {
         // invalid JSON, ignore
       }
     } else {
-      const { links, tags } = parseLinks(content)
+      const { links, tags, relations } = parseLinks(content)
       extractedLinks = links
       extractedTags = tags
+      extractedRelations = relations
     }
 
     this.rawLinks.set(filePath, extractedLinks)
+    this.rawRelations.set(filePath, extractedRelations)
     this.fileTags.set(filePath, extractedTags)
     this.resolveAll()
   }
@@ -53,6 +65,8 @@ export class LinkIndex {
   remove(filePath: string, _vaultPath: string): void {
     this.knownFiles.delete(filePath)
     this.rawLinks.delete(filePath)
+    this.rawRelations.delete(filePath)
+    this.relations.delete(filePath)
     this.fileTags.delete(filePath)
     this.outlinks.delete(filePath)
     this.resolveAll()
@@ -60,20 +74,38 @@ export class LinkIndex {
 
   private resolveAll(): void {
     this.outlinks.clear()
+    this.relations.clear()
     for (const [filePath, links] of this.rawLinks) {
       const resolved = links
         .map((link) => this.resolve(link))
         .filter((p): p is string => p !== null)
       this.outlinks.set(filePath, resolved)
     }
+
+    for (const [filePath, relations] of this.rawRelations) {
+      this.relations.set(
+        filePath,
+        relations.map((relation) => ({
+          ...relation,
+          resolvedPath: this.resolve(relation.target)
+        }))
+      )
+    }
   }
 
   private resolve(linkText: string): string | null {
-    const lower = linkText.toLowerCase()
+    const normalized = linkText.replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase()
     for (const known of this.knownFiles) {
       const name = known.split('/').pop() ?? ''
       const baseName = name.replace(/\.md$/i, '').toLowerCase()
-      if (baseName === lower) return known
+      const relativeWithoutExt = known
+        .replace(/\\/g, '/')
+        .replace(/\.md$/i, '')
+        .split('/')
+        .slice(-2)
+        .join('/')
+        .toLowerCase()
+      if (baseName === normalized || relativeWithoutExt === normalized) return known
     }
     return null
   }
@@ -92,6 +124,14 @@ export class LinkIndex {
 
   getTags(filePath: string): string[] {
     return this.fileTags.get(filePath) ?? []
+  }
+
+  getRelations(filePath: string): IndexedRelation[] {
+    return this.relations.get(filePath) ?? []
+  }
+
+  getUnresolvedRelations(filePath: string): IndexedRelation[] {
+    return this.getRelations(filePath).filter((relation) => !relation.resolvedPath)
   }
 
   getAllTags(): Map<string, string[]> {

@@ -5,6 +5,7 @@ export type SettingCategory =
   | 'files'
   | 'appearance'
   | 'canvas'
+  | 'ai'
   | 'hotkeys'
   | 'plugins'
   | 'sync'

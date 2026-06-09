@@ -1,8 +1,21 @@
 import { readFile, writeFile, readdir, stat, mkdir, rm, rename } from 'fs/promises'
 import { basename, dirname, join, relative, resolve, sep } from 'path'
-import { PluginManifest, VaultFile } from '../shared/types'
+import {
+  CreatedTypedNote,
+  CreateTypedNoteInput,
+  MeridianVaultConfig,
+  NoteTypeDefinition,
+  PluginManifest,
+  VaultFile
+} from '../shared/types'
+import {
+  buildTypedNoteContent,
+  normalizeNoteTypes,
+  sanitizeNoteFileName
+} from '../shared/noteTypes'
 
 const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9-]*$/
+const CONFIG_PATH = join('.meridian', 'config.json')
 
 export class VaultManager {
   constructor(public readonly vaultPath: string) {}
@@ -85,6 +98,92 @@ export class VaultManager {
     const resolvedPath = this.resolveAndAssert(filePath)
     await writeFile(resolvedPath, '', 'utf-8')
     return resolvedPath
+  }
+
+  async getMeridianConfig(): Promise<MeridianVaultConfig> {
+    const configPath = this.resolveAndAssert(CONFIG_PATH)
+    try {
+      const content = await readFile(configPath, 'utf-8')
+      const parsed = JSON.parse(content) as Partial<MeridianVaultConfig>
+      return {
+        version: 1,
+        noteTypes: normalizeNoteTypes(parsed)
+      }
+    } catch {
+      return {
+        version: 1,
+        noteTypes: normalizeNoteTypes()
+      }
+    }
+  }
+
+  async saveMeridianConfig(config: MeridianVaultConfig): Promise<void> {
+    const configPath = this.resolveAndAssert(CONFIG_PATH)
+    await mkdir(dirname(configPath), { recursive: true })
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          version: 1,
+          noteTypes: normalizeNoteTypes(config)
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    )
+  }
+
+  async listNoteTypes(): Promise<NoteTypeDefinition[]> {
+    const config = await this.getMeridianConfig()
+    return config.noteTypes
+  }
+
+  private async uniqueFilePath(dir: string, requestedName: string): Promise<string> {
+    const parsedName = requestedName.endsWith('.md') ? requestedName.slice(0, -3) : requestedName
+    let candidateName = sanitizeNoteFileName(parsedName)
+    let candidatePath = this.resolveAndAssert(join(dir, candidateName))
+    let index = 2
+
+    while (await this.pathExists(candidatePath)) {
+      candidateName = sanitizeNoteFileName(`${parsedName} ${index}`)
+      candidatePath = this.resolveAndAssert(join(dir, candidateName))
+      index += 1
+    }
+
+    return candidatePath
+  }
+
+  private async pathExists(path: string): Promise<boolean> {
+    try {
+      await stat(path)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async createTypedNote(input: CreateTypedNoteInput): Promise<CreatedTypedNote> {
+    const types = await this.listNoteTypes()
+    const definition = types.find((type) => type.id === input.typeId)
+    if (!definition) throw new Error(`Unknown note type: ${input.typeId}`)
+
+    const resolvedDir = this.resolveAndAssert(input.dir)
+    await mkdir(resolvedDir, { recursive: true })
+
+    const today = new Date().toISOString().slice(0, 10)
+    const title = input.title?.trim() || (definition.id === 'daily' ? today : definition.label)
+    const filePath = await this.uniqueFilePath(resolvedDir, title)
+    const content = buildTypedNoteContent(definition, { title, date: today })
+
+    await writeFile(filePath, content, 'utf-8')
+
+    return {
+      path: filePath,
+      name: basename(filePath),
+      content,
+      type: definition
+    }
   }
 
   async deleteFile(filePath: string): Promise<void> {

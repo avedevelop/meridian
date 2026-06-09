@@ -7,7 +7,7 @@ macOS is the stable Meridian desktop target.
 - Apple Silicon: `Meridian-X.Y.Z-arm64.dmg`
 - Intel: `Meridian-X.Y.Z.dmg`
 
-Both files are attached to the same GitHub Release tag as the Windows beta installer.
+Both files are attached to the same GitHub Release tag as the Windows installer.
 
 ## Build
 

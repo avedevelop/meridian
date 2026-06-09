@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FolderOpenBtnIcon, WebIcon, SettingsIcon, GitIcon } from '../Icons'
 
-type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
+type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
 
 interface ActivityBarProps {
   activeTab: SidebarTab
@@ -42,6 +42,23 @@ const TasksIcon = (props: { size?: number; color?: string }) => (
   >
     <rect x="3" y="3" width="18" height="18" rx="2" />
     <path d="m9 12 2 2 4-4" />
+  </svg>
+)
+
+const ViewsIcon = (props: { size?: number; color?: string }) => (
+  <svg
+    width={props.size ?? 20}
+    height={props.size ?? 20}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={props.color ?? 'currentColor'}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="4" y="5" width="16" height="14" rx="2" />
+    <line x1="8" y1="9" x2="16" y2="9" />
+    <line x1="8" y1="13" x2="14" y2="13" />
   </svg>
 )
 
@@ -98,6 +115,11 @@ const TABS: {
     id: 'tasks',
     labelKey: 'activityBar.tasks',
     Icon: (props) => <TasksIcon size={20} {...props} />
+  },
+  {
+    id: 'views',
+    labelKey: 'activityBar.views',
+    Icon: (props) => <ViewsIcon size={20} {...props} />
   }
 ]
 

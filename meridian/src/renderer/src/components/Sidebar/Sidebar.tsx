@@ -4,10 +4,13 @@ import { SidebarGraphPanel } from './SidebarGraphPanel'
 import { CalendarPanel } from './CalendarPanel'
 import { TasksPanel } from './TasksPanel'
 import { GitPanel } from './GitPanel'
+import { ViewsPanel } from './ViewsPanel'
+
+type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
 
 interface SidebarProps {
-  activeTab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git'
-  onTabChange: (tab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'git') => void
+  activeTab: SidebarTab
+  onTabChange: (tab: SidebarTab) => void
 }
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
@@ -31,6 +34,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         {activeTab === 'graph' && <SidebarGraphPanel onTabChange={onTabChange} />}
         {activeTab === 'calendar' && <CalendarPanel />}
         {activeTab === 'tasks' && <TasksPanel />}
+        {activeTab === 'views' && <ViewsPanel />}
       </div>
     </div>
   )

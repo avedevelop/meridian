@@ -72,6 +72,12 @@ export interface SettingsState {
   gitDefaultBranch: string
   language: string // ISO 639-1, e.g. 'en', 'ru'
 
+  // Ask Vault
+  askVaultProvider: 'local' | 'openai' | 'custom'
+  askVaultModel: string
+  askVaultEndpoint: string
+  askVaultSendLocalContext: boolean
+
   // Graph Settings
   graphMaxNodes: 200 | 400 | 800 | 0
 
@@ -160,6 +166,10 @@ const DEFAULTS: Omit<
   gitCommitTemplate: 'Updated {files}',
   gitDefaultBranch: 'main',
   language: 'en',
+  askVaultProvider: 'local',
+  askVaultModel: '',
+  askVaultEndpoint: '',
+  askVaultSendLocalContext: false,
   graphMaxNodes: 400,
   pluginsEnabled: {
     dailyNotes: true,

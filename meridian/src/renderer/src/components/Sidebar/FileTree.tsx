@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { VaultFile } from '@shared/types'
+import { NoteTypeDefinition, VaultFile } from '@shared/types'
 import { ContextMenu } from './ContextMenu'
 import { FileIcon } from './FileIcon'
 import { uniqueFileName } from '../../hooks/useVaultBridge'
@@ -12,8 +12,10 @@ interface FileTreeProps {
   onDelete?: (path: string) => void
   onNewFolder?: (parentDir: string) => void
   onCreateFile?: (dir: string, name: string) => void
+  onCreateTypedNote?: (typeId: string, dir: string) => void
   onMove?: (sourcePath: string, targetDir: string) => void
   onReveal?: (path: string) => void
+  noteTypes?: NoteTypeDefinition[]
   collapseKey?: number
   vaultPath: string
   depth?: number
@@ -37,8 +39,10 @@ export function FileTree({
   onDelete,
   onNewFolder,
   onCreateFile,
+  onCreateTypedNote,
   onMove,
   onReveal,
+  noteTypes = [],
   collapseKey = 0,
   vaultPath,
   depth = 0,
@@ -160,6 +164,32 @@ export function FileTree({
     setSelectedPath(file.path)
     setContextMenu({ x: e.clientX, y: e.clientY, file })
   }
+
+  const parentDirForFile = (file: VaultFile): string => {
+    const normalizedPath = file.path.replace(/\\/g, '/')
+    const normalizedName = file.name.replace(/\\/g, '/')
+    if (normalizedPath.endsWith(`/${normalizedName}`)) {
+      return file.path.slice(0, file.path.length - file.name.length - 1)
+    }
+    return vaultPath
+  }
+
+  const noteTypeLabel = (type: NoteTypeDefinition): string => {
+    const localized = t(`noteTypes.${type.id}`, { defaultValue: type.label })
+    return localized.startsWith('noteTypes.') ? type.label : localized
+  }
+
+  const createAsLabel = (type: NoteTypeDefinition): string => {
+    const label = noteTypeLabel(type)
+    const localized = t('noteTypes.createAsType', { type: label })
+    return localized === 'noteTypes.createAsType' ? `Create as ${label}` : localized
+  }
+
+  const createAsItems = (dir: string) =>
+    noteTypes.slice(0, 6).map((type) => ({
+      label: createAsLabel(type),
+      onClick: () => onCreateTypedNote?.(type.id, dir)
+    }))
 
   return (
     <div>
@@ -320,8 +350,10 @@ export function FileTree({
                 onDelete={onDelete}
                 onNewFolder={onNewFolder}
                 onCreateFile={onCreateFile}
+                onCreateTypedNote={onCreateTypedNote}
                 onMove={onMove}
                 onReveal={onReveal}
+                noteTypes={noteTypes}
                 collapseKey={collapseKey}
                 vaultPath={vaultPath}
                 depth={depth + 1}
@@ -349,6 +381,7 @@ export function FileTree({
                         uniqueFileName(contextMenu.file.path, 'Untitled', 'md', files)
                       )
                   },
+                  ...createAsItems(contextMenu.file.path),
                   {
                     label: t('common.newFolder'),
                     onClick: () => onNewFolder?.(contextMenu.file.path)
@@ -392,10 +425,11 @@ export function FileTree({
                   {
                     label: t('common.newNoteHere'),
                     onClick: () => {
-                      const dir = contextMenu.file.path.split('/').slice(0, -1).join('/')
+                      const dir = parentDirForFile(contextMenu.file)
                       onCreateFile?.(dir, uniqueFileName(dir, 'Untitled', 'md', files))
                     }
                   },
+                  ...createAsItems(parentDirForFile(contextMenu.file)),
                   { separator: true as const },
                   {
                     label: t('common.rename'),

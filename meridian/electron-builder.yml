@@ -17,7 +17,7 @@ win:
       arch:
         - x64
 nsis:
-  artifactName: Meridian-${version}-windows-beta-${arch}.${ext}
+  artifactName: Meridian-${version}-windows-${arch}.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always

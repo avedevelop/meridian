@@ -47,6 +47,43 @@ describe('LinkIndex', () => {
     expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['project', 'todo']))
   })
 
+  it('indexes tags from YAML frontmatter array syntax', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags: [work, ideas]\n---\n\nContent', '/vault')
+    expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['work', 'ideas']))
+  })
+
+  it('indexes tags from multiline YAML frontmatter list syntax', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags:\n  - work\n  - ideas\n---\n\nContent', '/vault')
+    expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['work', 'ideas']))
+  })
+
+  it('indexes a string tag from YAML frontmatter', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags: work\n---\n\nContent', '/vault')
+    expect(idx.getTags('/vault/A.md')).toEqual(['work'])
+  })
+
+  it('still indexes inline tags and links when frontmatter YAML is malformed', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\ntags: [work\n---\n\nSee [[B]] #inline', '/vault')
+    idx.update('/vault/B.md', '', '/vault')
+
+    expect(idx.getTags('/vault/A.md')).toEqual(['inline'])
+    expect(idx.getOutlinks('/vault/A.md')).toEqual(['/vault/B.md'])
+  })
+
+  it('indexes frontmatter tags even when other YAML fields are not property-editable', () => {
+    const idx = new LinkIndex()
+    idx.update(
+      '/vault/A.md',
+      '---\ntags: [work, ideas]\nmeta:\n  author: Ada\n---\n\nContent',
+      '/vault'
+    )
+    expect(idx.getTags('/vault/A.md')).toEqual(expect.arrayContaining(['work', 'ideas']))
+  })
+
   it('returns all tags across vault', () => {
     const idx = new LinkIndex()
     idx.update('/vault/A.md', '#project', '/vault')
@@ -54,5 +91,29 @@ describe('LinkIndex', () => {
     const all = idx.getAllTags()
     expect(all.get('project')).toEqual(expect.arrayContaining(['/vault/A.md', '/vault/B.md']))
     expect(all.get('todo')).toEqual(['/vault/B.md'])
+  })
+
+  it('indexes relation properties as links and relation metadata', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/A.md', '---\nrelated: ["[[B]]", Missing]\n---\n\nBody', '/vault')
+    idx.update('/vault/B.md', '', '/vault')
+
+    expect(idx.getOutlinks('/vault/A.md')).toEqual(['/vault/B.md'])
+    expect(idx.getBacklinks('/vault/B.md')).toEqual(['/vault/A.md'])
+    expect(idx.getRelations('/vault/A.md')).toEqual([
+      { key: 'related', target: 'B', raw: '[[B]]', resolvedPath: '/vault/B.md' },
+      { key: 'related', target: 'Missing', raw: 'Missing', resolvedPath: null }
+    ])
+    expect(idx.getUnresolvedRelations('/vault/A.md')).toEqual([
+      { key: 'related', target: 'Missing', raw: 'Missing', resolvedPath: null }
+    ])
+  })
+
+  it('resolves relation values with extensions and folders', () => {
+    const idx = new LinkIndex()
+    idx.update('/vault/Projects/Project Alpha.md', '', '/vault')
+    idx.update('/vault/A.md', '---\nlinks: Projects/Project Alpha.md\n---\n\nBody', '/vault')
+
+    expect(idx.getOutlinks('/vault/A.md')).toEqual(['/vault/Projects/Project Alpha.md'])
   })
 })

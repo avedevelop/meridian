@@ -4,11 +4,22 @@ import { BacklinksPanel } from './BacklinksPanel'
 import { TagsPanel } from './TagsPanel'
 import { TocPanel } from './TocPanel'
 import { LocalGraphView } from './LocalGraphView'
+import { AskVaultPanel } from './AskVaultPanel'
+import { NoteHistoryPanel } from './NoteHistoryPanel'
 import { PropertiesPanel } from './PropertiesPanel'
+import { RelationshipsPanel } from './RelationshipsPanel'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { SlidersIcon, LinkIcon, TagIcon, OutlineIcon, WebIcon } from '../Icons'
 
-type RightTab = 'backlinks' | 'tags' | 'toc' | 'local-graph' | 'properties'
+type RightTab =
+  | 'backlinks'
+  | 'tags'
+  | 'toc'
+  | 'local-graph'
+  | 'properties'
+  | 'relationships'
+  | 'history'
+  | 'ask-vault'
 
 export function RightPanel() {
   const { t } = useTranslation()
@@ -20,6 +31,21 @@ export function RightPanel() {
       id: 'properties',
       label: t('rightPanel.properties'),
       Icon: (props: any) => <SlidersIcon size={15} {...props} />
+    },
+    {
+      id: 'relationships',
+      label: t('rightPanel.relationships'),
+      Icon: (props: any) => <LinkIcon size={15} {...props} />
+    },
+    {
+      id: 'ask-vault',
+      label: t('rightPanel.askVault'),
+      Icon: (props: any) => <WebIcon size={15} {...props} />
+    },
+    {
+      id: 'history',
+      label: t('rightPanel.history'),
+      Icon: (props: any) => <OutlineIcon size={15} {...props} />
     },
     plugins.backlinksPanel
       ? {
@@ -57,52 +83,28 @@ export function RightPanel() {
   const effectiveTab = activeTabExists ? activeTab : tabs[0]?.id || 'local-graph'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="right-panel-shell">
       {tabs.length > 0 && (
-        <div
-          style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}
-        >
+        <div className="right-panel-tabs" role="tablist" aria-label={t('rightPanel.properties')}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              className="right-panel-tab"
               onClick={() => setActiveTab(tab.id)}
               title={tab.label}
-              onMouseEnter={(e) => {
-                if (effectiveTab !== tab.id) {
-                  e.currentTarget.style.color = 'var(--text-primary)'
-                  e.currentTarget.style.background = 'var(--bg-surface)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (effectiveTab !== tab.id) {
-                  e.currentTarget.style.color = 'var(--text-secondary)'
-                  e.currentTarget.style.background = 'transparent'
-                }
-              }}
-              style={{
-                flex: 1,
-                padding: '12px 0',
-                border: 'none',
-                cursor: 'pointer',
-                background: effectiveTab === tab.id ? 'var(--bg-primary)' : 'transparent',
-                color: effectiveTab === tab.id ? 'var(--accent-color)' : 'var(--text-secondary)',
-                borderBottom:
-                  effectiveTab === tab.id
-                    ? '3px solid var(--accent-color)'
-                    : '3px solid transparent',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              role="tab"
+              aria-selected={effectiveTab === tab.id}
             >
               <tab.Icon />
             </button>
           ))}
         </div>
       )}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="right-panel-content">
         {effectiveTab === 'properties' && <PropertiesPanel />}
+        {effectiveTab === 'relationships' && <RelationshipsPanel />}
+        {effectiveTab === 'ask-vault' && <AskVaultPanel />}
+        {effectiveTab === 'history' && <NoteHistoryPanel />}
         {effectiveTab === 'backlinks' && <BacklinksPanel />}
         {effectiveTab === 'tags' && <TagsPanel />}
         {effectiveTab === 'toc' && <TocPanel />}

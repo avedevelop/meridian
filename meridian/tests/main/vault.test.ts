@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { VaultManager } from '../../src/main/vault'
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'fs'
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -121,5 +121,70 @@ describe('VaultManager', () => {
 
     const manifests = await vault.listPluginManifests()
     expect(manifests).toEqual([])
+  })
+
+  it('returns built-in note types when vault config is missing', async () => {
+    const types = await vault.listNoteTypes()
+
+    expect(types.map((type) => type.id)).toEqual(['project', 'person', 'daily', 'task'])
+  })
+
+  it('merges custom note types from vault config', async () => {
+    mkdirSync(join(tmpDir, '.meridian'), { recursive: true })
+    writeFileSync(
+      join(tmpDir, '.meridian', 'config.json'),
+      JSON.stringify({
+        version: 1,
+        noteTypes: [
+          {
+            id: 'meeting',
+            label: 'Meeting',
+            properties: [{ key: 'type', label: 'Type', kind: 'text', defaultValue: 'meeting' }],
+            template: '# {{title}}\n\n{{date}}'
+          }
+        ]
+      })
+    )
+
+    const types = await vault.listNoteTypes()
+
+    expect(types.find((type) => type.id === 'meeting')?.label).toBe('Meeting')
+    expect(types.find((type) => type.id === 'project')).toBeDefined()
+  })
+
+  it('creates a typed note with frontmatter and rendered template', async () => {
+    const created = await vault.createTypedNote({
+      typeId: 'project',
+      dir: tmpDir,
+      title: 'Project Alpha'
+    })
+
+    const content = readFileSync(created.path, 'utf-8')
+    expect(created.name).toBe('Project Alpha.md')
+    expect(content).toContain('type: project')
+    expect(content).toContain('title: Project Alpha')
+    expect(content).toContain('# Project Alpha')
+  })
+
+  it('creates typed notes in directories with spaces and Cyrillic characters', async () => {
+    const dir = join(tmpDir, 'Проекты 2026')
+    mkdirSync(dir)
+
+    const created = await vault.createTypedNote({
+      typeId: 'person',
+      dir,
+      title: 'Иван Петров'
+    })
+
+    expect(created.path).toBe(join(dir, 'Иван Петров.md'))
+    expect(readFileSync(created.path, 'utf-8')).toContain('type: person')
+  })
+
+  it('uses a unique file name for duplicate typed notes', async () => {
+    await vault.createTypedNote({ typeId: 'task', dir: tmpDir, title: 'Follow up' })
+    const duplicate = await vault.createTypedNote({ typeId: 'task', dir: tmpDir, title: 'Follow up' })
+
+    expect(duplicate.name).toBe('Follow up 2.md')
+    expect(duplicate.path).toBe(join(tmpDir, 'Follow up 2.md'))
   })
 })

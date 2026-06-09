@@ -13,6 +13,58 @@ export interface VaultConfig {
   name: string
 }
 
+export type NoteTypePropertyKind = 'text' | 'number' | 'checkbox' | 'date' | 'tags' | 'relation'
+
+export interface NoteTypePropertySchema {
+  key: string
+  label: string
+  kind: NoteTypePropertyKind
+  defaultValue?: string | number | boolean | null | string[]
+}
+
+export interface NoteTypeDefinition {
+  id: string
+  label: string
+  description?: string
+  icon?: string
+  folder?: string
+  properties: NoteTypePropertySchema[]
+  template: string
+  builtIn?: boolean
+}
+
+export interface MeridianVaultConfig {
+  version: 1
+  noteTypes: NoteTypeDefinition[]
+}
+
+export interface CreateTypedNoteInput {
+  typeId: string
+  dir: string
+  title?: string
+}
+
+export interface CreatedTypedNote {
+  path: string
+  name: string
+  content: string
+  type: NoteTypeDefinition
+}
+
+export interface GitCommitSummary {
+  hash: string
+  shortHash: string
+  author: string
+  date: string
+  subject: string
+}
+
+export interface GitFileRestoreResult {
+  success: boolean
+  content?: string
+  error?: string
+}
+
 export interface AppConfig {
   recentVaults: VaultConfig[]
   lastVault: string | null // path of last opened vault
@@ -51,7 +103,10 @@ export const IPC = {
   VAULT_READ_FILE: 'vault:read-file',
   VAULT_WRITE_FILE: 'vault:write-file',
   VAULT_CREATE_FILE: 'vault:create-file',
+  VAULT_CREATE_TYPED_NOTE: 'vault:create-typed-note',
   VAULT_CREATE_DIR: 'vault:create-dir',
+  VAULT_GET_NOTE_TYPES: 'vault:get-note-types',
+  VAULT_SAVE_NOTE_TYPES: 'vault:save-note-types',
   VAULT_WRITE_BINARY: 'vault:write-binary',
   VAULT_DELETE_FILE: 'vault:delete-file',
   VAULT_RENAME_FILE: 'vault:rename-file',
@@ -72,6 +127,9 @@ export const IPC = {
   GIT_INIT: 'git:init',
   GIT_LOG: 'git:log',
   GIT_SHOW_HEAD: 'git:show-head',
+  GIT_FILE_LOG: 'git:file-log',
+  GIT_SHOW_FILE_AT_COMMIT: 'git:show-file-at-commit',
+  GIT_RESTORE_FILE: 'git:restore-file',
   GIT_SET_REMOTE: 'git:set-remote',
   GIT_GITHUB_DEVICE_CODE: 'git:github-device-code',
   GIT_GITHUB_POLL_TOKEN: 'git:github-poll-token',
