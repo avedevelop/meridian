@@ -1,6 +1,6 @@
 export type PlatformName = string | undefined
 export type WelcomePlatform = 'macos' | 'windows'
-export type WelcomeLanguage = 'en' | 'ru'
+export type WelcomeLanguage = 'en' | 'ru' | 'nb'
 
 export function isMacPlatform(platform: PlatformName = globalThis.navigator?.platform): boolean {
   return /darwin|Mac|iPhone|iPad|iPod/i.test(platform ?? '')
@@ -11,7 +11,9 @@ export function getWelcomePlatform(platform: PlatformName = globalThis.navigator
 }
 
 export function getWelcomeLanguage(language?: string): WelcomeLanguage {
-  return /^ru\b/i.test(language ?? '') ? 'ru' : 'en'
+  if (/^ru\b/i.test(language ?? '')) return 'ru'
+  if (/^(nb|no)\b/i.test(language ?? '')) return 'nb'
+  return 'en'
 }
 
 export function getWelcomeVaultPath(homeDir: string, platform?: PlatformName): string {

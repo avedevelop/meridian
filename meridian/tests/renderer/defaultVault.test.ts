@@ -30,4 +30,12 @@ describe('default vault path', () => {
   it('selects the Windows English welcome vault source by default', () => {
     expect(getWelcomeVaultSourcePath('win32', 'de')).toBe('windows/en')
   })
+
+  it('selects the macOS Norwegian welcome vault source for nb', () => {
+    expect(getWelcomeVaultSourcePath('darwin', 'nb')).toBe('macos/nb')
+  })
+
+  it('selects the Windows Norwegian welcome vault source for no', () => {
+    expect(getWelcomeVaultSourcePath('win32', 'no')).toBe('windows/nb')
+  })
 })
