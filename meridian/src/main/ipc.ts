@@ -545,7 +545,7 @@ export function registerIpcHandlers(
         .on('error', reject)
     })
 
-    const safeSourcePath = /^(macos|windows)\/(en|ru)$/.test(sourcePath) ? sourcePath : 'macos/en'
+    const safeSourcePath = /^(macos|windows)\/(en|ru|nb)$/.test(sourcePath) ? sourcePath : 'macos/en'
     const safeSegments = safeSourcePath.split('/')
 
     const findSelectedVaultPath = (root: string): string | null => {
