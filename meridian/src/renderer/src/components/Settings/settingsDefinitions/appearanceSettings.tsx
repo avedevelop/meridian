@@ -64,6 +64,7 @@ export function buildAppearanceSettings(t: TFunction): SettingDefinition[] {
           value={s.language}
           options={[
             { value: 'en', label: 'English' },
+            { value: 'nb', label: 'Norsk bokmål' },
             { value: 'ru', label: 'Русский (Russian)' }
           ]}
           onChange={(v) => s.updateSetting('language', v)}
