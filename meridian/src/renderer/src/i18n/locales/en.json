@@ -709,6 +709,7 @@
   "insights.notes": "Notes",
   "insights.words": "Words",
   "insights.links": "Links",
+  "insights.tags": "Tags",
   "insights.topLinked": "Most linked notes",
   "insights.activity": "Activity (last 90 days)",
   "insights.computing": "Computing…"

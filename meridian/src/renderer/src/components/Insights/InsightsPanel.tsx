@@ -211,7 +211,7 @@ export function InsightsPanel({ onTabChange }: InsightsPanelProps) {
               <StatCard label={t('insights.words')} value={formatNumber(stats.wordCount)} />
               <StatCard label={t('insights.links')} value={stats.linkCount} />
               {stats.tagCount > 0 && (
-                <StatCard label="Tags" value={stats.tagCount} />
+                <StatCard label={t('insights.tags')} value={stats.tagCount} />
               )}
             </div>
 

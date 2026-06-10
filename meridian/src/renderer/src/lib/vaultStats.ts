@@ -7,7 +7,7 @@
  * Count words in markdown text, stripping fenced code blocks first.
  */
 export function countWords(text: string): number {
-  // Remove fenced code blocks (``` ... ```)
+  // Remove fenced code blocks (``` ... ```) — lazy match does a full-file scan when a fence is never closed
   const stripped = text.replace(/```[\s\S]*?```/g, '')
   const words = stripped.trim().split(/\s+/).filter((w) => w.length > 0)
   return words.length
