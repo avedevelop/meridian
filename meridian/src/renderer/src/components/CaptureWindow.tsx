@@ -21,6 +21,7 @@ export default function CaptureWindow(): React.ReactElement {
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -29,6 +30,11 @@ export default function CaptureWindow(): React.ReactElement {
         void i18n.changeLanguage(language)
       }
     })
+    return () => {
+      if (hideTimerRef.current !== null) {
+        clearTimeout(hideTimerRef.current)
+      }
+    }
   }, [])
 
   async function handleKeyDown(e: KeyboardEvent<HTMLInputElement>): Promise<void> {
@@ -53,7 +59,8 @@ export default function CaptureWindow(): React.ReactElement {
       if (result.ok) {
         setMessage(t('capture.saved'))
         setValue('')
-        setTimeout(async () => {
+        hideTimerRef.current = setTimeout(async () => {
+          hideTimerRef.current = null
           setMessage(null)
           await window.capture.hide()
         }, 800)

@@ -352,6 +352,10 @@ function createCaptureWindow(): BrowserWindow {
     win.hide()
   })
 
+  win.on('closed', () => {
+    captureWindow = null
+  })
+
   return win
 }
 
@@ -437,7 +441,9 @@ app.whenReady().then(() => {
   captureWindow = createCaptureWindow()
 
   const registered = globalShortcut.register('CommandOrControl+Shift+N', () => {
-    if (!captureWindow) return
+    if (!captureWindow || captureWindow.isDestroyed()) {
+      captureWindow = createCaptureWindow()
+    }
     if (captureWindow.isVisible()) {
       captureWindow.hide()
     } else {
