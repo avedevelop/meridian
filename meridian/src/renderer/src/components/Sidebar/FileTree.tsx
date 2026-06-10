@@ -4,6 +4,7 @@ import { NoteTypeDefinition, VaultFile } from '@shared/types'
 import { ContextMenu } from './ContextMenu'
 import { FileIcon } from './FileIcon'
 import { uniqueFileName } from '../../hooks/useVaultBridge'
+import { useFavoritesStore } from '../../store/useFavoritesStore'
 
 interface FileTreeProps {
   files: VaultFile[]
@@ -51,6 +52,7 @@ export function FileTree({
   onSelectedPathChange
 }: FileTreeProps) {
   const { t } = useTranslation()
+  const { isFavorite, toggleFavorite } = useFavoritesStore()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -463,6 +465,13 @@ export function FileTree({
                         .writeText(contextMenu.file.relativePath)
                         .catch(console.error)
                     }
+                  },
+                  { separator: true as const },
+                  {
+                    label: isFavorite(contextMenu.file.path)
+                      ? t('favorites.remove')
+                      : t('favorites.add'),
+                    onClick: () => toggleFavorite(vaultPath, contextMenu.file.path)
                   }
                 ]
           }

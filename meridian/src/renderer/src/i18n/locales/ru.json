@@ -694,5 +694,10 @@
   "canvas.nodeToolbar.failedToCreateFile": "Не удалось создать файл: {{message}}",
   "canvas.nodeToolbar.createNoteFromText": "Создать заметку из текста",
   "canvas.nodeToolbar.deleteCard": "Удалить карточку",
-  "canvas.failedToLoadFile": "Не удалось загрузить: {{file}}"
+  "canvas.failedToLoadFile": "Не удалось загрузить: {{file}}",
+
+  "favorites.title": "Избранное",
+  "favorites.add": "Добавить в избранное",
+  "favorites.remove": "Убрать из избранного",
+  "favorites.toggleCommand": "Переключить избранное для текущей заметки"
 }

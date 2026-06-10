@@ -694,5 +694,10 @@
   "canvas.nodeToolbar.failedToCreateFile": "Failed to create file: {{message}}",
   "canvas.nodeToolbar.createNoteFromText": "Create note from text",
   "canvas.nodeToolbar.deleteCard": "Delete Card",
-  "canvas.failedToLoadFile": "Failed to load: {{file}}"
+  "canvas.failedToLoadFile": "Failed to load: {{file}}",
+
+  "favorites.title": "Favorites",
+  "favorites.add": "Add to favorites",
+  "favorites.remove": "Remove from favorites",
+  "favorites.toggleCommand": "Toggle favorite for current note"
 }

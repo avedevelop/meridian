@@ -694,5 +694,10 @@
   "canvas.nodeToolbar.failedToCreateFile": "Kunne ikke opprette fil: {{message}}",
   "canvas.nodeToolbar.createNoteFromText": "Opprett notat fra tekst",
   "canvas.nodeToolbar.deleteCard": "Slett kort",
-  "canvas.failedToLoadFile": "Kunne ikke laste: {{file}}"
+  "canvas.failedToLoadFile": "Kunne ikke laste: {{file}}",
+
+  "favorites.title": "Favoritter",
+  "favorites.add": "Legg til i favoritter",
+  "favorites.remove": "Fjern fra favoritter",
+  "favorites.toggleCommand": "Veksle favoritt for gjeldende notat"
 }

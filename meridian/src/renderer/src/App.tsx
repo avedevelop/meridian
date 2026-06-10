@@ -61,6 +61,7 @@ import { SettingsModal } from './components/Settings/SettingsModal'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
 import { useSettingsStore } from './store/useSettingsStore'
 import { useViewsStore } from './store/useViewsStore'
+import { useFavoritesStore } from './store/useFavoritesStore'
 import { initI18n, i18n } from './i18n/index'
 import type { NoteTypeDefinition } from '@shared/types'
 
@@ -152,6 +153,19 @@ export default function App() {
   useEffect(() => {
     initCorePlugins(pluginAPI)
   }, [pluginAPI])
+
+  // Register favorites toggle command
+  useEffect(() => {
+    pluginRegistry.registerCommand({
+      id: 'favorites.toggle',
+      title: i18n.t('favorites.toggleCommand'),
+      run: () => {
+        const { activeTabPath: path, vault: v } = useVaultStore.getState()
+        if (!path || !v) return
+        useFavoritesStore.getState().toggleFavorite(v.path, path)
+      }
+    })
+  }, [])
 
   useEffect(() => {
     if (!vault) return
