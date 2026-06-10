@@ -2,6 +2,15 @@
 
 All notable changes to Meridian. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.14] — 2026-06-10
+
+### Added
+
+- Quick Capture: press `Cmd/Ctrl+Shift+N` anywhere to jot a thought into `Inbox.md`, even while Meridian is in the background.
+- Focus mode (`Cmd/Ctrl+Shift+F`): hides all chrome and centers the editor for distraction-free writing.
+- Vault Insights panel: note/word/link/tag counts, most-linked notes, and a 90-day activity heatmap.
+- Favorites: star notes from the file tree context menu for quick access.
+
 ## [1.0.13] — 2026-06-10
 
 ### Added
