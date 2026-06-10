@@ -5,8 +5,9 @@ import { CalendarPanel } from './CalendarPanel'
 import { TasksPanel } from './TasksPanel'
 import { GitPanel } from './GitPanel'
 import { ViewsPanel } from './ViewsPanel'
+import { InsightsPanel } from '../Insights/InsightsPanel'
 
-type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
+type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git' | 'insights'
 
 interface SidebarProps {
   activeTab: SidebarTab
@@ -35,6 +36,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         {activeTab === 'calendar' && <CalendarPanel />}
         {activeTab === 'tasks' && <TasksPanel />}
         {activeTab === 'views' && <ViewsPanel />}
+        {activeTab === 'insights' && <InsightsPanel onTabChange={onTabChange} />}
       </div>
     </div>
   )

@@ -700,5 +700,16 @@
   "favorites.add": "Добавить в избранное",
   "favorites.remove": "Убрать из избранного",
   "favorites.toggleCommand": "Переключить избранное для текущей заметки",
-  "focus.toggleCommand": "Переключить режим фокуса"
+  "focus.toggleCommand": "Переключить режим фокуса",
+
+  "activityBar.insights": "Статистика",
+
+  "insights.title": "Статистика хранилища",
+  "insights.openCommand": "Открыть статистику хранилища",
+  "insights.notes": "Заметки",
+  "insights.words": "Слова",
+  "insights.links": "Ссылки",
+  "insights.topLinked": "Самые связанные заметки",
+  "insights.activity": "Активность (90 дней)",
+  "insights.computing": "Подсчёт…"
 }

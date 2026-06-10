@@ -451,7 +451,30 @@ export function OutlineIcon({ size = 14, color = 'currentColor', ...props }: Ico
   )
 }
 
-// 19. Star icon for Favorites
+// 19. Chart/pulse icon for Vault Insights
+export function InsightsIcon({ size = 14, color = 'currentColor', ...props }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+      {...props}
+    >
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+      <line x1="3" y1="20" x2="21" y2="20" />
+    </svg>
+  )
+}
+
+// 20. Star icon for Favorites
 export function StarIcon({ size = 14, color = 'currentColor', filled = false, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg

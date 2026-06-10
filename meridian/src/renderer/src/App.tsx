@@ -313,7 +313,7 @@ export default function App() {
   }, [vault, pluginsEnabled, pluginAPI, pluginReloadCounter])
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<
-    'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
+    'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git' | 'insights'
   >('files')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('layout-sidebar-collapsed') === 'true'
@@ -359,6 +359,19 @@ export default function App() {
       }
     })
   }, [toggleFocusMode])
+
+  // Register insights open command
+  useEffect(() => {
+    pluginRegistry.registerCommand({
+      id: 'insights.open',
+      title: i18n.t('insights.openCommand'),
+      run: () => {
+        setActiveSidebarTab('insights')
+        setSidebarCollapsed(false)
+        localStorage.setItem('layout-sidebar-collapsed', 'false')
+      }
+    })
+  }, [])
 
   const handleTabChange = useCallback((tab: typeof activeSidebarTab) => {
     setActiveSidebarTab((curr) => {

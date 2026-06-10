@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FolderOpenBtnIcon, WebIcon, SettingsIcon, GitIcon } from '../Icons'
+import { FolderOpenBtnIcon, WebIcon, SettingsIcon, GitIcon, InsightsIcon } from '../Icons'
 
-type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
+type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git' | 'insights'
 
 interface ActivityBarProps {
   activeTab: SidebarTab
@@ -120,6 +120,11 @@ const TABS: {
     id: 'views',
     labelKey: 'activityBar.views',
     Icon: (props) => <ViewsIcon size={20} {...props} />
+  },
+  {
+    id: 'insights',
+    labelKey: 'activityBar.insights',
+    Icon: (props) => <InsightsIcon size={20} {...props} />
   }
 ]
 

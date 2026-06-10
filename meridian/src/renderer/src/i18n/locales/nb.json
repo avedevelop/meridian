@@ -700,5 +700,16 @@
   "favorites.add": "Legg til i favoritter",
   "favorites.remove": "Fjern fra favoritter",
   "favorites.toggleCommand": "Veksle favoritt for gjeldende notat",
-  "focus.toggleCommand": "Veksle fokusmodus"
+  "focus.toggleCommand": "Veksle fokusmodus",
+
+  "activityBar.insights": "Innsikt",
+
+  "insights.title": "Hvelvinnsikt",
+  "insights.openCommand": "Åpne hvelvinnsikt",
+  "insights.notes": "Notater",
+  "insights.words": "Ord",
+  "insights.links": "Lenker",
+  "insights.topLinked": "Mest lenkede notater",
+  "insights.activity": "Aktivitet (siste 90 dager)",
+  "insights.computing": "Beregner…"
 }

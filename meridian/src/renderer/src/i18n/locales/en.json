@@ -700,5 +700,16 @@
   "favorites.add": "Add to favorites",
   "favorites.remove": "Remove from favorites",
   "favorites.toggleCommand": "Toggle favorite for current note",
-  "focus.toggleCommand": "Toggle focus mode"
+  "focus.toggleCommand": "Toggle focus mode",
+
+  "activityBar.insights": "Insights",
+
+  "insights.title": "Vault insights",
+  "insights.openCommand": "Open vault insights",
+  "insights.notes": "Notes",
+  "insights.words": "Words",
+  "insights.links": "Links",
+  "insights.topLinked": "Most linked notes",
+  "insights.activity": "Activity (last 90 days)",
+  "insights.computing": "Computing…"
 }

@@ -14,9 +14,9 @@ interface LayoutProps {
   setSidebarCollapsed: (c: boolean) => void
   rightPanelCollapsed: boolean
   setRightPanelCollapsed: (c: boolean) => void
-  activeSidebarTab?: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
+  activeSidebarTab?: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git' | 'insights'
   onSidebarTabChange?: (
-    tab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
+    tab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git' | 'insights'
   ) => void
   focusMode?: boolean
 }
@@ -52,8 +52,9 @@ export function Layout({
       ? activeTabPath.split(/[/\\]/).slice(0, -1).filter(Boolean).pop() ?? null
       : null
 
-  // When graph tab is active, expand sidebar to full width and hide editor
-  const isGraphFullscreen = activeSidebarTab === 'graph' && !sidebarCollapsed
+  // When graph or insights tab is active, expand sidebar to full width and hide editor
+  const isGraphFullscreen =
+    (activeSidebarTab === 'graph' || activeSidebarTab === 'insights') && !sidebarCollapsed
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('layout-sidebar-width')
