@@ -712,5 +712,9 @@
   "insights.tags": "Теги",
   "insights.topLinked": "Самые связанные заметки",
   "insights.activity": "Активность (90 дней)",
-  "insights.computing": "Подсчёт…"
+  "insights.computing": "Подсчёт…",
+
+  "capture.placeholder": "Запишите мысль… Enter — сохранить",
+  "capture.noVault": "Сначала откройте хранилище в Meridian",
+  "capture.saved": "Сохранено в Inbox"
 }

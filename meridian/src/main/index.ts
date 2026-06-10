@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, protocol, Menu } from 'electron'
+import { app, BrowserWindow, shell, protocol, Menu, globalShortcut } from 'electron'
 import { join, resolve, sep, extname } from 'path'
 import { readFile } from 'fs/promises'
 import { existsSync, readFileSync } from 'fs'
@@ -323,6 +323,38 @@ function createWindow(): BrowserWindow {
   return win
 }
 
+let captureWindow: BrowserWindow | null = null
+
+function createCaptureWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 520,
+    height: 120,
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    show: false,
+    resizable: false,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  if (process.env['ELECTRON_RENDERER_URL']) {
+    win.loadURL(process.env['ELECTRON_RENDERER_URL'] + '?capture=1')
+  } else {
+    win.loadFile(join(__dirname, '../renderer/index.html'), { query: { capture: '1' } })
+  }
+
+  win.on('blur', () => {
+    win.hide()
+  })
+
+  return win
+}
+
 app.whenReady().then(() => {
   protocol.handle('vault', async (request) => {
     const url = new URL(request.url)
@@ -401,6 +433,24 @@ app.whenReady().then(() => {
   createWindow()
   buildMenu()
 
+  // Create capture window once at startup (stays hidden until hotkey)
+  captureWindow = createCaptureWindow()
+
+  const registered = globalShortcut.register('CommandOrControl+Shift+N', () => {
+    if (!captureWindow) return
+    if (captureWindow.isVisible()) {
+      captureWindow.hide()
+    } else {
+      captureWindow.center()
+      captureWindow.show()
+      captureWindow.focus()
+    }
+  })
+
+  if (!registered) {
+    console.warn('[Main] Failed to register global shortcut CommandOrControl+Shift+N — shortcut may be taken by another app')
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -412,4 +462,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   stopVaultWatcher()
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })

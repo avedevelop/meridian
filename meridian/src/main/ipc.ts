@@ -523,100 +523,113 @@ export function registerIpcHandlers(
     await shell.openPath(filePath)
   })
 
-  ipcMain.handle(IPC.WELCOME_DOWNLOAD, async (_event, destPath: string, sourcePath = 'macos/en') => {
-    const https = await import('https')
-    const { createWriteStream, createReadStream, mkdirSync, rmSync, cpSync, existsSync, readdirSync, writeFileSync } =
-      await import('fs')
-    const { dirname, join } = await import('path')
-    const { tmpdir } = await import('os')
-    const unzipper = await import('unzipper')
+  ipcMain.handle(
+    IPC.WELCOME_DOWNLOAD,
+    async (_event, destPath: string, sourcePath = 'macos/en') => {
+      const https = await import('https')
+      const {
+        createWriteStream,
+        createReadStream,
+        mkdirSync,
+        rmSync,
+        cpSync,
+        existsSync,
+        readdirSync,
+        writeFileSync
+      } = await import('fs')
+      const { dirname, join } = await import('path')
+      const { tmpdir } = await import('os')
+      const unzipper = await import('unzipper')
 
-    const safeSourcePath = /^(macos|windows)\/(en|ru|nb)$/.test(sourcePath) ? sourcePath : 'macos/en'
-    const safeSegments = safeSourcePath.split('/')
-    const [platform, language] = safeSegments as ['macos' | 'windows', 'en' | 'ru']
-    const zipUrl = 'https://github.com/avedevelop/meridian-welcome/archive/refs/heads/main.zip'
-    const tmpZip = join(tmpdir(), `meridian-welcome-${Date.now()}.zip`)
-    const tmpExtract = join(tmpdir(), `meridian-welcome-extract-${Date.now()}`)
+      const safeSourcePath = /^(macos|windows)\/(en|ru|nb)$/.test(sourcePath)
+        ? sourcePath
+        : 'macos/en'
+      const safeSegments = safeSourcePath.split('/')
+      const [platform, language] = safeSegments as ['macos' | 'windows', 'en' | 'ru']
+      const zipUrl = 'https://github.com/avedevelop/meridian-welcome/archive/refs/heads/main.zip'
+      const tmpZip = join(tmpdir(), `meridian-welcome-${Date.now()}.zip`)
+      const tmpExtract = join(tmpdir(), `meridian-welcome-extract-${Date.now()}`)
 
-    const writeBundledVault = () => {
-      if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
-      mkdirSync(destPath, { recursive: true })
-      for (const file of getBundledWelcomeVaultFiles(platform, language)) {
-        const target = join(destPath, ...file.path.split('/'))
-        mkdirSync(dirname(target), { recursive: true })
-        writeFileSync(target, file.content, 'utf-8')
-      }
-    }
-
-    try {
-      await new Promise<void>((resolvePromise, reject) => {
-        const follow = (url: string) => {
-          https
-            .get(url, (res) => {
-              if (res.statusCode === 301 || res.statusCode === 302) {
-                follow(res.headers.location!)
-                return
-              }
-              const file = createWriteStream(tmpZip)
-              res.pipe(file)
-              file.on('finish', () => file.close(() => resolvePromise()))
-              file.on('error', reject)
-            })
-            .on('error', reject)
+      const writeBundledVault = () => {
+        if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
+        mkdirSync(destPath, { recursive: true })
+        for (const file of getBundledWelcomeVaultFiles(platform, language)) {
+          const target = join(destPath, ...file.path.split('/'))
+          mkdirSync(dirname(target), { recursive: true })
+          writeFileSync(target, file.content, 'utf-8')
         }
-        follow(zipUrl)
-      })
+      }
 
-      mkdirSync(tmpExtract, { recursive: true })
-      await new Promise<void>((resolvePromise, reject) => {
-        createReadStream(tmpZip)
-          .pipe(unzipper.Extract({ path: tmpExtract }))
-          .on('close', resolvePromise)
-          .on('error', reject)
-      })
+      try {
+        await new Promise<void>((resolvePromise, reject) => {
+          const follow = (url: string) => {
+            https
+              .get(url, (res) => {
+                if (res.statusCode === 301 || res.statusCode === 302) {
+                  follow(res.headers.location!)
+                  return
+                }
+                const file = createWriteStream(tmpZip)
+                res.pipe(file)
+                file.on('finish', () => file.close(() => resolvePromise()))
+                file.on('error', reject)
+              })
+              .on('error', reject)
+          }
+          follow(zipUrl)
+        })
 
-      const findSelectedVaultPath = (root: string): string | null => {
-        const stack = [root]
-        while (stack.length > 0) {
-          const current = stack.pop()
-          if (!current) continue
-          const candidate = join(current, ...safeSegments)
-          if (existsSync(candidate)) return candidate
-          for (const entry of readdirSync(current, { withFileTypes: true })) {
-            if (entry.isDirectory() && !entry.name.startsWith('.')) {
-              stack.push(join(current, entry.name))
+        mkdirSync(tmpExtract, { recursive: true })
+        await new Promise<void>((resolvePromise, reject) => {
+          createReadStream(tmpZip)
+            .pipe(unzipper.Extract({ path: tmpExtract }))
+            .on('close', resolvePromise)
+            .on('error', reject)
+        })
+
+        const findSelectedVaultPath = (root: string): string | null => {
+          const stack = [root]
+          while (stack.length > 0) {
+            const current = stack.pop()
+            if (!current) continue
+            const candidate = join(current, ...safeSegments)
+            if (existsSync(candidate)) return candidate
+            for (const entry of readdirSync(current, { withFileTypes: true })) {
+              if (entry.isDirectory() && !entry.name.startsWith('.')) {
+                stack.push(join(current, entry.name))
+              }
             }
           }
+          return null
         }
-        return null
+
+        const selectedVaultPath = findSelectedVaultPath(tmpExtract)
+        if (!selectedVaultPath) {
+          throw new Error(`Could not locate welcome vault source folder: ${safeSourcePath}`)
+        }
+
+        if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
+        mkdirSync(dirname(destPath), { recursive: true })
+        cpSync(selectedVaultPath, destPath, { recursive: true })
+      } catch (error) {
+        console.warn('[IPC] Falling back to bundled welcome vault:', error)
+        writeBundledVault()
       }
 
-      const selectedVaultPath = findSelectedVaultPath(tmpExtract)
-      if (!selectedVaultPath) {
-        throw new Error(`Could not locate welcome vault source folder: ${safeSourcePath}`)
+      try {
+        rmSync(tmpZip)
+      } catch {
+        /* ignore */
+      }
+      try {
+        rmSync(tmpExtract, { recursive: true })
+      } catch {
+        /* ignore */
       }
 
-      if (existsSync(destPath)) rmSync(destPath, { recursive: true, force: true })
-      mkdirSync(dirname(destPath), { recursive: true })
-      cpSync(selectedVaultPath, destPath, { recursive: true })
-    } catch (error) {
-      console.warn('[IPC] Falling back to bundled welcome vault:', error)
-      writeBundledVault()
+      return destPath
     }
-
-    try {
-      rmSync(tmpZip)
-    } catch {
-      /* ignore */
-    }
-    try {
-      rmSync(tmpExtract, { recursive: true })
-    } catch {
-      /* ignore */
-    }
-
-    return destPath
-  })
+  )
 
   ipcMain.handle(IPC.VAULT_OPEN_EXTERNAL, async (_event, url: string) => {
     try {
@@ -860,7 +873,16 @@ export function registerIpcHandlers(
       const relativePath = relativeGitPath(vaultManager, filePath)
       const { stdout } = await execFileAsync(
         'git',
-        ['log', '--follow', '-n', '30', '--pretty=format:%H|%an|%ad|%s', '--date=short', '--', relativePath],
+        [
+          'log',
+          '--follow',
+          '-n',
+          '30',
+          '--pretty=format:%H|%an|%ad|%s',
+          '--date=short',
+          '--',
+          relativePath
+        ],
         { cwd }
       )
       const commits = stdout
@@ -1056,6 +1078,38 @@ export function registerIpcHandlers(
     const url = buildPluginUrl(id, mainFile)
     if (!url) throw new Error(`Invalid plugin id or main file: ${id} / ${mainFile}`)
     return url
+  })
+
+  // ── Quick Capture ────────────────────────────────────────────────────────────
+
+  ipcMain.handle(IPC.CAPTURE_STATE, () => {
+    return { vaultOpen: vaultManager !== null }
+  })
+
+  ipcMain.handle(IPC.CAPTURE_SUBMIT, async (_event, text: string) => {
+    if (!vaultManager) return { ok: false }
+
+    const { join: joinPath } = await import('path')
+    const { readFile: rf, writeFile: wf } = await import('fs/promises')
+    const inboxPath = joinPath(vaultManager.vaultPath, 'Inbox.md')
+
+    let existing: string | null = null
+    try {
+      existing = await rf(inboxPath, 'utf-8')
+    } catch {
+      // File doesn't exist yet — will be created with heading
+    }
+
+    const { formatCaptureLine, buildInboxContent } = await import('../shared/capture')
+    const line = formatCaptureLine(text.trim(), new Date())
+    const newContent = buildInboxContent(existing, line)
+    await wf(inboxPath, newContent, 'utf-8')
+    return { ok: true }
+  })
+
+  ipcMain.handle(IPC.CAPTURE_HIDE, (_event) => {
+    const win = BrowserWindow.fromWebContents(_event.sender)
+    if (win) win.hide()
   })
 }
 

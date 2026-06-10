@@ -712,5 +712,9 @@
   "insights.tags": "Stikkord",
   "insights.topLinked": "Mest lenkede notater",
   "insights.activity": "Aktivitet (siste 90 dager)",
-  "insights.computing": "Beregner…"
+  "insights.computing": "Beregner…",
+
+  "capture.placeholder": "Fang en tanke… Enter for å lagre",
+  "capture.noVault": "Åpne et hvelv i Meridian først",
+  "capture.saved": "Lagret i Inbox"
 }

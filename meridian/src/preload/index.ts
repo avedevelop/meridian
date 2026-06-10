@@ -156,6 +156,7 @@ const vaultAPI = {
   }
 }
 
+
 const settingsAPI = {
   get: (): Promise<AppConfig> => ipcRenderer.invoke(IPC.SETTINGS_GET),
   set: (key: string, value: unknown): Promise<void> =>
@@ -163,6 +164,13 @@ const settingsAPI = {
   getPreferences: (): Promise<Record<string, unknown>> => ipcRenderer.invoke(IPC.PREFERENCES_GET),
   setPreferences: (prefs: Record<string, unknown>): Promise<void> =>
     ipcRenderer.invoke(IPC.PREFERENCES_SET, prefs)
+}
+
+const captureAPI = {
+  submit: (text: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke(IPC.CAPTURE_SUBMIT, text),
+  state: (): Promise<{ vaultOpen: boolean }> => ipcRenderer.invoke(IPC.CAPTURE_STATE),
+  hide: (): Promise<void> => ipcRenderer.invoke(IPC.CAPTURE_HIDE)
 }
 
 contextBridge.exposeInMainWorld('appInfo', appInfo)
@@ -175,3 +183,4 @@ contextBridge.exposeInMainWorld('menuAPI', {
     return () => ipcRenderer.removeListener('menu:action', listener)
   }
 })
+contextBridge.exposeInMainWorld('capture', captureAPI)

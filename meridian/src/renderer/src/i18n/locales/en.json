@@ -712,5 +712,9 @@
   "insights.tags": "Tags",
   "insights.topLinked": "Most linked notes",
   "insights.activity": "Activity (last 90 days)",
-  "insights.computing": "Computing…"
+  "insights.computing": "Computing…",
+
+  "capture.placeholder": "Capture a thought… Enter to save",
+  "capture.noVault": "Open a vault in Meridian first",
+  "capture.saved": "Saved to Inbox"
 }

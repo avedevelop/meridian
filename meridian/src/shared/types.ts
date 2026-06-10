@@ -144,7 +144,10 @@ export const IPC = {
   PLUGIN_LIST: 'plugin:list',
   PLUGIN_LOAD: 'plugin:load',
   PLUGIN_OPEN_FOLDER: 'plugin:open-folder',
-  PLUGIN_FILE_CHANGED: 'plugin:file-changed' // main → renderer push event
+  PLUGIN_FILE_CHANGED: 'plugin:file-changed', // main → renderer push event
+  CAPTURE_SUBMIT: 'capture:submit',
+  CAPTURE_STATE: 'capture:state',
+  CAPTURE_HIDE: 'capture:hide'
 } as const
 
 export interface PluginFileChangeEvent {
