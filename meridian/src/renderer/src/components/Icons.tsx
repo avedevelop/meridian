@@ -475,7 +475,12 @@ export function InsightsIcon({ size = 14, color = 'currentColor', ...props }: Ic
 }
 
 // 20. Star icon for Favorites
-export function StarIcon({ size = 14, color = 'currentColor', filled = false, ...props }: IconProps & { filled?: boolean }) {
+export function StarIcon({
+  size = 14,
+  color = 'currentColor',
+  filled = false,
+  ...props
+}: IconProps & { filled?: boolean }) {
   return (
     <svg
       width={size}

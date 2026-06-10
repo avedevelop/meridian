@@ -116,12 +116,10 @@ export function InsightsPanel({ onTabChange }: InsightsPanelProps) {
     return () => {
       cancelled = true
     }
-  // Re-run when vault path, file list, or link index changes
+    // Re-run when vault path, file list, or link index changes
   }, [vault?.path, vaultFiles, indexVersion, allFiles, backlinks, allTags])
 
-  const maxHeatmapCount = stats
-    ? Math.max(...stats.heatmap.map((b) => b.count), 1)
-    : 1
+  const maxHeatmapCount = stats ? Math.max(...stats.heatmap.map((b) => b.count), 1) : 1
 
   return (
     <div
@@ -210,9 +208,7 @@ export function InsightsPanel({ onTabChange }: InsightsPanelProps) {
               <StatCard label={t('insights.notes')} value={stats.noteCount} />
               <StatCard label={t('insights.words')} value={formatNumber(stats.wordCount)} />
               <StatCard label={t('insights.links')} value={stats.linkCount} />
-              {stats.tagCount > 0 && (
-                <StatCard label={t('insights.tags')} value={stats.tagCount} />
-              )}
+              {stats.tagCount > 0 && <StatCard label={t('insights.tags')} value={stats.tagCount} />}
             </div>
 
             {/* Top linked notes */}
