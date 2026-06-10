@@ -52,7 +52,8 @@ export function FileTree({
   onSelectedPathChange
 }: FileTreeProps) {
   const { t } = useTranslation()
-  const { isFavorite, toggleFavorite } = useFavoritesStore()
+  const isFavorite = useFavoritesStore((s) => s.isFavorite)
+  const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')

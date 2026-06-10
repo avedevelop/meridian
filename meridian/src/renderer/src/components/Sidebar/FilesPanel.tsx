@@ -83,10 +83,8 @@ export function FilesPanel() {
   }, [files])
 
   const validFavorites = useMemo(() => {
-    const existingPaths = new Set(allFlatFiles.map((f) => f.path))
-    return favorites
-      .filter((p) => existingPaths.has(p))
-      .map((p) => allFlatFiles.find((f) => f.path === p)!)
+    const fileByPath = new Map(allFlatFiles.map((f) => [f.path, f]))
+    return favorites.filter((p) => fileByPath.has(p)).map((p) => fileByPath.get(p)!)
   }, [favorites, allFlatFiles])
 
   useEffect(() => {
