@@ -699,5 +699,6 @@
   "favorites.title": "Favorites",
   "favorites.add": "Add to favorites",
   "favorites.remove": "Remove from favorites",
-  "favorites.toggleCommand": "Toggle favorite for current note"
+  "favorites.toggleCommand": "Toggle favorite for current note",
+  "focus.toggleCommand": "Toggle focus mode"
 }

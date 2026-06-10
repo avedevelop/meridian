@@ -18,6 +18,7 @@ interface LayoutProps {
   onSidebarTabChange?: (
     tab: 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git'
   ) => void
+  focusMode?: boolean
 }
 
 const SIDEBAR_MIN_WIDTH = 180
@@ -35,7 +36,8 @@ export function Layout({
   rightPanelCollapsed,
   setRightPanelCollapsed,
   onSidebarTabChange,
-  activeSidebarTab
+  activeSidebarTab,
+  focusMode = false
 }: LayoutProps) {
   const { t } = useTranslation()
   const { createFile, createCanvas, openDailyNote } = useVaultBridge()
@@ -183,21 +185,23 @@ export function Layout({
         overflow: 'hidden'
       }}
     >
-      <LayoutHeader
-        vaultName={vaultName}
-        filename={filename}
-        folderPath={folderPath}
-        isGraphFullscreen={isGraphFullscreen}
-        sidebarCollapsed={sidebarCollapsed}
-        rightPanelCollapsed={rightPanelCollapsed}
-        onToggleSidebar={handleToggleSidebar}
-        onToggleRightPanel={handleToggleRightPanel}
-        onResetLayout={handleResetLayout}
-        onCreateNote={handleCreateNote}
-        onCreateCanvas={handleCreateCanvas}
-        onOpenDailyNote={handleOpenDailyNote}
-        onQuickGraph={handleQuickGraph}
-      />
+      {!focusMode && (
+        <LayoutHeader
+          vaultName={vaultName}
+          filename={filename}
+          folderPath={folderPath}
+          isGraphFullscreen={isGraphFullscreen}
+          sidebarCollapsed={sidebarCollapsed}
+          rightPanelCollapsed={rightPanelCollapsed}
+          onToggleSidebar={handleToggleSidebar}
+          onToggleRightPanel={handleToggleRightPanel}
+          onResetLayout={handleResetLayout}
+          onCreateNote={handleCreateNote}
+          onCreateCanvas={handleCreateCanvas}
+          onOpenDailyNote={handleOpenDailyNote}
+          onQuickGraph={handleQuickGraph}
+        />
+      )}
 
       {/* Content row: activity bar + sidebar + resizer + editor + resizer + right panel */}
       <div
@@ -232,7 +236,23 @@ export function Layout({
 
         {!isGraphFullscreen && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {editor}
+            {focusMode ? (
+              <div
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  maxWidth: '72ch',
+                  margin: '0 auto',
+                  width: '100%'
+                }}
+              >
+                {editor}
+              </div>
+            ) : (
+              editor
+            )}
           </div>
         )}
 

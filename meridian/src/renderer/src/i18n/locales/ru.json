@@ -699,5 +699,6 @@
   "favorites.title": "Избранное",
   "favorites.add": "Добавить в избранное",
   "favorites.remove": "Убрать из избранного",
-  "favorites.toggleCommand": "Переключить избранное для текущей заметки"
+  "favorites.toggleCommand": "Переключить избранное для текущей заметки",
+  "focus.toggleCommand": "Переключить режим фокуса"
 }

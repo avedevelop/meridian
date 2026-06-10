@@ -699,5 +699,6 @@
   "favorites.title": "Favoritter",
   "favorites.add": "Legg til i favoritter",
   "favorites.remove": "Fjern fra favoritter",
-  "favorites.toggleCommand": "Veksle favoritt for gjeldende notat"
+  "favorites.toggleCommand": "Veksle favoritt for gjeldende notat",
+  "focus.toggleCommand": "Veksle fokusmodus"
 }

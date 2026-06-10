@@ -322,6 +322,44 @@ export default function App() {
     return localStorage.getItem('layout-right-collapsed') === 'true'
   })
 
+  // Focus mode — transient, not persisted
+  const [focusMode, setFocusMode] = useState(false)
+  const focusMemoRef = useRef<{ sidebar: boolean; rightPanel: boolean } | null>(null)
+
+  const toggleFocusMode = useCallback(() => {
+    setFocusMode((prev) => {
+      if (!prev) {
+        // Entering focus mode: remember current panel states then collapse both
+        focusMemoRef.current = {
+          sidebar: sidebarCollapsed,
+          rightPanel: rightPanelCollapsed
+        }
+        setSidebarCollapsed(true)
+        setRightPanelCollapsed(true)
+        return true
+      } else {
+        // Exiting focus mode: restore remembered states
+        if (focusMemoRef.current) {
+          setSidebarCollapsed(focusMemoRef.current.sidebar)
+          setRightPanelCollapsed(focusMemoRef.current.rightPanel)
+          focusMemoRef.current = null
+        }
+        return false
+      }
+    })
+  }, [sidebarCollapsed, rightPanelCollapsed])
+
+  // Register focus mode toggle command
+  useEffect(() => {
+    pluginRegistry.registerCommand({
+      id: 'focus.toggle',
+      title: i18n.t('focus.toggleCommand'),
+      run: () => {
+        toggleFocusMode()
+      }
+    })
+  }, [toggleFocusMode])
+
   const handleTabChange = useCallback((tab: typeof activeSidebarTab) => {
     setActiveSidebarTab((curr) => {
       if (curr === tab) {
@@ -518,6 +556,10 @@ export default function App() {
             exportNote()
           }
         }
+        if (e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+          e.preventDefault()
+          toggleFocusMode()
+        }
         if (e.key === 'b') {
           // Let CodeMirror handle Cmd+B when the editor is focused
           if (!e.altKey && document.activeElement?.closest('.cm-editor')) return
@@ -540,7 +582,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [openVault, openDailyNote, exportNote, exportPdf, defaultExportFormat])
+  }, [openVault, openDailyNote, exportNote, exportPdf, defaultExportFormat, toggleFocusMode])
 
   useEffect(() => {
     const handler = () => setSettingsOpen(true)
@@ -696,13 +738,16 @@ export default function App() {
         setRightPanelCollapsed={setRightPanelCollapsed}
         activeSidebarTab={activeSidebarTab}
         onSidebarTabChange={handleTabChange}
+        focusMode={focusMode}
         activityBar={
-          <ActivityBar
-            activeTab={activeSidebarTab}
-            onTabChange={handleTabChange}
-            sidebarCollapsed={sidebarCollapsed}
-            onSettings={() => setSettingsOpen(true)}
-          />
+          !focusMode ? (
+            <ActivityBar
+              activeTab={activeSidebarTab}
+              onTabChange={handleTabChange}
+              sidebarCollapsed={sidebarCollapsed}
+              onSettings={() => setSettingsOpen(true)}
+            />
+          ) : null
         }
         sidebar={
           <Sidebar key={vault.path} activeTab={activeSidebarTab} onTabChange={handleTabChange} />
@@ -710,7 +755,7 @@ export default function App() {
         editor={<EditorArea />}
         rightPanel={<RightPanel />}
       />
-      {showStatusBar && <StatusBar />}
+      {showStatusBar && !focusMode && <StatusBar />}
       <CommandPalette
         isOpen={paletteOpen}
         onClose={() => setPaletteOpen(false)}
