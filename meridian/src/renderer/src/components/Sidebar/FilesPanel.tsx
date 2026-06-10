@@ -5,9 +5,10 @@ import { useVaultBridge, uniqueFileName } from '../../hooks/useVaultBridge'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useFavoritesStore } from '../../store/useFavoritesStore'
 import { FileTree } from './FileTree'
-import { FolderOpenBtnIcon, CollapseAllIcon, StarIcon } from '../Icons'
+import { FolderOpenBtnIcon, CollapseAllIcon } from '../Icons'
 import { FileIcon } from './FileIcon'
 import { VaultSwitcherDropdown } from './VaultSwitcherDropdown'
+import { FavoritesSection } from './FavoritesSection'
 import { sortAndFilterFiles } from './sidebarUtils'
 import type { NoteTypeDefinition, VaultFile } from '@shared/types'
 
@@ -311,77 +312,11 @@ export function FilesPanel() {
           )
         ) : (
           <>
-            {validFavorites.length > 0 && (
-              <div style={{ marginBottom: 4 }}>
-                <div
-                  style={{
-                    padding: '4px 12px 2px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    userSelect: 'none'
-                  }}
-                >
-                  <StarIcon size={11} color="var(--accent-color)" filled />
-                  {t('favorites.title')}
-                </div>
-                {validFavorites.map((f) => (
-                  <div
-                    key={f.path}
-                    onClick={() => openFile(f.path, f.name)}
-                    style={{
-                      padding: '3px 12px',
-                      cursor: 'pointer',
-                      color:
-                        activeTabPath === f.path ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      background: activeTabPath === f.path ? 'var(--accent-glow)' : 'transparent',
-                      fontWeight: activeTabPath === f.path ? '500' : 'normal',
-                      borderLeft:
-                        activeTabPath === f.path ? '3px solid var(--accent-color)' : 'none',
-                      fontSize: 13,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTabPath !== f.path) {
-                        e.currentTarget.style.background = 'var(--bg-surface)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTabPath !== f.path) {
-                        e.currentTarget.style.background = 'transparent'
-                      }
-                    }}
-                  >
-                    <FileIcon name={f.name} isDirectory={false} />
-                    <span
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        flex: 1
-                      }}
-                    >
-                      {f.name.replace(/\.md$/i, '')}
-                    </span>
-                  </div>
-                ))}
-                <div
-                  style={{
-                    margin: '4px 12px',
-                    height: 1,
-                    background: 'var(--border-color)',
-                    opacity: 0.6
-                  }}
-                />
-              </div>
-            )}
+            <FavoritesSection
+              favorites={validFavorites}
+              activeTabPath={activeTabPath ?? undefined}
+              onOpen={openFile}
+            />
             <FileTree
               files={sortedFiles}
               onFileClick={openFile}

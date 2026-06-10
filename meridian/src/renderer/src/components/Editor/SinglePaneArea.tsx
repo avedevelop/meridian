@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { FileIcon } from '../Icons'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { useVaultStore } from '../../store/useVaultStore'
@@ -17,6 +15,7 @@ import { DiffPane } from './DiffPane'
 import { flattenVaultFiles } from './markdownUtils'
 import { EditorContextMenu } from './EditorContextMenu'
 import { useEditorDnd } from './useEditorDnd'
+import { EmptyPane } from './EmptyPane'
 
 const SPLIT_KEY = 'meridian-split-ratio'
 
@@ -27,7 +26,6 @@ interface SinglePaneAreaProps {
 }
 
 export function SinglePaneArea({ paneId, isActive, focusMode = false }: SinglePaneAreaProps) {
-  const { t } = useTranslation()
   const { panes, setActivePane, setTabContent, markTabDirty, files: vaultFiles } = useVaultStore()
   const vault = useVaultStore((s) => s.vault)
   const { saveFile, openFile, saveImage } = useVaultBridge()
@@ -365,40 +363,7 @@ export function SinglePaneArea({ paneId, isActive, focusMode = false }: SinglePa
 
   // Show empty pane placeholder
   if (openTabs.length === 0) {
-    return (
-      <div
-        onClick={() => {
-          if (!isActive) setActivePane(paneId)
-        }}
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-tertiary)',
-          boxSizing: 'border-box'
-        }}
-      >
-        <div style={{ textAlign: 'center', userSelect: 'none' }}>
-          <div style={{ marginBottom: 12, opacity: 0.2 }}>
-            <FileIcon size={40} color="var(--text-primary)" />
-          </div>
-          <p
-            style={{
-              color: 'var(--text-secondary)',
-              fontSize: 14,
-              margin: '0 0 6px',
-              fontWeight: 500
-            }}
-          >
-            {t('editor.noFileOpen')}
-          </p>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0, opacity: 0.6 }}>
-            {t('editor.openFileInstructions')}
-          </p>
-        </div>
-      </div>
-    )
+    return <EmptyPane onActivate={() => { if (!isActive) setActivePane(paneId) }} />
   }
 
   return (
