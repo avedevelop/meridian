@@ -1082,8 +1082,23 @@ export function registerIpcHandlers(
 
   // ── Quick Capture ────────────────────────────────────────────────────────────
 
-  ipcMain.handle(IPC.CAPTURE_STATE, () => {
-    return { vaultOpen: vaultManager !== null }
+  ipcMain.handle(IPC.CAPTURE_STATE, async () => {
+    let language = 'en'
+    try {
+      const { readFileSync, existsSync } = await import('fs')
+      const { join } = await import('path')
+      const { app } = await import('electron')
+      const prefPath = join(app.getPath('userData'), 'meridian', 'preferences.json')
+      if (existsSync(prefPath)) {
+        const prefs = JSON.parse(readFileSync(prefPath, 'utf-8'))
+        if (typeof prefs.language === 'string' && prefs.language) {
+          language = prefs.language
+        }
+      }
+    } catch {
+      // fall back to 'en'
+    }
+    return { vaultOpen: vaultManager !== null, language }
   })
 
   ipcMain.handle(IPC.CAPTURE_SUBMIT, async (_event, text: string) => {

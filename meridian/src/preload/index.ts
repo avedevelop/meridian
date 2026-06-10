@@ -169,7 +169,8 @@ const settingsAPI = {
 const captureAPI = {
   submit: (text: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke(IPC.CAPTURE_SUBMIT, text),
-  state: (): Promise<{ vaultOpen: boolean }> => ipcRenderer.invoke(IPC.CAPTURE_STATE),
+  state: (): Promise<{ vaultOpen: boolean; language: string }> =>
+    ipcRenderer.invoke(IPC.CAPTURE_STATE),
   hide: (): Promise<void> => ipcRenderer.invoke(IPC.CAPTURE_HIDE)
 }
 

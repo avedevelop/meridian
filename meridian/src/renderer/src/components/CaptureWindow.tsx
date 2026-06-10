@@ -1,11 +1,12 @@
 import { useRef, useState, useEffect, KeyboardEvent, CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
+import { i18n } from '../i18n/index'
 
 declare global {
   interface Window {
     capture: {
       submit: (text: string) => Promise<{ ok: boolean }>
-      state: () => Promise<{ vaultOpen: boolean }>
+      state: () => Promise<{ vaultOpen: boolean; language: string }>
       hide: () => Promise<void>
     }
   }
@@ -23,6 +24,11 @@ export default function CaptureWindow(): React.ReactElement {
 
   useEffect(() => {
     inputRef.current?.focus()
+    window.capture.state().then(({ language }) => {
+      if (language && language !== i18n.language) {
+        void i18n.changeLanguage(language)
+      }
+    })
   }, [])
 
   async function handleKeyDown(e: KeyboardEvent<HTMLInputElement>): Promise<void> {
