@@ -752,7 +752,7 @@ export default function App() {
         sidebar={
           <Sidebar key={vault.path} activeTab={activeSidebarTab} onTabChange={handleTabChange} />
         }
-        editor={<EditorArea />}
+        editor={<EditorArea focusMode={focusMode} />}
         rightPanel={<RightPanel />}
       />
       {showStatusBar && !focusMode && <StatusBar />}

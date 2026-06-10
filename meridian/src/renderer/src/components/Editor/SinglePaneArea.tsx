@@ -23,9 +23,10 @@ const SPLIT_KEY = 'meridian-split-ratio'
 interface SinglePaneAreaProps {
   paneId: string
   isActive: boolean
+  focusMode?: boolean
 }
 
-export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
+export function SinglePaneArea({ paneId, isActive, focusMode = false }: SinglePaneAreaProps) {
   const { t } = useTranslation()
   const { panes, setActivePane, setTabContent, markTabDirty, files: vaultFiles } = useVaultStore()
   const vault = useVaultStore((s) => s.vault)
@@ -443,7 +444,15 @@ export function SinglePaneArea({ paneId, isActive }: SinglePaneAreaProps) {
           ref={containerRef}
           onDragOver={handleEditorDragOver}
           onDrop={handleEditorDrop}
-          style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}
+          style={{
+            flex: 1,
+            display: 'flex',
+            overflow: 'hidden',
+            position: 'relative',
+            ...(focusMode
+              ? { maxWidth: '72ch', width: '100%', marginLeft: 'auto', marginRight: 'auto' }
+              : {})
+          }}
         >
           <div
             ref={editorRef}

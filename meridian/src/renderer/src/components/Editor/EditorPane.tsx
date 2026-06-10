@@ -4,7 +4,11 @@ import { FileIcon } from '../Icons'
 import { useVaultStore } from '../../store/useVaultStore'
 import { SinglePaneArea } from './SinglePaneArea'
 
-export function EditorArea() {
+interface EditorAreaProps {
+  focusMode?: boolean
+}
+
+export function EditorArea({ focusMode = false }: EditorAreaProps) {
   const { t } = useTranslation()
   const { panes, activePaneId, mergeAllPanes } = useVaultStore()
   const paneRefs = useRef<{ [paneId: string]: HTMLDivElement | null }>({})
@@ -126,7 +130,7 @@ export function EditorArea() {
                 position: 'relative'
               }}
             >
-              <SinglePaneArea paneId={pane.id} isActive={isActive} />
+              <SinglePaneArea paneId={pane.id} isActive={isActive} focusMode={focusMode} />
             </div>
           </React.Fragment>
         )

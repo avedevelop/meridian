@@ -236,23 +236,7 @@ export function Layout({
 
         {!isGraphFullscreen && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {focusMode ? (
-              <div
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  maxWidth: '72ch',
-                  margin: '0 auto',
-                  width: '100%'
-                }}
-              >
-                {editor}
-              </div>
-            ) : (
-              editor
-            )}
+            {editor}
           </div>
         )}
 
