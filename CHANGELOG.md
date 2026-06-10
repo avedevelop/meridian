@@ -2,6 +2,17 @@
 
 All notable changes to Meridian. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.13] — 2026-06-10
+
+### Added
+
+- Norwegian bokmål (nb) interface language, selectable in Settings → Appearance.
+- Norwegian welcome vault for macOS and Windows first-run experience.
+
+### Fixed
+
+- Welcome vault download works again: the published vault repository now matches the platform/language layout the app expects.
+
 ## [1.0.12] — 2026-05-27
 
 ### Added
