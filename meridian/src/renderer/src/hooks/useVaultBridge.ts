@@ -17,6 +17,7 @@ import type {
 } from '@shared/types'
 import { restoreSession } from './useSessionPersist'
 import { basename } from '@shared/paths'
+import { indexVaultFiles } from '../lib/indexVault'
 
 function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
   return files.flatMap((f) => (f.children ? [f, ...flattenVaultFiles(f.children)] : [f]))
@@ -146,15 +147,6 @@ function isSameOrChildPath(parentPath: string, candidatePath: string): boolean {
   return candidate === parent || candidate.startsWith(`${parent}/`)
 }
 
-function flattenFiles(files: VaultFile[]): VaultFile[] {
-  const result: VaultFile[] = []
-  for (const f of files) {
-    result.push(f)
-    if (f.children) result.push(...flattenFiles(f.children))
-  }
-  return result
-}
-
 export function useVaultBridge() {
   const { setVault, setFiles, openTab, setTabContent, markTabDirty } = useVaultStore()
 
@@ -209,17 +201,7 @@ export function useVaultBridge() {
       setVault(config)
       const files = await window.vault.listFiles()
       setFiles(files)
-      const { indexFile } = useLinkStore.getState()
-      for (const f of flattenFiles(files)) {
-        if (!f.isDirectory && f.name.endsWith('.md')) {
-          try {
-            const content = await window.vault.readFile(f.path)
-            indexFile(f.path, f.name, content, config.path)
-          } catch {
-            // Skip files that disappeared or became unreadable during initial indexing.
-          }
-        }
-      }
+      await indexVaultFiles(files, config.path, (path) => window.vault.readFile(path))
       await restoreSession(config.path, openFile, savedSession)
     },
     [setVault, setFiles, openFile]
