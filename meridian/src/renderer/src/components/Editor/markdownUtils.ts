@@ -37,6 +37,20 @@ export function processCallouts(html: string): string {
   })
 }
 
+/**
+ * Escape a value for use inside a double-quoted HTML attribute or text node.
+ * Existing entities (already produced by the sanitizer) are preserved, so
+ * `Tom &amp; Jerry` is not double-escaped.
+ */
+export function escapeAttr(value: string): string {
+  return value
+    .replace(/&(?!(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);)/gi, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
 export function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
   return files.flatMap((f) => (f.isDirectory ? flattenVaultFiles(f.children ?? []) : [f]))
 }
@@ -48,7 +62,7 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
     const linkText = link.trim()
 
     if (linkText.endsWith('.excalidraw')) {
-      const escapedLink = linkText.replace(/"/g, '&quot;')
+      const escapedLink = escapeAttr(linkText)
       return `<div class="excalidraw-embed" data-link="${escapedLink}" style="border:1px solid var(--border-color);border-radius:8px;padding:16px;background:var(--bg-secondary);margin:16px 0;max-width:100%;height:320px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;box-sizing:border-box">Loading drawing...</div>`
     }
 
@@ -58,8 +72,8 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
           f.name.toLowerCase() === linkText.toLowerCase() ||
           f.relativePath.toLowerCase() === linkText.toLowerCase()
       )
-      const src = match ? `vault:///${match.relativePath}` : `vault:///${linkText}`
-      const alt = (alias?.trim() ?? linkText).replace(/"/g, '&quot;')
+      const src = escapeAttr(match ? `vault:///${match.relativePath}` : `vault:///${linkText}`)
+      const alt = escapeAttr(alias?.trim() ?? linkText)
       return `<img src="${src}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0" />`
     }
 
@@ -76,8 +90,8 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
       )
     })
     if (mdMatch) {
-      const escapedPath = mdMatch.path.replace(/"/g, '&quot;')
-      const displayName = linkNoExt.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      const escapedPath = escapeAttr(mdMatch.path)
+      const displayName = escapeAttr(linkNoExt)
       return `<div class="note-embed" data-path="${escapedPath}" style="border:1px solid var(--border-color);border-radius:6px;padding:12px 16px;margin:12px 0;background:var(--bg-secondary)"><div class="note-embed-title" style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;letter-spacing:0.04em">📄 ${displayName}</div><div class="note-embed-content" style="color:var(--text-primary);font-size:0.95em">Loading…</div></div>`
     }
 
@@ -93,8 +107,8 @@ export function postprocessWikiLinks(html: string, files: VaultFile[]): string {
   return processed.replace(
     /(?<!!)(\[\[([^\]|]+)(?:\|([^\]]+))?\]\])/g,
     (_fullMatch, _bracket, link, alias) => {
-      const label = (alias?.trim() ?? link.trim()).replace(/"/g, '&quot;')
-      const linkAttr = link.trim().replace(/"/g, '&quot;')
+      const label = escapeAttr(alias?.trim() ?? link.trim())
+      const linkAttr = escapeAttr(link.trim())
       return `<span class="wiki-link" data-link="${linkAttr}" style="color:var(--accent-color);text-decoration:underline;cursor:pointer">${label}</span>`
     }
   )

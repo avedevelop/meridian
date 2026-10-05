@@ -14,12 +14,19 @@ import type {
   NoteTypeDefinition
 } from '../shared/types'
 
-import { homedir } from 'os'
 import packageJson from '../../package.json'
+
+const HOME_DIR_ARG_PREFIX = '--meridian-home-dir='
 
 const appInfo = {
   version: packageJson.version,
-  homeDir: homedir(),
+  // Passed by the main process (webPreferences.additionalArguments): a sandboxed
+  // preload cannot require Node's 'os' module.
+  homeDir: HOME_DIR_ARG_PREFIX
+    ? (process.argv
+        .find((a) => a.startsWith(HOME_DIR_ARG_PREFIX))
+        ?.slice(HOME_DIR_ARG_PREFIX.length) ?? '')
+    : '',
   platform: process.platform
 }
 
@@ -156,7 +163,6 @@ const vaultAPI = {
   }
 }
 
-
 const settingsAPI = {
   get: (): Promise<AppConfig> => ipcRenderer.invoke(IPC.SETTINGS_GET),
   set: (key: string, value: unknown): Promise<void> =>
@@ -167,8 +173,7 @@ const settingsAPI = {
 }
 
 const captureAPI = {
-  submit: (text: string): Promise<{ ok: boolean }> =>
-    ipcRenderer.invoke(IPC.CAPTURE_SUBMIT, text),
+  submit: (text: string): Promise<{ ok: boolean }> => ipcRenderer.invoke(IPC.CAPTURE_SUBMIT, text),
   state: (): Promise<{ vaultOpen: boolean; language: string }> =>
     ipcRenderer.invoke(IPC.CAPTURE_STATE),
   hide: (): Promise<void> => ipcRenderer.invoke(IPC.CAPTURE_HIDE)

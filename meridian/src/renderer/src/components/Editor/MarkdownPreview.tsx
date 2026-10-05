@@ -10,6 +10,7 @@ import rehypeStringify from 'rehype-stringify'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useVaultStore } from '../../store/useVaultStore'
 import { flattenVaultFiles } from './markdownUtils'
+import { renderDrawingToSVG } from './drawingSvg'
 import { applyPreprocessors, applyPostprocessors } from '../../lib/markdownCore'
 import '../../lib/markdownCore'
 
@@ -47,57 +48,11 @@ function addHeadingIds(html: string): string {
   )
 }
 
-function escapeHtml(str: string): string {
-  if (typeof str !== 'string') return ''
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-function renderDrawingToSVG(elements: any[]): string {
-  return elements
-    .map((el) => {
-      if (el.type === 'pencil' && el.points && el.points.length > 0) {
-        const d =
-          `M ${el.points[0][0]} ${el.points[0][1]} ` +
-          el.points
-            .slice(1)
-            .map((p) => `L ${p[0]} ${p[1]}`)
-            .join(' ')
-        return `<path d="${d}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`
-      }
-      if (
-        el.type === 'rectangle' &&
-        el.x !== undefined &&
-        el.y !== undefined &&
-        el.w !== undefined &&
-        el.h !== undefined
-      ) {
-        const x = el.w < 0 ? el.x + el.w : el.x
-        const y = el.h < 0 ? el.y + el.h : el.y
-        return `<rect x="${x}" y="${y}" width="${Math.abs(el.w)}" height="${Math.abs(el.h)}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" fill="${escapeHtml(el.fill)}" />`
-      }
-      if (el.type === 'circle' && el.x !== undefined && el.y !== undefined && el.w !== undefined) {
-        return `<circle cx="${el.x}" cy="${el.y}" r="${el.w}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" fill="${escapeHtml(el.fill)}" />`
-      }
-      if (
-        el.type === 'line' &&
-        el.x !== undefined &&
-        el.y !== undefined &&
-        el.w !== undefined &&
-        el.h !== undefined
-      ) {
-        return `<line x1="${el.x}" y1="${el.y}" x2="${el.w}" y2="${el.h}" stroke="${escapeHtml(el.stroke)}" stroke-width="${el.strokeWidth}" />`
-      }
-      if (el.type === 'text' && el.x !== undefined && el.y !== undefined && el.text) {
-        return `<text x="${el.x}" y="${el.y}" fill="${escapeHtml(el.stroke)}" font-size="${el.strokeWidth}" font-family="sans-serif">${escapeHtml(el.text)}</text>`
-      }
-      return ''
-    })
-    .join('\n')
+function setEmbedStatus(el: HTMLElement, message: string, italic = false): void {
+  const span = document.createElement('span')
+  span.style.cssText = `color:var(--text-secondary);font-size:12px${italic ? ';font-style:italic' : ''}`
+  span.textContent = message
+  el.replaceChildren(span)
 }
 
 interface MarkdownPreviewProps {
@@ -219,7 +174,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
         )
 
         if (!match) {
-          htmlEl.innerHTML = `<span style="color:var(--text-secondary);font-size:12px">Drawing not found: ${dataLink}</span>`
+          setEmbedStatus(htmlEl, `Drawing not found: ${dataLink}`)
           return
         }
 
@@ -228,17 +183,17 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
           const parsed = JSON.parse(raw)
           if (parsed.type === 'meridian-drawing' && Array.isArray(parsed.elements)) {
             if (parsed.elements.length === 0) {
-              htmlEl.innerHTML = `<span style="color:var(--text-secondary);font-size:12px;font-style:italic">Empty drawing</span>`
+              setEmbedStatus(htmlEl, 'Empty drawing', true)
               return
             }
             const svgHtml = renderDrawingToSVG(parsed.elements)
             // Dynamically compute viewBox bounding box or use default 800x600
             htmlEl.innerHTML = `<svg viewBox="0 0 800 600" style="width:100%;height:100%;display:block">${svgHtml}</svg>`
           } else {
-            htmlEl.innerHTML = `<span style="color:var(--text-secondary);font-size:12px">Invalid drawing format</span>`
+            setEmbedStatus(htmlEl, 'Invalid drawing format')
           }
         } catch (_err) {
-          htmlEl.innerHTML = `<span style="color:var(--text-secondary);font-size:12px">Failed to load drawing</span>`
+          setEmbedStatus(htmlEl, 'Failed to load drawing')
         }
       })
     }, [html, files])
@@ -263,7 +218,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
           const renderedHtml = String(processor.processSync(withoutFm))
           contentEl.innerHTML = renderedHtml
         } catch {
-          contentEl.innerHTML = `<span style="color:var(--text-secondary);font-size:12px;font-style:italic">Could not load note</span>`
+          setEmbedStatus(contentEl, 'Could not load note', true)
         }
       })
     }, [html])
@@ -281,7 +236,7 @@ export const MarkdownPreview = React.forwardRef<HTMLDivElement, MarkdownPreviewP
       ;(async () => {
         try {
           const mermaid = (await import('mermaid')).default
-          mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' })
+          mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'strict' })
 
           for (const codeEl of codeEls) {
             if (cancelled) break

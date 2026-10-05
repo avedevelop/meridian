@@ -287,7 +287,8 @@ function createWindow(): BrowserWindow {
     icon: join(__dirname, '../../resources/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
+      additionalArguments: [`--meridian-home-dir=${app.getPath('home')}`],
       contextIsolation: true,
       nodeIntegration: false
     }
@@ -336,7 +337,8 @@ function createCaptureWindow(): BrowserWindow {
     resizable: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
+      additionalArguments: [`--meridian-home-dir=${app.getPath('home')}`],
       contextIsolation: true,
       nodeIntegration: false
     }
