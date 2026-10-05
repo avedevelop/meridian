@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BacklinksPanel } from './BacklinksPanel'
 import { TagsPanel } from './TagsPanel'
 import { TocPanel } from './TocPanel'
-import { LocalGraphView } from './LocalGraphView'
+import { lazyNamed } from '../../lib/lazyNamed'
 import { AskVaultPanel } from './AskVaultPanel'
 import { NoteHistoryPanel } from './NoteHistoryPanel'
 import { PropertiesPanel } from './PropertiesPanel'
@@ -20,6 +20,8 @@ type RightTab =
   | 'relationships'
   | 'history'
   | 'ask-vault'
+
+const LocalGraphView = lazyNamed(() => import('./LocalGraphView'), 'LocalGraphView')
 
 export function RightPanel() {
   const { t } = useTranslation()
@@ -108,7 +110,7 @@ export function RightPanel() {
         {effectiveTab === 'backlinks' && <BacklinksPanel />}
         {effectiveTab === 'tags' && <TagsPanel />}
         {effectiveTab === 'toc' && <TocPanel />}
-        {effectiveTab === 'local-graph' && <LocalGraphView />}
+        <Suspense fallback={null}>{effectiveTab === 'local-graph' && <LocalGraphView />}</Suspense>
       </div>
     </div>
   )

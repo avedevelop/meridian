@@ -1,23 +1,18 @@
 import { app, clipboard, nativeImage } from 'electron'
-import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { getVaultManager } from '../ipc'
+import { readPreferences } from '../preferences'
 import { ClipboardService } from './service'
 import { broadcastClipboardChanged, registerClipboardIpc } from './ipc'
 import { ClipboardWindowController } from './window'
 
-function readPreferences(): Record<string, unknown> {
-  try {
-    const path = join(app.getPath('userData'), 'meridian', 'preferences.json')
-    if (existsSync(path)) return JSON.parse(readFileSync(path, 'utf-8'))
-  } catch {
-    // fall back to defaults
-  }
-  return {}
+export interface ClipboardHistoryHandle {
+  stop: () => Promise<void>
+  toggleWindow: () => void
 }
 
-/** Start clipboard history (recording stays off until the user enables it). Returns a stop function. */
-export function startClipboardHistory(): () => Promise<void> {
+/** Start clipboard history (recording stays off until the user enables it). */
+export function startClipboardHistory(): ClipboardHistoryHandle {
   let windowController: ClipboardWindowController | null = null
   const service = new ClipboardService({
     dir: join(app.getPath('userData'), 'clipboard'),
@@ -49,9 +44,12 @@ export function startClipboardHistory(): () => Promise<void> {
     platform: process.platform
   })
 
-  return async () => {
-    unregister()
-    controller.dispose()
-    await service.stop()
+  return {
+    stop: async () => {
+      unregister()
+      controller.dispose()
+      await service.stop()
+    },
+    toggleWindow: () => controller.toggle()
   }
 }

@@ -746,5 +746,15 @@
   "clipboard.saveFailed": "Could not save to your vault",
   "clipboard.noVault": "Open a vault in Meridian first",
   "clipboard.hints": "↑↓ select · Enter copy · {{shift}}Enter plain text · {{mod}}P pin · {{mod}}Enter Inbox · {{mod}}D daily · Del remove",
-  "clipboard.hotkeyTaken": "The shortcut {{hotkey}} is used by another app"
+  "clipboard.hotkeyTaken": "The shortcut {{hotkey}} is used by another app",
+
+  "settings.nav.system": "System",
+  "settings.system.title": "System",
+  "settings.system.description": "Keep Meridian available for the clipboard history and quick capture shortcuts.",
+  "settings.system.runInBackground": "Run in the background",
+  "settings.system.runInBackgroundDesc": "Closing the window keeps Meridian running in the system tray, so the clipboard history and quick capture shortcuts keep working. Quit from the tray menu.",
+  "settings.system.launchAtLogin": "Launch at login",
+  "settings.system.launchAtLoginDesc": "Start Meridian when you sign in to your computer. Applies to installed builds.",
+  "settings.system.startMinimized": "Start minimized to the tray",
+  "settings.system.startMinimizedDesc": "When launched at login, do not open the window. Requires \"Run in the background\"."
 }

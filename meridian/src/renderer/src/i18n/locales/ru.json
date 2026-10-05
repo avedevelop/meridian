@@ -746,5 +746,15 @@
   "clipboard.saveFailed": "Не удалось сохранить в хранилище",
   "clipboard.noVault": "Сначала откройте хранилище в Meridian",
   "clipboard.hints": "↑↓ выбор · Enter копировать · {{shift}}Enter без форматирования · {{mod}}P закрепить · {{mod}}Enter в Inbox · {{mod}}D в дневник · Del удалить",
-  "clipboard.hotkeyTaken": "Сочетание {{hotkey}} занято другим приложением"
+  "clipboard.hotkeyTaken": "Сочетание {{hotkey}} занято другим приложением",
+
+  "settings.nav.system": "Система",
+  "settings.system.title": "Система",
+  "settings.system.description": "Держите Meridian под рукой для истории буфера обмена и быстрых заметок.",
+  "settings.system.runInBackground": "Работать в фоне",
+  "settings.system.runInBackgroundDesc": "При закрытии окна Meridian остаётся в системном трее, поэтому история буфера и горячие клавиши быстрой заметки продолжают работать. Выход через меню в трее.",
+  "settings.system.launchAtLogin": "Запускать при входе в систему",
+  "settings.system.launchAtLoginDesc": "Запускать Meridian при входе в компьютер. Работает в установленных сборках.",
+  "settings.system.startMinimized": "Запускать свёрнутым в трей",
+  "settings.system.startMinimizedDesc": "При запуске при входе в систему не открывать окно. Требуется «Работать в фоне»."
 }

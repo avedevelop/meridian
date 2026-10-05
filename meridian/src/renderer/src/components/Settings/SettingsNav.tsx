@@ -22,6 +22,7 @@ export function SettingsNav({
   const categoriesList: { id: SettingCategory; label: string }[] = [
     { id: 'editor', label: t('settings.nav.editor') },
     { id: 'files', label: t('settings.nav.files') },
+    { id: 'system', label: t('settings.nav.system') },
     { id: 'appearance', label: t('settings.nav.appearance') },
     { id: 'canvas', label: t('settings.nav.canvas') },
     { id: 'ai', label: t('settings.nav.ai') },

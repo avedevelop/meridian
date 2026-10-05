@@ -8,8 +8,14 @@ All notable changes to Meridian. Format follows [Keep a Changelog](https://keepa
 
 - Clipboard history (opt-in): global hotkey window with search, filters, pinning, plain-text paste, and saving to Inbox, the daily note or a new note. Snippets from the `_snippets` folder.
 
+### Changed
+
+- Faster startup: the renderer bundle is now minified and heavy screens (Canvas, Sketchpad, Graph, Diff, Calendar, Tasks, Git, Insights, Settings) load on first use. The startup JavaScript dropped from 4.8 MB to 1.7 MB; first screen in a throttled headless test went from 898 ms to 506 ms.
+- New Settings → System page: run in the background (system tray), launch at login, start minimized to the tray. Single-instance lock: launching Meridian again brings the existing window forward.
+
 ### Fixed
 
+- Windows and Linux: closing the main window left an invisible Meridian process running (the hidden capture and clipboard windows kept it alive). It now quits unless "Run in the background" is on.
 - Windows: wiki-links now resolve and the graph shows its connections; node labels use file names instead of full paths.
 - Markdown preview: embedded image and drawing syntax can no longer inject HTML attributes or scripts.
 

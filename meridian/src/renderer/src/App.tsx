@@ -1,5 +1,19 @@
-import { useState, useEffect, useCallback, useMemo, useRef, Component, type ReactNode } from 'react'
+import {
+  Suspense,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  Component,
+  type ReactNode
+} from 'react'
 import { WarningIcon } from './components/Icons'
+
+const SettingsModal = lazyNamed(
+  () => import('./components/Settings/SettingsModal'),
+  'SettingsModal'
+)
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
   state = { error: null }
@@ -57,7 +71,7 @@ import { RightPanel } from './components/RightPanel/RightPanel'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { useVaultBridge, uniqueFileName } from './hooks/useVaultBridge'
 import { useVaultFileWatcher } from './hooks/useVaultFileWatcher'
-import { SettingsModal } from './components/Settings/SettingsModal'
+import { lazyNamed } from './lib/lazyNamed'
 import { ActivityBar } from './components/ActivityBar/ActivityBar'
 import { useSettingsStore } from './store/useSettingsStore'
 import { useViewsStore } from './store/useViewsStore'
@@ -778,7 +792,11 @@ export default function App() {
         onFileSelect={handlePaletteFileSelect}
         commands={paletteCommands}
       />
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Glassmorphic Toast Notifications */}
       <div
