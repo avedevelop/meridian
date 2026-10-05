@@ -4,6 +4,7 @@ import { readFile } from 'fs/promises'
 import { existsSync, readFileSync } from 'fs'
 import { AppSettings } from './settings'
 import { parseAppPluginUrl, parsePluginUrl } from '../shared/pluginUrl'
+import { startClipboardHistory } from './clipboard'
 import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
 import { resolveAppPluginFile } from './plugins'
 import { buildWindowOptions } from './platform'
@@ -325,6 +326,7 @@ function createWindow(): BrowserWindow {
 }
 
 let captureWindow: BrowserWindow | null = null
+let stopClipboardHistory: (() => Promise<void>) | null = null
 
 function createCaptureWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -438,6 +440,7 @@ app.whenReady().then(() => {
   })
   createWindow()
   buildMenu()
+  stopClipboardHistory = startClipboardHistory()
 
   // Create capture window once at startup (stays hidden until hotkey)
   captureWindow = createCaptureWindow()
@@ -473,5 +476,6 @@ app.on('before-quit', () => {
 })
 
 app.on('will-quit', () => {
+  void stopClipboardHistory?.()
   globalShortcut.unregisterAll()
 })

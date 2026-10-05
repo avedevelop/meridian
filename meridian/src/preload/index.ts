@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/types'
+import { CLIPBOARD_IPC } from '../shared/clipboard'
+import type { ClipboardHistoryAPI } from '../shared/clipboard'
 import type {
   PluginFileChangeEvent,
   VaultFileChangeEvent,
@@ -179,6 +181,22 @@ const captureAPI = {
   hide: (): Promise<void> => ipcRenderer.invoke(IPC.CAPTURE_HIDE)
 }
 
+const clipboardHistoryAPI: ClipboardHistoryAPI = {
+  list: (query) => ipcRenderer.invoke(CLIPBOARD_IPC.LIST, query),
+  pin: (id, pinned) => ipcRenderer.invoke(CLIPBOARD_IPC.PIN, id, pinned),
+  remove: (id) => ipcRenderer.invoke(CLIPBOARD_IPC.DELETE, id),
+  clear: () => ipcRenderer.invoke(CLIPBOARD_IPC.CLEAR),
+  copyBack: (id, opts) => ipcRenderer.invoke(CLIPBOARD_IPC.COPY_BACK, id, opts),
+  getImage: (id) => ipcRenderer.invoke(CLIPBOARD_IPC.GET_IMAGE, id),
+  getSettings: () => ipcRenderer.invoke(CLIPBOARD_IPC.GET_SETTINGS),
+  setSettings: (patch) => ipcRenderer.invoke(CLIPBOARD_IPC.SET_SETTINGS, patch),
+  onChanged: (callback) => {
+    const listener = (): void => callback()
+    ipcRenderer.on(CLIPBOARD_IPC.CHANGED, listener)
+    return () => ipcRenderer.removeListener(CLIPBOARD_IPC.CHANGED, listener)
+  }
+}
+
 contextBridge.exposeInMainWorld('appInfo', appInfo)
 contextBridge.exposeInMainWorld('vault', vaultAPI)
 contextBridge.exposeInMainWorld('settings', settingsAPI)
@@ -190,3 +208,4 @@ contextBridge.exposeInMainWorld('menuAPI', {
   }
 })
 contextBridge.exposeInMainWorld('capture', captureAPI)
+contextBridge.exposeInMainWorld('clipboardHistory', clipboardHistoryAPI)
