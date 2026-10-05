@@ -72,6 +72,7 @@ import { shouldIgnoreGlobalShortcut } from './utils/keyboardGuards'
 
 import { initCorePlugins } from './plugins/core'
 import { pluginRegistry } from './plugins/registry'
+import { basename } from '@shared/paths'
 
 declare global {
   interface Window {
@@ -666,7 +667,7 @@ export default function App() {
       allFiles()
         .map((path) => ({
           path,
-          name: path.split('/').pop() ?? ''
+          name: basename(path)
         }))
         .filter((f) => f.name.endsWith('.md')),
     [allFiles, indexVersion]

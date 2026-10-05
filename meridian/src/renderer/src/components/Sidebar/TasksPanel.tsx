@@ -4,6 +4,7 @@ import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge, uniqueFileName } from '../../hooks/useVaultBridge'
 import { FileIcon } from '../Icons'
+import { basename } from '@shared/paths'
 
 interface TaskItem {
   id: string
@@ -89,7 +90,7 @@ export function TasksPanel() {
         if (!active) return
 
         fileContents.forEach(({ path, content }) => {
-          const fileName = path.split('/').pop() ?? ''
+          const fileName = basename(path)
           const lines = content.split('\n')
           lines.forEach((line, idx) => {
             const match = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+)$/)

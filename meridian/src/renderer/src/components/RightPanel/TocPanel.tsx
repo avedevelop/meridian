@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { FileIcon, EditNoteIcon } from '../Icons'
+import { basename } from '@shared/paths'
 
 export interface TocHeading {
   level: number
@@ -77,7 +78,7 @@ export function TocPanel() {
       <div style={{ padding: '12px 0', fontSize: 13 }}>
         {canvasNodes.map((node) => {
           const displayText =
-            node.type === 'file' && node.file ? node.file.split('/').pop() : node.text || 'Untitled'
+            node.type === 'file' && node.file ? basename(node.file) : node.text || 'Untitled'
           return (
             <div
               key={node.id}

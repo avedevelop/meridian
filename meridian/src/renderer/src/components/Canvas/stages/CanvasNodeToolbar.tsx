@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { TrashIcon, NoteConvertIcon } from '../../Icons'
 import { CanvasData } from '../canvasTypes'
 import { useLinkStore } from '../../../store/useLinkStore'
+import { relativeTo } from '@shared/paths'
 
 interface CanvasNodeToolbarProps {
   selectedNodeId: string
@@ -119,7 +120,7 @@ export function CanvasNodeToolbar({
               try {
                 const filePath = await window.vault.createFile(vault.path, fileName)
                 await window.vault.writeFile(filePath, node.text)
-                const relativePath = filePath.replace(vault.path + '/', '').replace(vault.path, '')
+                const relativePath = relativeTo(vault.path, filePath) ?? filePath
 
                 mutate((prev) => ({
                   ...prev,

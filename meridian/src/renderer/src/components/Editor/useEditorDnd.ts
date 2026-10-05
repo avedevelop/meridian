@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import type { EditorView } from '@codemirror/view'
+import { basename } from '@shared/paths'
 
 export function useEditorDnd(
   viewRef: React.RefObject<EditorView | null>,
@@ -86,10 +87,10 @@ export function useEditorDnd(
           if (path.startsWith(vault.path)) {
             relativePath = path.slice(vault.path.length).replace(/^\/+/, '')
           } else {
-            relativePath = path.split('/').pop() ?? ''
+            relativePath = basename(path)
           }
         } else {
-          relativePath = path.split('/').pop() ?? ''
+          relativePath = basename(path)
         }
       }
 

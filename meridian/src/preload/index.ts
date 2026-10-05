@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/types'
+import { CLIPBOARD_IPC } from '../shared/clipboard'
+import type { ClipboardHistoryAPI } from '../shared/clipboard'
 import type {
   PluginFileChangeEvent,
   VaultFileChangeEvent,
@@ -14,12 +16,19 @@ import type {
   NoteTypeDefinition
 } from '../shared/types'
 
-import { homedir } from 'os'
 import packageJson from '../../package.json'
+
+const HOME_DIR_ARG_PREFIX = '--meridian-home-dir='
 
 const appInfo = {
   version: packageJson.version,
-  homeDir: homedir(),
+  // Passed by the main process (webPreferences.additionalArguments): a sandboxed
+  // preload cannot require Node's 'os' module.
+  homeDir: HOME_DIR_ARG_PREFIX
+    ? (process.argv
+        .find((a) => a.startsWith(HOME_DIR_ARG_PREFIX))
+        ?.slice(HOME_DIR_ARG_PREFIX.length) ?? '')
+    : '',
   platform: process.platform
 }
 
@@ -156,7 +165,6 @@ const vaultAPI = {
   }
 }
 
-
 const settingsAPI = {
   get: (): Promise<AppConfig> => ipcRenderer.invoke(IPC.SETTINGS_GET),
   set: (key: string, value: unknown): Promise<void> =>
@@ -167,11 +175,36 @@ const settingsAPI = {
 }
 
 const captureAPI = {
-  submit: (text: string): Promise<{ ok: boolean }> =>
-    ipcRenderer.invoke(IPC.CAPTURE_SUBMIT, text),
+  submit: (text: string): Promise<{ ok: boolean }> => ipcRenderer.invoke(IPC.CAPTURE_SUBMIT, text),
   state: (): Promise<{ vaultOpen: boolean; language: string }> =>
     ipcRenderer.invoke(IPC.CAPTURE_STATE),
   hide: (): Promise<void> => ipcRenderer.invoke(IPC.CAPTURE_HIDE)
+}
+
+const clipboardHistoryAPI: ClipboardHistoryAPI = {
+  list: (query) => ipcRenderer.invoke(CLIPBOARD_IPC.LIST, query),
+  pin: (id, pinned) => ipcRenderer.invoke(CLIPBOARD_IPC.PIN, id, pinned),
+  remove: (id) => ipcRenderer.invoke(CLIPBOARD_IPC.DELETE, id),
+  clear: () => ipcRenderer.invoke(CLIPBOARD_IPC.CLEAR),
+  copyBack: (id, opts) => ipcRenderer.invoke(CLIPBOARD_IPC.COPY_BACK, id, opts),
+  getImage: (id) => ipcRenderer.invoke(CLIPBOARD_IPC.GET_IMAGE, id),
+  saveToNote: (id, target) => ipcRenderer.invoke(CLIPBOARD_IPC.SAVE_TO_NOTE, id, target),
+  listSnippets: () => ipcRenderer.invoke(CLIPBOARD_IPC.SNIPPETS_LIST),
+  useSnippet: (name) => ipcRenderer.invoke(CLIPBOARD_IPC.SNIPPET_USE, name),
+  state: () => ipcRenderer.invoke(CLIPBOARD_IPC.STATE),
+  hide: () => ipcRenderer.invoke(CLIPBOARD_IPC.HIDE),
+  getSettings: () => ipcRenderer.invoke(CLIPBOARD_IPC.GET_SETTINGS),
+  setSettings: (patch) => ipcRenderer.invoke(CLIPBOARD_IPC.SET_SETTINGS, patch),
+  onShown: (callback) => {
+    const listener = (): void => callback()
+    ipcRenderer.on(CLIPBOARD_IPC.SHOWN, listener)
+    return () => ipcRenderer.removeListener(CLIPBOARD_IPC.SHOWN, listener)
+  },
+  onChanged: (callback) => {
+    const listener = (): void => callback()
+    ipcRenderer.on(CLIPBOARD_IPC.CHANGED, listener)
+    return () => ipcRenderer.removeListener(CLIPBOARD_IPC.CHANGED, listener)
+  }
 }
 
 contextBridge.exposeInMainWorld('appInfo', appInfo)
@@ -185,3 +218,4 @@ contextBridge.exposeInMainWorld('menuAPI', {
   }
 })
 contextBridge.exposeInMainWorld('capture', captureAPI)
+contextBridge.exposeInMainWorld('clipboardHistory', clipboardHistoryAPI)

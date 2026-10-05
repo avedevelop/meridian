@@ -11,6 +11,8 @@ export default defineConfig(
       '**/node_modules',
       '**/dist',
       '**/out',
+      '**/coverage',
+      'bench/**/.out',
       'plugins/**',
       'demo-vault/**/.meridian/plugins/**',
       'sample-plugin/**'
@@ -56,6 +58,7 @@ export default defineConfig(
   eslintConfigPrettier,
   {
     rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off',
       'prettier/prettier': 'off',
       'react-hooks/exhaustive-deps': 'off'
     }

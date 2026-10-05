@@ -8,7 +8,7 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
-    "check-lines": "find src/renderer/src/components -name '*.tsx' -exec wc -l {} + | awk '$2 !~ /(total)/ && $1 > 500 { print \"Error: File \" $2 \" has \" $1 \" lines, exceeding the 500-line strict limit.\"; err = 1 } END { exit err }'",
+    "check-lines": "node scripts/check-lines.mjs",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
@@ -51,6 +51,7 @@
     "react-konva": "^19.2.4",
     "react-konva-utils": "^2.0.0",
     "react-markdown": "^10.1.0",
+    "rehype-parse": "^9.0.1",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",

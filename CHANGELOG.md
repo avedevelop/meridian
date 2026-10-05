@@ -2,6 +2,21 @@
 
 All notable changes to Meridian. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Clipboard history (opt-in): global hotkey window with search, filters, pinning, plain-text paste, and saving to Inbox, the daily note or a new note. Snippets from the `_snippets` folder.
+
+### Fixed
+
+- Windows: wiki-links now resolve and the graph shows its connections; node labels use file names instead of full paths.
+- Markdown preview: embedded image and drawing syntax can no longer inject HTML attributes or scripts.
+
+### Security
+
+- Renderer windows run with the Electron sandbox enabled; Mermaid diagrams use the strict security level.
+
 ## [1.0.14] — 2026-06-10
 
 ### Added

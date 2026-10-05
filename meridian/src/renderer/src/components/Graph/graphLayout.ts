@@ -1,6 +1,7 @@
 import type { VaultFile } from '@shared/types'
 import type { GNode, GLink, GraphBuildResult } from './graphTypes'
 import { GROUP_COLORS } from './GraphSidebar'
+import { basename } from '@shared/paths'
 
 /**
  * Maximum number of nodes to render in the graph for performance reasons.
@@ -73,11 +74,7 @@ export function buildGraphData(
     .map((f) => f.path)
 
   filteredPaths = filteredPaths.filter((path) => {
-    const name =
-      path
-        .split('/')
-        .pop()
-        ?.replace(/\.(md|canvas)$/, '') ?? ''
+    const name = basename(path).replace(/\.(md|canvas)$/, '') ?? ''
 
     // Daily Notes filter
     const isDaily = !!name.match(/^\d{4}-\d{2}-\d{2}$/)
@@ -150,11 +147,7 @@ export function buildGraphData(
 
   const nodes: GNode[] = finalPaths.map((f) => ({
     id: f,
-    name:
-      f
-        .split('/')
-        .pop()
-        ?.replace(/\.(md|canvas)$/, '') ?? '',
+    name: basename(f).replace(/\.(md|canvas)$/, '') ?? '',
     degree: finalDegree[f] ?? 0,
     x: width / 2 + (Math.random() - 0.5) * 100,
     y: height / 2 + (Math.random() - 0.5) * 100
@@ -206,11 +199,7 @@ export function calculateGraphStats(
   const hubs = allFiles
     .map((path) => ({
       id: path,
-      name:
-        path
-          .split('/')
-          .pop()
-          ?.replace(/\.(md|canvas)$/, '') ?? '',
+      name: basename(path).replace(/\.(md|canvas)$/, '') ?? '',
       degree: degree[path] ?? 0
     }))
     .filter((h) => h.degree > 0)

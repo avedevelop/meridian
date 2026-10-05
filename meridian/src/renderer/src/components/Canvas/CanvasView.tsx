@@ -18,6 +18,7 @@ import {
   isUrl,
   computeMindMapLayout
 } from './canvasTools'
+import { relativeTo } from '@shared/paths'
 
 /* ------------------------------------------------------------------ */
 /*  CanvasView                                                         */
@@ -115,7 +116,7 @@ export function CanvasView({ filePath, content, onSave }: CanvasViewProps) {
   // Subscribe to vault file changes to update canvas cards reactively
   useEffect(() => {
     const unsub = window.vault.onFileChanged((e) => {
-      const relativePath = e.path.replace(e.vaultPath + '/', '').replace(e.vaultPath, '')
+      const relativePath = relativeTo(e.vaultPath, e.path) ?? e.path
       if (loadedFilesRef.current.has(relativePath)) {
         if (e.type === 'change' || e.type === 'add') {
           window.vault

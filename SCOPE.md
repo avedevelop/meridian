@@ -24,6 +24,7 @@ Plain `.md` files on disk, wiki-links, graph, canvas — no cloud lock-in.
 - **Git panel** — status, diff, commit + optional autocommit plugin
 - **Note history** — per-note Git history, preview, and restore
 - **Ask Vault** — read-only local question panel with cited source notes
+- **Clipboard history** — opt-in local history, global hotkey window, save to Inbox / daily / new note, snippets
 - **Core plugins** — built-in, toggleable in Settings
 - **Community plugins** — loaded from `{vault}/.meridian/plugins/` (after Plugin API v1)
 - **i18n** — English + Russian

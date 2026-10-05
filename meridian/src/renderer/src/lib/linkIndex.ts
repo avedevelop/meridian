@@ -1,5 +1,6 @@
 import { parseLinks } from './linkParser'
 import type { RelationReference } from '@shared/relationships'
+import { basename, toPosix } from '@shared/paths'
 
 export interface IndexedRelation extends RelationReference {
   resolvedPath: string | null
@@ -34,7 +35,7 @@ export class LinkIndex {
         for (const node of nodes) {
           if (node.type === 'file' && node.file) {
             // node.file is something like "Projects/Idea.md"
-            const baseName = node.file.split('/').pop()?.replace(/\.md$/i, '')
+            const baseName = basename(node.file).replace(/\.md$/i, '')
             if (baseName) extractedLinks.push(baseName)
           } else if (node.type === 'text' && node.text) {
             allText += node.text + '\n'
@@ -94,17 +95,11 @@ export class LinkIndex {
   }
 
   private resolve(linkText: string): string | null {
-    const normalized = linkText.replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase()
+    const normalized = toPosix(linkText).replace(/\.md$/i, '').toLowerCase()
     for (const known of this.knownFiles) {
-      const name = known.split('/').pop() ?? ''
-      const baseName = name.replace(/\.md$/i, '').toLowerCase()
-      const relativeWithoutExt = known
-        .replace(/\\/g, '/')
-        .replace(/\.md$/i, '')
-        .split('/')
-        .slice(-2)
-        .join('/')
-        .toLowerCase()
+      const posix = toPosix(known).replace(/\.md$/i, '').toLowerCase()
+      const baseName = posix.split('/').pop() ?? ''
+      const relativeWithoutExt = posix.split('/').slice(-2).join('/')
       if (baseName === normalized || relativeWithoutExt === normalized) return known
     }
     return null

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { countWords, buildHeatmap, topLinked } from '../../lib/vaultStats'
+import { basename } from '@shared/paths'
 
 type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git' | 'insights'
 
@@ -227,7 +228,7 @@ export function InsightsPanel({ onTabChange }: InsightsPanelProps) {
                   {t('insights.topLinked')}
                 </div>
                 {stats.topLinkedNotes.map(({ path, count }) => {
-                  const name = path.split('/').pop()?.replace(/\.md$/i, '') ?? path
+                  const name = basename(path).replace(/\.md$/i, '') ?? path
                   return (
                     <div
                       key={path}

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { basename } from '@shared/paths'
 
 export function BacklinksPanel() {
   const { t } = useTranslation()
@@ -42,7 +43,7 @@ export function BacklinksPanel() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {backlinks.map((path) => {
-            const name = path.split('/').pop() ?? ''
+            const name = basename(path)
             return (
               <div
                 key={path}
