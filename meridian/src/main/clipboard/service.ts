@@ -22,6 +22,7 @@ export interface ClipboardServiceDeps {
   clipboard: ClipboardLike
   writer: ClipboardWriter
   onChanged?: () => void
+  onSettingsChanged?: (settings: ClipboardSettings) => void
   now?: () => number
 }
 
@@ -41,7 +42,11 @@ export function normalizeSettings(
     maxEntries: num(input?.maxEntries, d.maxEntries, 50, 50_000),
     maxAgeDays: num(input?.maxAgeDays, d.maxAgeDays, 1, 3650),
     maxImageBytes: num(input?.maxImageBytes, d.maxImageBytes, 64 * 1024, 50 * 1024 * 1024),
-    sensitiveMode: input?.sensitiveMode === 'skip' ? 'skip' : 'mark'
+    sensitiveMode: input?.sensitiveMode === 'skip' ? 'skip' : 'mark',
+    hotkey:
+      typeof input?.hotkey === 'string' && /^[A-Za-z0-9+]{1,60}$/.test(input.hotkey)
+        ? input.hotkey
+        : d.hotkey
   }
 }
 
@@ -109,6 +114,7 @@ export class ClipboardService {
     this.settings = normalizeSettings({ ...this.settings, ...patch })
     writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2), 'utf-8')
     if (this.settings.enabled && !this.settings.paused) this.watcher.markOwnWrite()
+    this.deps.onSettingsChanged?.(this.getSettings())
     return this.getSettings()
   }
 
@@ -135,6 +141,12 @@ export class ClipboardService {
 
   async getImagePng(id: string): Promise<Buffer | null> {
     return this.store.readImage(id)
+  }
+
+  /** Write arbitrary text (e.g. an expanded snippet) without recording it as history. */
+  writeText(text: string): void {
+    this.deps.writer.writeText(text)
+    this.watcher.markOwnWrite()
   }
 
   /** Put an entry back on the clipboard without recording it again. */

@@ -296,6 +296,7 @@ export class ClipboardStore {
     if (q.pinnedOnly) items = items.filter((e) => e.pinned)
     if (q.kind === 'link')
       items = items.filter((e) => e.kind !== 'image' && URL_RE.test(e.text.trim()))
+    else if (q.kind === 'text') items = items.filter((e) => e.kind === 'text' || e.kind === 'html')
     else if (q.kind) items = items.filter((e) => e.kind === q.kind)
     if (!text) {
       items.sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.lastUsedAt - a.lastUsedAt)

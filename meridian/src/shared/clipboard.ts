@@ -59,7 +59,11 @@ export interface ClipboardSettings {
   maxImageBytes: number
   /** 'mark' keeps secrets but masks them; 'skip' never stores them. */
   sensitiveMode: 'mark' | 'skip'
+  /** Electron accelerator that opens the history window. */
+  hotkey: string
 }
+
+export const DEFAULT_CLIPBOARD_HOTKEY = 'CommandOrControl+Shift+H'
 
 export const DEFAULT_CLIPBOARD_SETTINGS: ClipboardSettings = {
   enabled: false,
@@ -67,7 +71,8 @@ export const DEFAULT_CLIPBOARD_SETTINGS: ClipboardSettings = {
   maxEntries: 5000,
   maxAgeDays: 30,
   maxImageBytes: 5 * 1024 * 1024,
-  sensitiveMode: 'mark'
+  sensitiveMode: 'mark',
+  hotkey: DEFAULT_CLIPBOARD_HOTKEY
 }
 
 export const CLIPBOARD_IPC = {
@@ -79,8 +84,33 @@ export const CLIPBOARD_IPC = {
   GET_IMAGE: 'clipboard:get-image',
   GET_SETTINGS: 'clipboard:get-settings',
   SET_SETTINGS: 'clipboard:set-settings',
-  CHANGED: 'clipboard:changed'
+  SAVE_TO_NOTE: 'clipboard:save-to-note',
+  SNIPPETS_LIST: 'clipboard:snippets-list',
+  SNIPPET_USE: 'clipboard:snippet-use',
+  STATE: 'clipboard:state',
+  HIDE: 'clipboard:hide',
+  CHANGED: 'clipboard:changed',
+  SHOWN: 'clipboard:shown'
 } as const
+
+export type SaveTarget = 'inbox' | 'new' | 'daily'
+
+export type SaveToNoteResult =
+  | { ok: true; path: string }
+  | { ok: false; error: 'no-vault' | 'not-found' | 'failed' }
+
+export interface SnippetSummary {
+  name: string
+  preview: string
+}
+
+export interface ClipboardWindowState {
+  vaultOpen: boolean
+  language: string
+  hotkey: string
+  hotkeyRegistered: boolean
+  platform: string
+}
 
 /** API exposed to the renderer as `window.clipboardHistory`. */
 export interface ClipboardHistoryAPI {
@@ -90,7 +120,14 @@ export interface ClipboardHistoryAPI {
   clear(): Promise<void>
   copyBack(id: string, opts?: { plain?: boolean }): Promise<boolean>
   getImage(id: string): Promise<string | null>
+  saveToNote(id: string, target: SaveTarget): Promise<SaveToNoteResult>
+  listSnippets(): Promise<SnippetSummary[]>
+  useSnippet(name: string): Promise<boolean>
+  state(): Promise<ClipboardWindowState>
+  hide(): Promise<void>
   getSettings(): Promise<ClipboardSettings>
   setSettings(patch: Partial<ClipboardSettings>): Promise<ClipboardSettings>
   onChanged(callback: () => void): () => void
+  /** Fires every time the history window is shown (refresh the list, focus the search). */
+  onShown(callback: () => void): () => void
 }

@@ -188,8 +188,18 @@ const clipboardHistoryAPI: ClipboardHistoryAPI = {
   clear: () => ipcRenderer.invoke(CLIPBOARD_IPC.CLEAR),
   copyBack: (id, opts) => ipcRenderer.invoke(CLIPBOARD_IPC.COPY_BACK, id, opts),
   getImage: (id) => ipcRenderer.invoke(CLIPBOARD_IPC.GET_IMAGE, id),
+  saveToNote: (id, target) => ipcRenderer.invoke(CLIPBOARD_IPC.SAVE_TO_NOTE, id, target),
+  listSnippets: () => ipcRenderer.invoke(CLIPBOARD_IPC.SNIPPETS_LIST),
+  useSnippet: (name) => ipcRenderer.invoke(CLIPBOARD_IPC.SNIPPET_USE, name),
+  state: () => ipcRenderer.invoke(CLIPBOARD_IPC.STATE),
+  hide: () => ipcRenderer.invoke(CLIPBOARD_IPC.HIDE),
   getSettings: () => ipcRenderer.invoke(CLIPBOARD_IPC.GET_SETTINGS),
   setSettings: (patch) => ipcRenderer.invoke(CLIPBOARD_IPC.SET_SETTINGS, patch),
+  onShown: (callback) => {
+    const listener = (): void => callback()
+    ipcRenderer.on(CLIPBOARD_IPC.SHOWN, listener)
+    return () => ipcRenderer.removeListener(CLIPBOARD_IPC.SHOWN, listener)
+  },
   onChanged: (callback) => {
     const listener = (): void => callback()
     ipcRenderer.on(CLIPBOARD_IPC.CHANGED, listener)
