@@ -6,6 +6,7 @@ All notable changes to Meridian. Format follows [Keep a Changelog](https://keepa
 
 ### Added
 
+- Settings → System → Clipboard history: turn recording on or off, record a new open-history shortcut (a shortcut that another app owns is rejected and the old one stays), history size, retention, how passwords and keys are handled, and clear history.
 - Clipboard history (opt-in): global hotkey window with search, filters, pinning, plain-text paste, and saving to Inbox, the daily note or a new note. Snippets from the `_snippets` folder.
 
 ### Changed

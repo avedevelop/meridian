@@ -11,9 +11,10 @@ let clip: FakeClipboard
 let written: Array<Record<string, unknown>>
 let services: ClipboardService[]
 
-function make(): ClipboardService {
+function make(tryHotkey?: (hotkey: string) => boolean): ClipboardService {
   const s = new ClipboardService({
     dir,
+    tryHotkey,
     platform: 'darwin',
     clipboard: clip,
     writer: {
@@ -129,6 +130,34 @@ describe('ClipboardService', () => {
     expect(b.list({}).items.map((i) => i.preview)).toEqual(['remember me'])
     await b.clear()
     expect(b.list({}).total).toBe(0)
+  })
+
+  it('keeps the previous hotkey when the new one is taken, and switches when it is free', () => {
+    const tried: string[] = []
+    const s = make((hotkey) => {
+      tried.push(hotkey)
+      return hotkey !== 'CommandOrControl+Alt+V'
+    })
+    const before = s.getSettings().hotkey
+
+    const rejected = s.setSettings({ hotkey: 'CommandOrControl+Alt+V', maxEntries: 123 })
+    expect(rejected.hotkey).toBe(before)
+    expect(rejected.maxEntries).toBe(123) // other changes in the same patch still apply
+
+    const accepted = s.setSettings({ hotkey: 'CommandOrControl+Alt+J' })
+    expect(accepted.hotkey).toBe('CommandOrControl+Alt+J')
+    expect(tried).toEqual(['CommandOrControl+Alt+V', 'CommandOrControl+Alt+J'])
+
+    s.setSettings({ enabled: true }) // unrelated change must not re-register the hotkey
+    expect(tried).toHaveLength(2)
+  })
+
+  it('persists an accepted hotkey and ignores a rejected one across restarts', async () => {
+    const a = make((h) => h === 'CommandOrControl+Alt+J')
+    a.setSettings({ hotkey: 'CommandOrControl+Alt+J' })
+    a.setSettings({ hotkey: 'CommandOrControl+Alt+K' })
+    await a.stop()
+    expect(make().getSettings().hotkey).toBe('CommandOrControl+Alt+J')
   })
 
   it('normalizes hostile or invalid settings', () => {

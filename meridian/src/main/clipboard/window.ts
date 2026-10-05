@@ -78,6 +78,25 @@ export class ClipboardWindowController {
     return this.hotkeyRegistered
   }
 
+  /**
+   * Switch to another hotkey. The current one is released only if the new one registers, so a
+   * shortcut owned by another app (or an invalid accelerator) never leaves the user without one.
+   */
+  tryHotkey(candidate: string): boolean {
+    if (candidate === this.accelerator) return true
+    let ok = false
+    try {
+      ok = globalShortcut.register(candidate, () => this.toggle())
+    } catch {
+      ok = false
+    }
+    if (!ok) return false
+    if (this.accelerator) globalShortcut.unregister(this.accelerator)
+    this.accelerator = candidate
+    this.hotkeyRegistered = true
+    return true
+  }
+
   dispose(): void {
     if (this.accelerator) globalShortcut.unregister(this.accelerator)
     this.accelerator = null
