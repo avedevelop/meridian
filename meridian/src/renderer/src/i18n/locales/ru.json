@@ -781,5 +781,9 @@
   "settings.clipboard.clearDesc": "Удаляет все записи, включая закреплённые, и все сохранённые изображения.",
   "settings.clipboard.cleared": "История очищена.",
   "settings.clipboard.clearButton": "Очистить всё",
-  "settings.clipboard.clearConfirm": "Нажмите ещё раз для подтверждения"
+  "settings.clipboard.clearConfirm": "Нажмите ещё раз для подтверждения",
+
+  "timeline.recordError.unsupported": "Запись видео недоступна в этой системе.",
+  "timeline.recordError.failed": "Запись остановлена из-за ошибки.",
+  "timeline.recordError.saveFailed": "Не удалось сохранить видео."
 }

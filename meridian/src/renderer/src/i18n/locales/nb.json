@@ -781,5 +781,9 @@
   "settings.clipboard.clearDesc": "Sletter alle oppføringer, også festede, og alle lagrede bilder.",
   "settings.clipboard.cleared": "Historikken er tømt.",
   "settings.clipboard.clearButton": "Tøm alt",
-  "settings.clipboard.clearConfirm": "Klikk igjen for å bekrefte"
+  "settings.clipboard.clearConfirm": "Klikk igjen for å bekrefte",
+
+  "timeline.recordError.unsupported": "Videoopptak er ikke tilgjengelig på dette systemet.",
+  "timeline.recordError.failed": "Opptaket stoppet på grunn av en feil.",
+  "timeline.recordError.saveFailed": "Kunne ikke lagre videoen."
 }
