@@ -70,6 +70,22 @@ describe('indexVaultFiles', () => {
     expect(useLinkStore.getState().allFiles()).toEqual(['/new/B.md'])
   })
 
+  it('abandons the previous run as soon as the stores are reset, before the new vault is even listed', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((r) => (release = r))
+    const slow = indexVaultFiles([file('/old/A.md', 'A.md')], '/old', async () => {
+      await gate
+      return 'old note'
+    })
+    // initVault resets the stores, then awaits listFiles() before the new run starts:
+    useLinkStore.getState().reset()
+    release() // the old read finishes inside that gap
+    await slow
+    expect(useLinkStore.getState().allFiles()).toEqual([])
+    useLinkStore.getState().search('old')
+    expect(useLinkStore.getState().searchResults).toEqual([])
+  })
+
   it('does nothing for an empty vault', async () => {
     const before = useLinkStore.getState().indexVersion
     await indexVaultFiles([], '/v', async () => '')

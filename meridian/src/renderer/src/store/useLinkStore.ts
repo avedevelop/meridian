@@ -29,6 +29,11 @@ export interface IndexableFile {
   content: string
 }
 
+// Bumped by reset(). Background indexing compares it before every write, so work that was started
+// for a vault that has since been closed or replaced can never write into the new indexes.
+let epoch = 0
+export const getIndexEpoch = (): number => epoch
+
 let linkIndex = new LinkIndex()
 let searchIndex = new SearchIndex()
 
@@ -82,6 +87,7 @@ export const useLinkStore = create<LinkState>((set) => ({
   },
 
   reset: () => {
+    epoch++
     linkIndex = new LinkIndex()
     searchIndex = new SearchIndex()
     set({ searchResults: [], searchQuery: '', indexVersion: 0, tagsVersion: 0 })
