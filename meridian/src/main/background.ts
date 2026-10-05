@@ -43,6 +43,22 @@ export function shouldStartHidden(
   return launch.wasOpenedAtLogin || launch.argv.includes(HIDDEN_ARG)
 }
 
+/**
+ * Whether the OS started the app at login. Electron only implements this query on macOS and
+ * Windows (calling it elsewhere can throw), so other platforms rely on the `--hidden` argument.
+ */
+export function readWasOpenedAtLogin(
+  platform: NodeJS.Platform,
+  query: () => { wasOpenedAtLogin?: boolean }
+): boolean {
+  if (platform !== 'darwin' && platform !== 'win32') return false
+  try {
+    return query().wasOpenedAtLogin === true
+  } catch {
+    return false
+  }
+}
+
 export function loginItemSettings(prefs: BackgroundPrefs): {
   openAtLogin: boolean
   args: string[]

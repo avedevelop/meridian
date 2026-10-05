@@ -7,6 +7,7 @@ import {
   HIDDEN_ARG,
   loginItemSettings,
   readBackgroundPrefs,
+  readWasOpenedAtLogin,
   shouldHideOnClose,
   shouldQuitWhenAllClosed,
   shouldStartHidden,
@@ -70,6 +71,30 @@ describe('shouldStartHidden', () => {
         wasOpenedAtLogin: true
       })
     ).toBe(false)
+  })
+})
+
+describe('readWasOpenedAtLogin', () => {
+  it('asks the OS only on macOS and Windows', () => {
+    const query = vi.fn(() => ({ wasOpenedAtLogin: true }))
+    expect(readWasOpenedAtLogin('darwin', query)).toBe(true)
+    expect(readWasOpenedAtLogin('win32', query)).toBe(true)
+    expect(query).toHaveBeenCalledTimes(2)
+    expect(readWasOpenedAtLogin('linux', query)).toBe(false)
+    expect(query).toHaveBeenCalledTimes(2)
+  })
+
+  it('never throws, even if the platform API does', () => {
+    const throwing = () => {
+      throw new Error('getLoginItemSettings is not implemented')
+    }
+    expect(readWasOpenedAtLogin('darwin', throwing)).toBe(false)
+    expect(readWasOpenedAtLogin('win32', throwing)).toBe(false)
+  })
+
+  it('treats a missing or false flag as not opened at login', () => {
+    expect(readWasOpenedAtLogin('win32', () => ({}))).toBe(false)
+    expect(readWasOpenedAtLogin('darwin', () => ({ wasOpenedAtLogin: false }))).toBe(false)
   })
 })
 
