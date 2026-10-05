@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { Suspense, useEffect, useRef, useCallback, useMemo } from 'react'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { useVaultStore } from '../../store/useVaultStore'
@@ -9,9 +9,11 @@ import { TabBar } from './TabBar'
 import { MarkdownPreview } from './MarkdownPreview'
 import { Breadcrumb } from './Breadcrumb'
 import { useEditorStore } from '../../store/useEditorStore'
-import { CanvasView } from '../Canvas/CanvasView'
-import { SketchpadView } from './SketchpadView'
-import { DiffPane } from './DiffPane'
+import { lazyNamed } from '../../lib/lazyNamed'
+
+const CanvasView = lazyNamed(() => import('../Canvas/CanvasView'), 'CanvasView')
+const SketchpadView = lazyNamed(() => import('./SketchpadView'), 'SketchpadView')
+const DiffPane = lazyNamed(() => import('./DiffPane'), 'DiffPane')
 import { flattenVaultFiles } from './markdownUtils'
 import { EditorContextMenu } from './EditorContextMenu'
 import { useEditorDnd } from './useEditorDnd'
@@ -363,7 +365,13 @@ export function SinglePaneArea({ paneId, isActive, focusMode = false }: SinglePa
 
   // Show empty pane placeholder
   if (openTabs.length === 0) {
-    return <EmptyPane onActivate={() => { if (!isActive) setActivePane(paneId) }} />
+    return (
+      <EmptyPane
+        onActivate={() => {
+          if (!isActive) setActivePane(paneId)
+        }}
+      />
+    )
   }
 
   return (
@@ -384,91 +392,93 @@ export function SinglePaneArea({ paneId, isActive, focusMode = false }: SinglePa
         <TabBar paneId={paneId} />
       </div>
       <Breadcrumb paneId={paneId} />
-      {isDiffFile && activeTab ? (
-        <DiffPane filePath={actualPath!} fileName={activeTab.name} />
-      ) : isCanvasFile && activeTab ? (
-        <CanvasView
-          filePath={activeTab.path}
-          content={activeTab.content}
-          onSave={(path, content) => {
-            setTabContent(path, content)
-            saveFile(path, content)
-          }}
-        />
-      ) : isDrawingFile && activeTab ? (
-        <SketchpadView
-          filePath={activeTab.path}
-          content={activeTab.content}
-          onSave={(path, content) => {
-            setTabContent(path, content)
-            saveFile(path, content)
-          }}
-        />
-      ) : (
-        <div
-          ref={containerRef}
-          onDragOver={handleEditorDragOver}
-          onDrop={handleEditorDrop}
-          style={{
-            flex: 1,
-            display: 'flex',
-            overflow: 'hidden',
-            position: 'relative',
-            ...(focusMode
-              ? { maxWidth: '72ch', width: '100%', marginLeft: 'auto', marginRight: 'auto' }
-              : {})
-          }}
-        >
-          <div
-            ref={editorRef}
-            onContextMenu={handleContextMenu}
-            style={
-              {
-                '--paragraph-spacing': `${paragraphSpacing}em`,
-                width: activeTab ? `${splitRatio * 100}%` : '100%',
-                flexShrink: 0,
-                overflow: 'auto',
-                height: '100%',
-                background: 'var(--bg-tertiary)'
-              } as React.CSSProperties
-            }
+      <Suspense fallback={null}>
+        {isDiffFile && activeTab ? (
+          <DiffPane filePath={actualPath!} fileName={activeTab.name} />
+        ) : isCanvasFile && activeTab ? (
+          <CanvasView
+            filePath={activeTab.path}
+            content={activeTab.content}
+            onSave={(path, content) => {
+              setTabContent(path, content)
+              saveFile(path, content)
+            }}
           />
-          {activeTab && (
-            <>
-              <div
-                onMouseDown={startSplitDrag}
-                style={{
-                  width: 5,
+        ) : isDrawingFile && activeTab ? (
+          <SketchpadView
+            filePath={activeTab.path}
+            content={activeTab.content}
+            onSave={(path, content) => {
+              setTabContent(path, content)
+              saveFile(path, content)
+            }}
+          />
+        ) : (
+          <div
+            ref={containerRef}
+            onDragOver={handleEditorDragOver}
+            onDrop={handleEditorDrop}
+            style={{
+              flex: 1,
+              display: 'flex',
+              overflow: 'hidden',
+              position: 'relative',
+              ...(focusMode
+                ? { maxWidth: '72ch', width: '100%', marginLeft: 'auto', marginRight: 'auto' }
+                : {})
+            }}
+          >
+            <div
+              ref={editorRef}
+              onContextMenu={handleContextMenu}
+              style={
+                {
+                  '--paragraph-spacing': `${paragraphSpacing}em`,
+                  width: activeTab ? `${splitRatio * 100}%` : '100%',
                   flexShrink: 0,
-                  cursor: 'col-resize',
-                  background: 'var(--border-color)',
-                  transition: 'background 0.15s'
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-color)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border-color)')}
-              />
-              <MarkdownPreview
-                ref={setPreviewScrollRef}
-                content={activeTab.content}
-                onLinkClick={handleLinkClick}
-                fontSize={fontSize}
-                lineWidth={lineWidth}
-                readableLineLength={readableLineLength}
-                vaultPath={vault?.path}
-              />
-            </>
-          )}
-          {contextMenu && (
-            <EditorContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              onClose={() => setContextMenu(null)}
-              view={viewRef.current}
-              containerEl={containerRef.current}
+                  overflow: 'auto',
+                  height: '100%',
+                  background: 'var(--bg-tertiary)'
+                } as React.CSSProperties
+              }
             />
-          )}
-        </div>
-      )}
+            {activeTab && (
+              <>
+                <div
+                  onMouseDown={startSplitDrag}
+                  style={{
+                    width: 5,
+                    flexShrink: 0,
+                    cursor: 'col-resize',
+                    background: 'var(--border-color)',
+                    transition: 'background 0.15s'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-color)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--border-color)')}
+                />
+                <MarkdownPreview
+                  ref={setPreviewScrollRef}
+                  content={activeTab.content}
+                  onLinkClick={handleLinkClick}
+                  fontSize={fontSize}
+                  lineWidth={lineWidth}
+                  readableLineLength={readableLineLength}
+                  vaultPath={vault?.path}
+                />
+              </>
+            )}
+            {contextMenu && (
+              <EditorContextMenu
+                x={contextMenu.x}
+                y={contextMenu.y}
+                onClose={() => setContextMenu(null)}
+                view={viewRef.current}
+                containerEl={containerRef.current}
+              />
+            )}
+          </div>
+        )}
+      </Suspense>
     </div>
   )
 }

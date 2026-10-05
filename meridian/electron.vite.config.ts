@@ -12,6 +12,10 @@ export default defineConfig({
         '@shared': resolve('src/shared')
       }
     },
-    plugins: [react()]
+    plugins: [react()],
+    build: {
+      // electron-vite leaves the renderer unminified by default: ~4.8 MB of JS to parse at startup
+      minify: 'esbuild'
+    }
   }
 })

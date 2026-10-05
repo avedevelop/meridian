@@ -746,5 +746,15 @@
   "clipboard.saveFailed": "Kunne ikke lagre i hvelvet",
   "clipboard.noVault": "Åpne et hvelv i Meridian først",
   "clipboard.hints": "↑↓ velg · Enter kopier · {{shift}}Enter ren tekst · {{mod}}P fest · {{mod}}Enter Inbox · {{mod}}D daglig · Del fjern",
-  "clipboard.hotkeyTaken": "Snarveien {{hotkey}} brukes av en annen app"
+  "clipboard.hotkeyTaken": "Snarveien {{hotkey}} brukes av en annen app",
+
+  "settings.nav.system": "System",
+  "settings.system.title": "System",
+  "settings.system.description": "Hold Meridian tilgjengelig for utklippstavlehistorikk og hurtignotater.",
+  "settings.system.runInBackground": "Kjør i bakgrunnen",
+  "settings.system.runInBackgroundDesc": "Når du lukker vinduet, fortsetter Meridian i systemstatusfeltet, så utklippstavlehistorikken og hurtigtastene for hurtignotat fortsatt virker. Avslutt fra menyen i systemstatusfeltet.",
+  "settings.system.launchAtLogin": "Start ved pålogging",
+  "settings.system.launchAtLoginDesc": "Start Meridian når du logger på datamaskinen. Gjelder installerte versjoner.",
+  "settings.system.startMinimized": "Start minimert til systemstatusfeltet",
+  "settings.system.startMinimizedDesc": "Ved start ved pålogging åpnes ikke vinduet. Krever «Kjør i bakgrunnen»."
 }

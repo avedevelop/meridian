@@ -4,7 +4,15 @@ import { readFile } from 'fs/promises'
 import { existsSync, readFileSync } from 'fs'
 import { AppSettings } from './settings'
 import { parseAppPluginUrl, parsePluginUrl } from '../shared/pluginUrl'
-import { startClipboardHistory } from './clipboard'
+import { startClipboardHistory, type ClipboardHistoryHandle } from './clipboard'
+import {
+  BackgroundController,
+  readBackgroundPrefs,
+  shouldHideOnClose,
+  shouldQuitWhenAllClosed,
+  shouldStartHidden
+} from './background'
+import { readPreferences } from './preferences'
 import { registerIpcHandlers, getVaultManager, stopVaultWatcher } from './ipc'
 import { resolveAppPluginFile } from './plugins'
 import { buildWindowOptions } from './platform'
@@ -276,6 +284,10 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
+let mainWindow: BrowserWindow | null = null
+let quitting = false
+let background: BackgroundController | null = null
+
 function createWindow(): BrowserWindow {
   const { windowBounds } = settings.get()
   const width = windowBounds?.width ?? 1200
@@ -292,6 +304,26 @@ function createWindow(): BrowserWindow {
       additionalArguments: [`--meridian-home-dir=${app.getPath('home')}`],
       contextIsolation: true,
       nodeIntegration: false
+    }
+  })
+
+  mainWindow = win
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
+    // The hidden capture/clipboard windows keep the process alive, so 'window-all-closed' never
+    // fires. Without background mode, closing the last visible window must still end the app.
+    if (
+      !quitting &&
+      shouldQuitWhenAllClosed(process.platform, background?.current ?? readBackgroundPrefs({}))
+    ) {
+      app.quit()
+    }
+  })
+  // In background mode closing the window only hides it; the tray (or Quit) ends the app.
+  win.on('close', (event) => {
+    if (background && shouldHideOnClose(background.current, quitting)) {
+      event.preventDefault()
+      win.hide()
     }
   })
 
@@ -326,7 +358,31 @@ function createWindow(): BrowserWindow {
 }
 
 let captureWindow: BrowserWindow | null = null
-let stopClipboardHistory: (() => Promise<void>) | null = null
+let clipboardHistory: ClipboardHistoryHandle | null = null
+
+/** Show the main window, creating it first if it was never opened or was destroyed. */
+function showMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function toggleCaptureWindow(): void {
+  if (!captureWindow || captureWindow.isDestroyed()) {
+    captureWindow = createCaptureWindow()
+  }
+  if (captureWindow.isVisible()) {
+    captureWindow.hide()
+  } else {
+    captureWindow.center()
+    captureWindow.show()
+    captureWindow.focus()
+  }
+}
 
 function createCaptureWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -363,7 +419,16 @@ function createCaptureWindow(): BrowserWindow {
   return win
 }
 
+// A tray app must not start twice: a second launch just brings the first window forward.
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) app.quit()
+app.on('second-instance', () => {
+  if (app.isReady()) showMainWindow()
+})
+
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return
+
   protocol.handle('vault', async (request) => {
     const url = new URL(request.url)
     // Chromium normalizes vault:///a/b.png → vault://a/b.png (host=a, path=/b.png)
@@ -437,45 +502,51 @@ app.whenReady().then(() => {
   registerIpcHandlers(settings, (preferences) => {
     const nextLanguage = normalizeMenuLanguage(preferences.language)
     if (nextLanguage !== currentMenuLanguage) buildMenu()
+    background?.apply(preferences)
   })
-  createWindow()
+  clipboardHistory = startClipboardHistory()
+  background = new BackgroundController({
+    showMainWindow,
+    toggleClipboardWindow: () => clipboardHistory?.toggleWindow(),
+    toggleCaptureWindow,
+    quit: () => app.quit()
+  })
+  const preferences = readPreferences()
+  background.apply(preferences)
   buildMenu()
-  stopClipboardHistory = startClipboardHistory()
+
+  // Started by the OS at login with "start minimized": no window until the tray asks for one.
+  const startHidden = shouldStartHidden(readBackgroundPrefs(preferences), {
+    argv: process.argv,
+    wasOpenedAtLogin: app.getLoginItemSettings().wasOpenedAtLogin
+  })
+  if (!startHidden) createWindow()
 
   // Create capture window once at startup (stays hidden until hotkey)
   captureWindow = createCaptureWindow()
 
-  const registered = globalShortcut.register('CommandOrControl+Shift+N', () => {
-    if (!captureWindow || captureWindow.isDestroyed()) {
-      captureWindow = createCaptureWindow()
-    }
-    if (captureWindow.isVisible()) {
-      captureWindow.hide()
-    } else {
-      captureWindow.center()
-      captureWindow.show()
-      captureWindow.focus()
-    }
-  })
+  const registered = globalShortcut.register('CommandOrControl+Shift+N', toggleCaptureWindow)
 
   if (!registered) {
     console.warn('[Main] Failed to register global shortcut CommandOrControl+Shift+N — shortcut may be taken by another app')
   }
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
+  app.on('activate', () => showMainWindow())
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  if (shouldQuitWhenAllClosed(process.platform, background?.current ?? readBackgroundPrefs({}))) {
+    app.quit()
+  }
 })
 
 app.on('before-quit', () => {
+  quitting = true
   stopVaultWatcher()
 })
 
 app.on('will-quit', () => {
-  void stopClipboardHistory?.()
+  background?.dispose()
+  void clipboardHistory?.stop()
   globalShortcut.unregisterAll()
 })

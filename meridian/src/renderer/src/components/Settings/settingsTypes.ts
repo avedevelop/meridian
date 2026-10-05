@@ -3,6 +3,7 @@ import { SettingsState } from '../../store/useSettingsStore'
 export type SettingCategory =
   | 'editor'
   | 'files'
+  | 'system'
   | 'appearance'
   | 'canvas'
   | 'ai'

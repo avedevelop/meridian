@@ -1,11 +1,15 @@
+import { Suspense } from 'react'
 import { useVaultStore } from '../../store/useVaultStore'
 import { FilesPanel } from './FilesPanel'
-import { SidebarGraphPanel } from './SidebarGraphPanel'
-import { CalendarPanel } from './CalendarPanel'
-import { TasksPanel } from './TasksPanel'
-import { GitPanel } from './GitPanel'
+import { lazyNamed } from '../../lib/lazyNamed'
 import { ViewsPanel } from './ViewsPanel'
-import { InsightsPanel } from '../Insights/InsightsPanel'
+
+// Everything except the file list loads on first use, keeping startup light.
+const SidebarGraphPanel = lazyNamed(() => import('./SidebarGraphPanel'), 'SidebarGraphPanel')
+const CalendarPanel = lazyNamed(() => import('./CalendarPanel'), 'CalendarPanel')
+const TasksPanel = lazyNamed(() => import('./TasksPanel'), 'TasksPanel')
+const GitPanel = lazyNamed(() => import('./GitPanel'), 'GitPanel')
+const InsightsPanel = lazyNamed(() => import('../Insights/InsightsPanel'), 'InsightsPanel')
 
 type SidebarTab = 'files' | 'search' | 'graph' | 'calendar' | 'tasks' | 'views' | 'git' | 'insights'
 
@@ -31,12 +35,14 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         }}
       >
         {activeTab === 'files' && <FilesPanel />}
-        {activeTab === 'git' && <GitPanel />}
-        {activeTab === 'graph' && <SidebarGraphPanel onTabChange={onTabChange} />}
-        {activeTab === 'calendar' && <CalendarPanel />}
-        {activeTab === 'tasks' && <TasksPanel />}
-        {activeTab === 'views' && <ViewsPanel />}
-        {activeTab === 'insights' && <InsightsPanel onTabChange={onTabChange} />}
+        <Suspense fallback={null}>
+          {activeTab === 'git' && <GitPanel />}
+          {activeTab === 'graph' && <SidebarGraphPanel onTabChange={onTabChange} />}
+          {activeTab === 'calendar' && <CalendarPanel />}
+          {activeTab === 'tasks' && <TasksPanel />}
+          {activeTab === 'views' && <ViewsPanel />}
+          {activeTab === 'insights' && <InsightsPanel onTabChange={onTabChange} />}
+        </Suspense>
       </div>
     </div>
   )

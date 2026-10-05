@@ -50,6 +50,11 @@ export interface SettingsState {
   attachmentFolder: string
   dailyNoteDateFormat: 'YYYY-MM-DD' | 'DD-MM-YYYY' | 'MM-DD-YYYY' | 'DD.MM.YYYY'
   confirmDelete: boolean
+
+  // System: run in the background (applied by the main process)
+  runInBackground: boolean
+  startMinimized: boolean
+  launchAtLogin: boolean
   showHiddenFiles: boolean
   excludedFolders: string
   fileSortBy: 'name' | 'created' | 'modified'
@@ -151,6 +156,9 @@ const DEFAULTS: Omit<
   attachmentFolder: 'assets',
   dailyNoteDateFormat: 'YYYY-MM-DD',
   confirmDelete: true,
+  runInBackground: false,
+  startMinimized: false,
+  launchAtLogin: false,
   showHiddenFiles: false,
   excludedFolders: '',
   fileSortBy: 'name',
