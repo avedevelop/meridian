@@ -103,6 +103,7 @@ const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\u0000-\u001f]/g
 export function replaceInvalidFileChars(name: string, replacement: string): string {
   return name.replace(INVALID_FILENAME_CHARS, replacement)
 }
+// Windows reserves these device names even with an extension (CON.txt, com1.log)
 const RESERVED_WINDOWS_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
 
 /** A safe, human-readable file name (without extension) for a new note made from the clipboard. */
@@ -119,7 +120,7 @@ export function noteTitleFor(entry: NoteEntryInput, now: Date): string {
     .slice(0, 50)
     .trim()
     .replace(/[. ]+$/, '')
-  if (!cleaned || RESERVED_WINDOWS_NAMES.test(cleaned)) return fallback
+  if (!cleaned || RESERVED_WINDOWS_NAMES.test(cleaned.split('.')[0].trim())) return fallback
   return cleaned
 }
 

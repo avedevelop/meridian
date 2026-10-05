@@ -98,6 +98,16 @@ describe('ClipboardWatcher', () => {
     expect(mark.seen[0]).toMatchObject({ sensitive: true })
   })
 
+  it('records formatting-only copies that share the same plain text', () => {
+    const { clip, seen, watcher } = setup()
+    watcher.start()
+    clip.set({ text: 'Hello', html: '<b>Hello</b>' })
+    watcher.tick()
+    clip.set({ text: 'Hello', html: '<i>Hello</i>' })
+    watcher.tick()
+    expect(seen.map((e) => e.html)).toEqual(['<b>Hello</b>', '<i>Hello</i>'])
+  })
+
   it('sanitizes copied HTML before it is stored', () => {
     const { clip, seen, watcher } = setup()
     watcher.start()

@@ -79,6 +79,10 @@ describe('noteTitleFor', () => {
   it('falls back for empty, reserved or non-text entries', () => {
     expect(noteTitleFor(text('???'), now)).toBe('Clipboard 2024-05-07 0905')
     expect(noteTitleFor(text('CON'), now)).toBe('Clipboard 2024-05-07 0905')
+    for (const reserved of ['CON.txt', 'nul.md', 'COM1.log', 'lpt9.tar.gz', 'aux .x']) {
+      expect(noteTitleFor(text(reserved), now)).toBe('Clipboard 2024-05-07 0905')
+    }
+    expect(noteTitleFor(text('console.log'), now)).toBe('console.log')
     expect(noteTitleFor({ kind: 'image', text: '' }, now)).toBe('Clipboard 2024-05-07 0905')
   })
 

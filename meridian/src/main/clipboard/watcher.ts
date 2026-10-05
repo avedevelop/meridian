@@ -121,7 +121,7 @@ export class ClipboardWatcher {
     const c = this.deps.clipboard
     const formats = c.availableFormats()
     const text = c.readText()
-    const html = text ? '' : c.readHTML()
+    const html = c.readHTML() // rich copies can share the same plain text (bold vs italic)
     let image = ''
     if (!text && !html && formats.some((f) => f.startsWith('image/'))) {
       const img = c.readImage()
