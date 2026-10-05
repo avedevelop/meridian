@@ -24,7 +24,7 @@ export function startClipboardHistory(): ClipboardHistoryHandle {
       writeImagePng: (png) => clipboard.writeImage(nativeImage.createFromBuffer(png))
     },
     onChanged: broadcastClipboardChanged,
-    onSettingsChanged: () => windowController?.registerHotkey()
+    tryHotkey: (hotkey) => windowController?.tryHotkey(hotkey) ?? true
   })
   windowController = new ClipboardWindowController(() => service.getSettings().hotkey)
   const controller = windowController

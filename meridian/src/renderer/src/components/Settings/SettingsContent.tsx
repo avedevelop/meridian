@@ -1,3 +1,4 @@
+import { SettingsClipboardSection } from './SettingsClipboardSection'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../store/useSettingsStore'
@@ -169,6 +170,7 @@ export function SettingsContent({ activeCategory, searchQuery, isOpen }: Setting
                       <div key={s.id}>{s.render(store)}</div>
                     ))}
                 </div>
+                <SettingsClipboardSection />
               </div>
             )}
 

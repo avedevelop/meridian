@@ -22,7 +22,8 @@ export interface ClipboardServiceDeps {
   clipboard: ClipboardLike
   writer: ClipboardWriter
   onChanged?: () => void
-  onSettingsChanged?: (settings: ClipboardSettings) => void
+  /** Try to switch the global hotkey; false means it is taken or invalid and the old one stays. */
+  tryHotkey?: (hotkey: string) => boolean
   now?: () => number
 }
 
@@ -111,10 +112,17 @@ export class ClipboardService {
   }
 
   setSettings(patch: Partial<ClipboardSettings>): ClipboardSettings {
-    this.settings = normalizeSettings({ ...this.settings, ...patch })
+    const next = normalizeSettings({ ...this.settings, ...patch })
+    // Always (re)try the shortcut: it is a no-op when already registered, and it retries one that
+    // failed earlier because another app owned it. A different shortcut that is taken is rejected.
+    if (this.deps.tryHotkey?.(next.hotkey) === false && next.hotkey !== this.settings.hotkey) {
+      next.hotkey = this.settings.hotkey
+    }
+    this.settings = next
     writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2), 'utf-8')
     if (this.settings.enabled && !this.settings.paused) this.watcher.markOwnWrite()
-    this.deps.onSettingsChanged?.(this.getSettings())
+    // Lower limits take effect now, not at the next hourly sweep.
+    if (this.store.expire(this.settings, this.now()) > 0) this.deps.onChanged?.()
     return this.getSettings()
   }
 

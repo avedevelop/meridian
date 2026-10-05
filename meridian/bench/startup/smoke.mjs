@@ -41,7 +41,7 @@ const stub = `
   window.vault = api({ openByPath: async (p) => ({ path: p, name: 'demo' }), openDialog: async () => ({ path: '/v', name: 'demo' }), listFiles: async () => [], getConfig: async () => null, listNoteTypes: async () => [] });
   window.settings = api({ get: async () => ({ recentVaults: ['/v'], lastVault: '/v', windowBounds: {} }), getPreferences: async () => ({}) });
   window.menuAPI = { onAction: noop };
-  window.clipboardHistory = api({});
+  window.clipboardHistory = api({ getSettings: async () => ({ enabled: false, paused: false, maxEntries: 5000, maxAgeDays: 30, maxImageBytes: 5242880, sensitiveMode: 'mark', hotkey: 'CommandOrControl+Shift+H' }) });
 `
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })

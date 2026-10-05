@@ -11,9 +11,10 @@ let clip: FakeClipboard
 let written: Array<Record<string, unknown>>
 let services: ClipboardService[]
 
-function make(): ClipboardService {
+function make(tryHotkey?: (hotkey: string) => boolean): ClipboardService {
   const s = new ClipboardService({
     dir,
+    tryHotkey,
     platform: 'darwin',
     clipboard: clip,
     writer: {
@@ -129,6 +130,104 @@ describe('ClipboardService', () => {
     expect(b.list({}).items.map((i) => i.preview)).toEqual(['remember me'])
     await b.clear()
     expect(b.list({}).total).toBe(0)
+  })
+
+  it('keeps the previous hotkey when the new one is taken, and switches when it is free', () => {
+    const tried: string[] = []
+    const s = make((hotkey) => {
+      tried.push(hotkey)
+      return hotkey !== 'CommandOrControl+Alt+V'
+    })
+    const before = s.getSettings().hotkey
+
+    const rejected = s.setSettings({ hotkey: 'CommandOrControl+Alt+V', maxEntries: 123 })
+    expect(rejected.hotkey).toBe(before)
+    expect(rejected.maxEntries).toBe(123) // other changes in the same patch still apply
+
+    const accepted = s.setSettings({ hotkey: 'CommandOrControl+Alt+J' })
+    expect(accepted.hotkey).toBe('CommandOrControl+Alt+J')
+    expect(tried).toEqual(['CommandOrControl+Alt+V', 'CommandOrControl+Alt+J'])
+  })
+
+  it('retries a shortcut that could not be registered at startup, even when the value is unchanged', () => {
+    let free = false
+    const tried: string[] = []
+    const s = make((hotkey) => {
+      tried.push(hotkey)
+      return free
+    })
+    const configured = s.getSettings().hotkey
+
+    // The shortcut is still owned by another app: the setting stays, nothing breaks.
+    expect(s.setSettings({ enabled: true }).hotkey).toBe(configured)
+
+    free = true // the conflict is over
+    s.setSettings({ hotkey: configured }) // re-recording the same shortcut retries it
+    expect(tried.at(-1)).toBe(configured)
+    free = false
+    expect(s.setSettings({ maxEntries: 100 }).hotkey).toBe(configured) // later failures never lose it
+  })
+
+  it('applies a lower history size immediately, not at the next hourly sweep', () => {
+    const s = make()
+    s.setSettings({ enabled: true })
+    for (let i = 0; i < 80; i++)
+      s.store.add({ kind: 'text', text: `entry ${i}`, sensitive: false }, Date.now() + i)
+    expect(s.list({}).total).toBe(80)
+
+    s.setSettings({ maxEntries: 50 })
+    expect(s.list({}).total).toBe(50)
+    expect(s.list({}).items[0].preview).toBe('entry 79') // newest survive
+  })
+
+  it('applies a shorter retention immediately and keeps pinned entries', () => {
+    const day = 86_400_000
+    const now = 100 * day
+    const s = make()
+    ;(s as unknown as { now: () => number }).now = () => now
+    s.setSettings({ enabled: true, maxAgeDays: 365 })
+    const old = s.store.add({ kind: 'text', text: 'old pinned', sensitive: false }, now - 50 * day)
+    s.store.setPinned(old.id, true)
+    s.store.add({ kind: 'text', text: 'old', sensitive: false }, now - 40 * day)
+    s.store.add({ kind: 'text', text: 'recent', sensitive: false }, now - day)
+
+    s.setSettings({ maxAgeDays: 30 })
+    expect(
+      s
+        .list({})
+        .items.map((i) => i.preview)
+        .sort()
+    ).toEqual(['old pinned', 'recent'])
+  })
+
+  it('tells the window to refresh when a lower limit removed entries', () => {
+    const changes: number[] = []
+    const s = new ClipboardService({
+      dir,
+      platform: 'darwin',
+      clipboard: clip,
+      writer: {
+        writeText: () => undefined,
+        write: () => undefined,
+        writeImagePng: () => undefined
+      },
+      onChanged: () => changes.push(1)
+    })
+    services.push(s)
+    for (let i = 0; i < 60; i++)
+      s.store.add({ kind: 'text', text: `e${i}`, sensitive: false }, Date.now() + i)
+    s.setSettings({ maxEntries: 50 })
+    expect(changes).toHaveLength(1)
+    s.setSettings({ maxEntries: 50 })
+    expect(changes).toHaveLength(1) // nothing removed, no refresh
+  })
+
+  it('persists an accepted hotkey and ignores a rejected one across restarts', async () => {
+    const a = make((h) => h === 'CommandOrControl+Alt+J')
+    a.setSettings({ hotkey: 'CommandOrControl+Alt+J' })
+    a.setSettings({ hotkey: 'CommandOrControl+Alt+K' })
+    await a.stop()
+    expect(make().getSettings().hotkey).toBe('CommandOrControl+Alt+J')
   })
 
   it('normalizes hostile or invalid settings', () => {

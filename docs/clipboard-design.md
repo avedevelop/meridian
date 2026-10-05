@@ -32,6 +32,13 @@ snippet is copied; frontmatter is stripped; names cannot contain path separators
 
 Until the user turns recording on, the window shows a short consent card instead of the history.
 
+## Settings
+
+Settings → System → Clipboard history: record on/off, the open-history shortcut, history size, retention,
+how secrets are handled, and "Clear history". They are stored by the main process (`clipboard/settings.json`),
+not in the renderer store. The shortcut field records a key press (`shared/accelerator.ts`); a shortcut
+owned by another app is rejected and the previous one stays active (`ClipboardWindowController.tryHotkey`).
+
 ## Principles
 
 - **Opt-in.** Nothing is recorded until the user enables it (`enabled: false` by default).
@@ -76,7 +83,6 @@ insert 5.5 s total, search p95 11.5 ms, reload 0.5 s, about 200 MB heap for two 
 - **Multiple files.** Electron exposes one file via `FileNameW` / `public.file-url`; multi-file copy records the first.
 - **Polling.** No native change event; image-only clipboards are hashed on each poll (cost grows with image size,
   mitigated by the backoff and the 5 MB image cap).
-- **Settings page.** Pause and clear live in the window footer; the hotkey, limits and secret handling have no Settings UI yet.
 - **Tray / start at login.** Not part of this change.
 
 ## Needs verification on real machines
