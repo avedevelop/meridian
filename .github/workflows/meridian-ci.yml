@@ -14,8 +14,12 @@ on:
 
 jobs:
   verify:
-    name: lint / typecheck / test / check-lines
-    runs-on: macos-latest
+    name: verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     timeout-minutes: 15
     defaults:
       run:
@@ -42,7 +46,7 @@ jobs:
         run: npm run typecheck
 
       - name: Run tests
-        run: npm run test
+        run: npm run test -- --coverage
 
       - name: Check component line limits
         run: npm run check-lines

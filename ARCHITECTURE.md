@@ -4,11 +4,10 @@ To prevent component bloat and preserve a clean, modular, and maintainable codeb
 
 ---
 
-## Canonical workspace
+## Workspace
 
-- **Repo root:** `/Users/vladyslav/Desktop/dev/new project`
+- **Repo root:** the cloned repository
 - **App (run all npm commands here):** `meridian/`
-- **Do not develop** in `~/Documents/antigravity/*` or other duplicate clones.
 
 ```bash
 cd meridian
