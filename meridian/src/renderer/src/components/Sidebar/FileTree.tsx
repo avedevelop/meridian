@@ -249,7 +249,7 @@ export function FileTree({
                 const dragPath = (window as any).__meridianDragPath
                 if (!file.isDirectory || !dragPath) return
                 // Prevent dropping onto self or into own subtree
-                if (dragPath === file.path || file.path.startsWith(dragPath + '/')) return
+                if (dragPath === file.path || isAncestor(dragPath, file.path)) return
                 e.preventDefault()
                 e.currentTarget.style.background = 'var(--accent-glow)'
               }}
@@ -262,7 +262,7 @@ export function FileTree({
                 const dragPath = (window as any).__meridianDragPath
                 if (!dragPath || dragPath === file.path) return
                 // Prevent dropping folder into its own subtree
-                if (file.isDirectory && file.path.startsWith(dragPath + '/')) return
+                if (file.isDirectory && isAncestor(dragPath, file.path)) return
                 if (file.isDirectory) {
                   onMove?.(dragPath, file.path)
                 }

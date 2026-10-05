@@ -1,3 +1,4 @@
+import { basename } from '@shared/paths'
 export function timeAgo(dateStr: string, t: any): string {
   const now = new Date()
   const then = new Date(dateStr)
@@ -16,7 +17,7 @@ export function applyCommitTemplate(
   changes: { path: string; status: string }[]
 ): string {
   if (changes.length === 0) return ''
-  const names = changes.slice(0, 3).map((c) => c.path.split('/').pop() ?? c.path)
+  const names = changes.slice(0, 3).map((c) => basename(c.path))
   const suffix = changes.length > 3 ? ` +${changes.length - 3} more` : ''
   const files = names.join(', ') + suffix
   return template.replace('{files}', files)

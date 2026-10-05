@@ -16,6 +16,7 @@ import type {
   VaultFileChangeEvent
 } from '@shared/types'
 import { restoreSession } from './useSessionPersist'
+import { basename } from '@shared/paths'
 
 function flattenVaultFiles(files: VaultFile[]): VaultFile[] {
   return files.flatMap((f) => (f.children ? [f, ...flattenVaultFiles(f.children)] : [f]))
@@ -237,7 +238,7 @@ export function useVaultBridge() {
       // Re-index this file
       const vault = useVaultStore.getState().vault
       if (vault) {
-        const name = path.split('/').pop() ?? ''
+        const name = basename(path)
         useLinkStore.getState().indexFile(path, name, content, vault.path)
       }
     },
@@ -262,9 +263,7 @@ export function useVaultBridge() {
       const created = await window.vault.createTypedNote({ typeId, dir, title })
       const vault = useVaultStore.getState().vault
       if (vault) {
-        useLinkStore
-          .getState()
-          .indexFile(created.path, created.name, created.content, vault.path)
+        useLinkStore.getState().indexFile(created.path, created.name, created.content, vault.path)
       }
       await refreshFiles()
       await openFile(created.path, created.name)
@@ -342,7 +341,7 @@ export function useVaultBridge() {
     async (sourcePath: string, targetDir: string) => {
       try {
         const newPath = await window.vault.moveFile(sourcePath, targetDir)
-        const name = newPath.split('/').pop() ?? ''
+        const name = basename(newPath)
         const { openTabs, activeTabPath } = useVaultStore.getState()
         const wasActive = activeTabPath === sourcePath
         useVaultStore.setState({
@@ -379,7 +378,7 @@ export function useVaultBridge() {
       try {
         const { confirmDelete } = useSettingsStore.getState()
         if (confirmDelete) {
-          const fileName = path.split('/').pop() ?? path
+          const fileName = basename(path)
           if (!window.confirm(`Delete "${fileName}"? This cannot be undone.`)) return
         }
         await window.vault.deleteFile(path)

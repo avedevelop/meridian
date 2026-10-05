@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import { useVaultStore } from '../../store/useVaultStore'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { basename } from '@shared/paths'
 
 const GROUP_COLORS = {
   canvas: '#10b981',
@@ -61,7 +62,7 @@ export function LocalGraphView() {
     d3.select(el).selectAll('svg').remove()
 
     // 1. Gather nodes and links
-    const centerName = activeTabPath.split('/').pop()?.replace(/\.md$/, '') ?? 'Active Note'
+    const centerName = basename(activeTabPath).replace(/\.md$/, '') ?? 'Active Note'
 
     const rawBacklinks = linkStore.backlinks(activeTabPath)
     const rawOutlinks = linkStore.outlinks(activeTabPath)
@@ -76,7 +77,7 @@ export function LocalGraphView() {
     ]
 
     neighborPaths.forEach((path) => {
-      const name = path.split('/').pop()?.replace(/\.md$/, '') ?? ''
+      const name = basename(path).replace(/\.md$/, '') ?? ''
       nodes.push({ id: path, name, isCenter: false, group: 'neighbor' })
     })
 
@@ -185,7 +186,7 @@ export function LocalGraphView() {
       .append('g')
       .style('cursor', 'pointer')
       .on('click', (_event, d) => {
-        openFile(d.id, d.id.split('/').pop() ?? '')
+        openFile(d.id, basename(d.id))
       })
       .call(
         d3

@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultStore } from '../../store/useVaultStore'
+import { basename } from '@shared/paths'
 
 function noteName(path: string): string {
-  return (path.split('/').pop() ?? path).replace(/\.md$/i, '')
+  return basename(path).replace(/\.md$/i, '')
 }
 
 export function RelationshipsPanel() {
@@ -20,7 +21,9 @@ export function RelationshipsPanel() {
     ? linkStore
         .backlinks(activeTabPath)
         .filter((path) =>
-          linkStore.relationsForFile(path).some((relation) => relation.resolvedPath === activeTabPath)
+          linkStore
+            .relationsForFile(path)
+            .some((relation) => relation.resolvedPath === activeTabPath)
         )
     : []
 
@@ -60,7 +63,9 @@ export function RelationshipsPanel() {
                     key={`${key}-${relation.raw}`}
                     type="button"
                     className="relationship-link"
-                    onClick={() => openFile(relation.resolvedPath!, relation.resolvedPath!.split('/').pop() ?? '')}
+                    onClick={() =>
+                      openFile(relation.resolvedPath!, basename(relation.resolvedPath!))
+                    }
                   >
                     {noteName(relation.resolvedPath)}
                   </button>
@@ -83,7 +88,7 @@ export function RelationshipsPanel() {
               key={path}
               type="button"
               className="relationship-link"
-              onClick={() => openFile(path, path.split('/').pop() ?? '')}
+              onClick={() => openFile(path, basename(path))}
             >
               {noteName(path)}
             </button>

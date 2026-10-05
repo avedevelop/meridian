@@ -13,6 +13,7 @@ import {
   isUrl,
   getContrastColor
 } from '../canvasTools'
+import { basename } from '@shared/paths'
 
 interface CanvasNodeProps {
   node: CanvasNodeData
@@ -63,8 +64,7 @@ export function CanvasNode({
 }: CanvasNodeProps) {
   const { t } = useTranslation()
   const isSelected = node.id === selectedNodeId
-  const displayText =
-    node.type === 'file' && node.file ? (node.file.split('/').pop() ?? node.text) : node.text
+  const displayText = node.type === 'file' && node.file ? basename(node.file) : node.text
 
   return (
     <Group
@@ -91,7 +91,7 @@ export function CanvasNode({
             setInitialEditingHeight(node.height)
           }
         } else if (node.type === 'file' && node.file) {
-          const fileName = node.file.split('/').pop() ?? ''
+          const fileName = basename(node.file)
           openFile(node.file, fileName)
         }
       }}
@@ -352,7 +352,7 @@ export function CanvasNode({
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {node.type === 'file' && node.file
                     ? fileContents[node.file] !== undefined
-                      ? `### ${t('canvas.notePrefix', { name: node.file.split('/').pop()?.replace(/\.md$/, '') })}\n\n${fileContents[node.file]}`
+                      ? `### ${t('canvas.notePrefix', { name: basename(node.file).replace(/\.md$/, '') })}\n\n${fileContents[node.file]}`
                       : `### ${t('canvas.notePrefix', { name: displayText })}\n${t('canvas.loading')}`
                     : displayText}
                 </ReactMarkdown>

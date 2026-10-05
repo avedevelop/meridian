@@ -1,5 +1,6 @@
 import { useVaultStore } from '../../store/useVaultStore'
 import { useEditorStore } from '../../store/useEditorStore'
+import { relativeTo } from '@shared/paths'
 
 export interface BreadcrumbSegment {
   name: string
@@ -27,9 +28,7 @@ export function Breadcrumb({ paneId }: BreadcrumbProps) {
 
   if (!activeTab || !vault) return null
 
-  const relativePath = activeTab.path.startsWith(vault.path + '/')
-    ? activeTab.path.slice(vault.path.length + 1)
-    : activeTab.name
+  const relativePath = relativeTo(vault.path, activeTab.path) ?? activeTab.name
 
   const segments = getSegments(relativePath)
   if (segments.length === 0) return null

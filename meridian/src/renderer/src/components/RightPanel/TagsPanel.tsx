@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLinkStore } from '../../store/useLinkStore'
 import { useVaultBridge } from '../../hooks/useVaultBridge'
+import { basename } from '@shared/paths'
 
 export function TagsPanel() {
   const { t } = useTranslation()
@@ -56,7 +57,7 @@ export function TagsPanel() {
           </summary>
           <div style={{ paddingBottom: 6 }}>
             {files.map((filePath) => {
-              const name = filePath.split('/').pop() ?? ''
+              const name = basename(filePath)
               return (
                 <div
                   key={filePath}
