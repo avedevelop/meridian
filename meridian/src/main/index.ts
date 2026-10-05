@@ -8,6 +8,7 @@ import { startClipboardHistory, type ClipboardHistoryHandle } from './clipboard'
 import {
   BackgroundController,
   readBackgroundPrefs,
+  readWasOpenedAtLogin,
   shouldHideOnClose,
   shouldQuitWhenAllClosed,
   shouldStartHidden
@@ -518,7 +519,7 @@ app.whenReady().then(() => {
   // Started by the OS at login with "start minimized": no window until the tray asks for one.
   const startHidden = shouldStartHidden(readBackgroundPrefs(preferences), {
     argv: process.argv,
-    wasOpenedAtLogin: app.getLoginItemSettings().wasOpenedAtLogin
+    wasOpenedAtLogin: readWasOpenedAtLogin(process.platform, () => app.getLoginItemSettings())
   })
   if (!startHidden) createWindow()
 
