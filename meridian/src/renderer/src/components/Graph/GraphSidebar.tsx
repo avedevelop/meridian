@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { SettingsIcon } from '../Icons'
 import { GraphSidebarFilters } from './GraphSidebarFilters'
 import { GraphSidebarAnalytics } from './GraphSidebarAnalytics'
+import type { ForcePreset, ForceShape } from './graphForces'
 
 export const GROUP_COLORS = {
   canvas: '#b4befe', // Lavender
@@ -26,6 +27,8 @@ interface GraphSidebarProps {
   setLinkDistance: (v: number) => void
   repulsionStrength: number
   setRepulsionStrength: (v: number) => void
+  applyPreset: (preset: ForcePreset) => void
+  shape: ForceShape
   showArrows: boolean
   setShowArrows: (v: boolean) => void
   textSize: number
@@ -65,6 +68,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
     setLinkDistance,
     repulsionStrength,
     setRepulsionStrength,
+    applyPreset,
+    shape,
     showArrows,
     setShowArrows,
     textSize,
@@ -252,6 +257,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
               setLinkDistance={setLinkDistance}
               repulsionStrength={repulsionStrength}
               setRepulsionStrength={setRepulsionStrength}
+              applyPreset={applyPreset}
+              shape={shape}
               showArrows={showArrows}
               setShowArrows={setShowArrows}
               textSize={textSize}

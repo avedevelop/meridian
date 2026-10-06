@@ -11,6 +11,7 @@ import { useGraphTimeline } from './useGraphTimeline'
 import { useGraphSimulation } from './useGraphSimulation'
 import { useGraphRecording } from './useGraphRecording'
 import { GraphControls } from './GraphControls'
+import { DEFAULT_SHAPE, type ForcePreset } from './graphForces'
 import {
   bannerStyle,
   bannerButtonStyle,
@@ -51,6 +52,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [linkDistance, setLinkDistance] = useState(100)
   const [repulsionStrength, setRepulsionStrength] = useState(-160)
+  const [shape, setShape] = useState(DEFAULT_SHAPE)
   const [showArrows, setShowArrows] = useState(false)
   const [textSize, setTextSize] = useState(11)
   const [linkThickness, setLinkThickness] = useState(0.8)
@@ -102,6 +104,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     debouncedSearchQuery,
     linkDistance,
     repulsionStrength,
+    shape,
     showArrows,
     textSize,
     linkThickness,
@@ -260,10 +263,18 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
       .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
   }, [d3Ref, zoomBehaviorRef])
 
+  const applyPreset = useCallback((preset: ForcePreset) => {
+    setLinkDistance(preset.linkDistance)
+    setRepulsionStrength(preset.repulsion)
+    setShape(preset.shape)
+    if (preset.textSize) setTextSize(preset.textSize)
+  }, [])
+
   const handleResetView = useCallback(() => {
     setSearchQuery('')
     setLinkDistance(100)
     setRepulsionStrength(-160)
+    setShape(DEFAULT_SHAPE)
     setShowArrows(false)
     setTextSize(11)
     setLinkThickness(0.8)
@@ -339,6 +350,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         setLinkDistance={setLinkDistance}
         repulsionStrength={repulsionStrength}
         setRepulsionStrength={setRepulsionStrength}
+        applyPreset={applyPreset}
+        shape={shape}
         showArrows={showArrows}
         setShowArrows={setShowArrows}
         textSize={textSize}

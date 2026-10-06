@@ -8,6 +8,9 @@ import { nodeR } from './graphLayout'
 import { useGraphVisibility } from './simulation/useGraphVisibility'
 import { createD3Simulation } from './simulation/createD3Simulation'
 import { shouldShowLabel } from './graphLabelHelpers'
+import type { ForceShape } from './graphForces'
+import { applyForces } from './simulation/applyForces'
+import { resizeGraph } from './simulation/resizeGraph'
 
 export interface UseGraphSimulationOptions {
   files: VaultFile[]
@@ -19,6 +22,7 @@ export interface UseGraphSimulationOptions {
   debouncedSearchQuery: string
   linkDistance: number
   repulsionStrength: number
+  shape: ForceShape
   showArrows: boolean
   textSize: number
   linkThickness: number
@@ -42,6 +46,7 @@ export function useGraphSimulation({
   debouncedSearchQuery,
   linkDistance,
   repulsionStrength,
+  shape,
   showArrows,
   textSize,
   linkThickness,
@@ -99,19 +104,16 @@ export function useGraphSimulation({
     handleMouseOutRef.current = handleMouseOut
   }, [handleMouseOver, handleMouseOut])
 
-  // Effect: Update Forces (Link distance and charge repulsion)
+  // Effect: Update forces. Presets change more than the two sliders (see graphForces.ts).
   useEffect(() => {
     const state = d3Ref.current
     if (!state) return
+    const { sim } = state
+    applyForces(sim, { linkDistance, repulsionStrength, shape, textSize })
 
-    const linkForce = state.sim.force('link') as d3.ForceLink<GNode, GLink>
-    if (linkForce) linkForce.distance(linkDistance)
-
-    const chargeForce = state.sim.force('charge') as d3.ForceManyBody<GNode>
-    if (chargeForce) chargeForce.strength(repulsionStrength)
-
-    state.sim.alpha(0.3).restart()
-  }, [linkDistance, repulsionStrength])
+    // A paused graph keeps its layout; the new forces apply when physics is resumed.
+    if (isPhysicsRunningRef.current) sim.alpha(0.5).restart()
+  }, [linkDistance, repulsionStrength, shape, textSize])
 
   // Effect: Update Text Size
   useEffect(() => {
@@ -172,6 +174,7 @@ export function useGraphSimulation({
         debouncedSearchQuery,
         linkDistance,
         repulsionStrength,
+        shape,
         textSize,
         showArrows,
         openFile,
@@ -195,7 +198,15 @@ export function useGraphSimulation({
       }
     }
 
-    const ro = new ResizeObserver(build)
+    const resize = () => {
+      const state = d3Ref.current
+      if (!state) return build()
+      if (resizeGraph(state, el.clientWidth, el.clientHeight) && isPhysicsRunningRef.current) {
+        state.sim.alpha(Math.max(state.sim.alpha(), 0.1)).restart()
+      }
+    }
+
+    const ro = new ResizeObserver(resize)
     ro.observe(el)
     build()
 

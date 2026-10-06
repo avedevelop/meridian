@@ -1,6 +1,28 @@
 import { useTranslation } from 'react-i18next'
 import { SearchIcon } from '../Icons'
 import { GROUP_COLORS } from './GraphSidebar'
+import { FORCE_PRESETS, type ForcePreset, type ForceShape } from './graphForces'
+
+const PRESET_LABEL_KEYS: Record<ForcePreset['key'], string> = {
+  default: 'graph.presetDefault',
+  readable: 'graph.presetReadable',
+  dense: 'graph.presetDense',
+  galaxy: 'graph.presetGalaxy'
+}
+
+function isActivePreset(
+  p: ForcePreset,
+  v: { linkDistance: number; repulsion: number; textSize: number; shape: ForceShape }
+): boolean {
+  return (
+    p.linkDistance === v.linkDistance &&
+    p.repulsion === v.repulsion &&
+    (p.textSize === undefined || p.textSize === v.textSize) &&
+    p.shape.linkStrength === v.shape.linkStrength &&
+    p.shape.gravity === v.shape.gravity &&
+    p.shape.collidePad === v.shape.collidePad
+  )
+}
 
 interface GraphSidebarFiltersProps {
   searchQuery: string
@@ -13,6 +35,8 @@ interface GraphSidebarFiltersProps {
   setLinkDistance: (v: number) => void
   repulsionStrength: number
   setRepulsionStrength: (v: number) => void
+  applyPreset: (preset: ForcePreset) => void
+  shape: ForceShape
   showArrows: boolean
   setShowArrows: (v: boolean) => void
   textSize: number
@@ -37,6 +61,8 @@ export function GraphSidebarFilters({
   setLinkDistance,
   repulsionStrength,
   setRepulsionStrength,
+  applyPreset,
+  shape,
   showArrows,
   setShowArrows,
   textSize,
@@ -153,50 +179,33 @@ export function GraphSidebarFilters({
           {t('graph.physicsPresets')}
         </span>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {[
-            {
-              key: 'default',
-              label: t('graph.presetDefault'),
-              onClick: () => { setLinkDistance(100); setRepulsionStrength(-160) },
-              active: linkDistance === 100 && repulsionStrength === -160
-            },
-            {
-              key: 'readable',
-              label: t('graph.presetReadable'),
-              onClick: () => { setLinkDistance(110); setRepulsionStrength(-200); setTextSize(10) },
-              active: linkDistance === 110 && repulsionStrength === -200 && textSize === 10
-            },
-            {
-              key: 'dense',
-              label: t('graph.presetDense'),
-              onClick: () => { setLinkDistance(45); setRepulsionStrength(-220) },
-              active: linkDistance === 45 && repulsionStrength === -220
-            },
-            {
-              key: 'galaxy',
-              label: t('graph.presetGalaxy'),
-              onClick: () => { setLinkDistance(125); setRepulsionStrength(-40) },
-              active: linkDistance === 125 && repulsionStrength === -40
-            }
-          ].map((preset) => (
-            <button
-              key={preset.key}
-              onClick={preset.onClick}
-              style={{
-                flex: '1 1 calc(50% - 3px)',
-                padding: '6px 0',
-                borderRadius: 6,
-                fontSize: 11,
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                background: preset.active ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {preset.label}
-            </button>
-          ))}
+          {FORCE_PRESETS.map((preset) => {
+            const active = isActivePreset(preset, {
+              linkDistance,
+              repulsion: repulsionStrength,
+              textSize,
+              shape
+            })
+            return (
+              <button
+                key={preset.key}
+                onClick={() => applyPreset(preset)}
+                style={{
+                  flex: '1 1 calc(50% - 3px)',
+                  padding: '6px 0',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: active ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {t(PRESET_LABEL_KEYS[preset.key])}
+              </button>
+            )
+          })}
         </div>
       </div>
 

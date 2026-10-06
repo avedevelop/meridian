@@ -4,6 +4,12 @@ import type { GNode, GLink, D3State, GraphBuildResult } from '../graphTypes'
 import { nodeR, labelColor, buildGraphData, getNodeGroup } from '../graphLayout'
 import { GROUP_COLORS } from '../GraphSidebar'
 import { shouldShowLabel, truncateLabel } from '../graphLabelHelpers'
+import {
+  COLLIDE_STRENGTH,
+  DRAG_ALPHA_TARGET,
+  VELOCITY_DECAY,
+  type ForceShape
+} from '../graphForces'
 
 export interface CreateSimulationOptions {
   el: HTMLDivElement
@@ -14,6 +20,7 @@ export interface CreateSimulationOptions {
   debouncedSearchQuery: string
   linkDistance: number
   repulsionStrength: number
+  shape: ForceShape
   textSize: number
   showArrows: boolean
   openFile: (path: string, name: string) => void
@@ -40,6 +47,7 @@ export function createD3Simulation({
   debouncedSearchQuery,
   linkDistance,
   repulsionStrength,
+  shape,
   textSize,
   showArrows,
   openFile,
@@ -68,18 +76,18 @@ export function createD3Simulation({
   const sim = d3
     .forceSimulation(nodes)
     .alphaDecay(0.02)
-    .velocityDecay(0.35)
+    .velocityDecay(VELOCITY_DECAY)
     .force(
       'link',
       d3
         .forceLink<GNode, GLink>(finalLinks)
         .id((d) => d.id)
         .distance(linkDistance)
-        .strength(0.25)
+        .strength(shape.linkStrength)
     )
     .force('charge', d3.forceManyBody().strength(repulsionStrength).distanceMax(300))
-    .force('x', d3.forceX<GNode>(width / 2).strength(0.06))
-    .force('y', d3.forceY<GNode>(height / 2).strength(0.06))
+    .force('x', d3.forceX<GNode>(width / 2).strength(shape.gravity))
+    .force('y', d3.forceY<GNode>(height / 2).strength(shape.gravity))
     .force(
       'orphanRadial',
       d3.forceRadial<GNode>(Math.min(width, height) * 0.4, width / 2, height / 2)
@@ -87,7 +95,9 @@ export function createD3Simulation({
     )
     .force(
       'collide',
-      d3.forceCollide<GNode>((d) => nodeR(d) + 12 + (textSize * 0.5))
+      d3
+        .forceCollide<GNode>((d) => nodeR(d) + shape.collidePad + textSize * 0.5)
+        .strength(COLLIDE_STRENGTH)
     )
 
   const svg = d3
@@ -200,7 +210,7 @@ export function createD3Simulation({
       d3
         .drag<SVGGElement, GNode>()
         .on('start', (event, d) => {
-          if (!event.active) sim?.alphaTarget(0.3).restart()
+          if (!event.active) sim?.alphaTarget(DRAG_ALPHA_TARGET).restart()
           d.fx = d.x
           d.fy = d.y
         })
