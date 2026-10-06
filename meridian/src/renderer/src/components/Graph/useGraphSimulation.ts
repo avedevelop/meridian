@@ -8,6 +8,11 @@ import { nodeR } from './graphLayout'
 import { useGraphVisibility } from './simulation/useGraphVisibility'
 import { createD3Simulation } from './simulation/createD3Simulation'
 import { shouldShowLabel } from './graphLabelHelpers'
+import type { ForceShape } from './graphForces'
+import type { GroupMode } from './graphGroups'
+import { applyForces } from './simulation/applyForces'
+import { resizeGraph } from './simulation/resizeGraph'
+import { fitView } from './simulation/fitView'
 
 export interface UseGraphSimulationOptions {
   files: VaultFile[]
@@ -19,6 +24,7 @@ export interface UseGraphSimulationOptions {
   debouncedSearchQuery: string
   linkDistance: number
   repulsionStrength: number
+  shape: ForceShape
   showArrows: boolean
   textSize: number
   linkThickness: number
@@ -30,6 +36,9 @@ export interface UseGraphSimulationOptions {
   onFileOpen?: () => void
   labelMode: 'auto' | 'hover' | 'all'
   showGlow: boolean
+  groupMode: GroupMode
+  tagsOf: (path: string) => string[]
+  tagsVersion: number
 }
 
 export function useGraphSimulation({
@@ -42,6 +51,7 @@ export function useGraphSimulation({
   debouncedSearchQuery,
   linkDistance,
   repulsionStrength,
+  shape,
   showArrows,
   textSize,
   linkThickness,
@@ -52,7 +62,10 @@ export function useGraphSimulation({
   maxTime,
   onFileOpen,
   labelMode,
-  showGlow
+  showGlow,
+  groupMode,
+  tagsOf,
+  tagsVersion
 }: UseGraphSimulationOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   const d3Ref = useRef<D3State | null>(null)
@@ -99,19 +112,37 @@ export function useGraphSimulation({
     handleMouseOutRef.current = handleMouseOut
   }, [handleMouseOver, handleMouseOut])
 
-  // Effect: Update Forces (Link distance and charge repulsion)
+  // Effect: Update forces. Presets change more than the two sliders (see graphForces.ts).
   useEffect(() => {
     const state = d3Ref.current
     if (!state) return
+    const { sim } = state
+    applyForces(sim, {
+      linkDistance,
+      repulsionStrength,
+      shape,
+      textSize,
+      linkDamp: state.groups.linkDamp
+    })
 
-    const linkForce = state.sim.force('link') as d3.ForceLink<GNode, GLink>
-    if (linkForce) linkForce.distance(linkDistance)
+    // A paused graph keeps its layout; the new forces apply when physics is resumed.
+    if (isPhysicsRunningRef.current) sim.alpha(0.5).restart()
+  }, [linkDistance, repulsionStrength, shape, textSize])
 
-    const chargeForce = state.sim.force('charge') as d3.ForceManyBody<GNode>
-    if (chargeForce) chargeForce.strength(repulsionStrength)
-
-    state.sim.alpha(0.3).restart()
-  }, [linkDistance, repulsionStrength])
+  // Effect: colour and gather by folder (or back), keeping the layout. The simulation is reheated so
+  // the folders can move together; a paused graph only recolours.
+  useEffect(() => {
+    const state = d3Ref.current
+    if (!state || state.groups.getMode() === groupMode) return
+    state.groups.setMode(groupMode)
+    if (isPhysicsRunningRef.current) state.sim.alpha(0.6).restart()
+    // The islands move apart (or back); once they have settled, bring them all into view.
+    const timer = setTimeout(() => {
+      const s = d3Ref.current
+      if (s && zoomBehaviorRef.current) fitView(s, zoomBehaviorRef.current)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [groupMode])
 
   // Effect: Update Text Size
   useEffect(() => {
@@ -172,6 +203,7 @@ export function useGraphSimulation({
         debouncedSearchQuery,
         linkDistance,
         repulsionStrength,
+        shape,
         textSize,
         showArrows,
         openFile,
@@ -180,7 +212,9 @@ export function useGraphSimulation({
         handleMouseOut: (gEl, d) => handleMouseOutRef.current(gEl, d),
         maxNodes: graphMaxNodes,
         labelMode,
-        showGlow
+        showGlow,
+        groupMode,
+        tagsOf
       })
 
       if (!res) return
@@ -195,7 +229,15 @@ export function useGraphSimulation({
       }
     }
 
-    const ro = new ResizeObserver(build)
+    const resize = () => {
+      const state = d3Ref.current
+      if (!state) return build()
+      if (resizeGraph(state, el.clientWidth, el.clientHeight) && isPhysicsRunningRef.current) {
+        state.sim.alpha(Math.max(state.sim.alpha(), 0.1)).restart()
+      }
+    }
+
+    const ro = new ResizeObserver(resize)
     ro.observe(el)
     build()
 
@@ -215,7 +257,8 @@ export function useGraphSimulation({
     debouncedSearchQuery,
     onFileOpen,
     graphMaxNodes,
-    showGlow
+    showGlow,
+    tagsVersion
   ])
 
   const handleTogglePhysics = useCallback(() => {

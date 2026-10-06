@@ -6,6 +6,7 @@ All notable changes to Meridian. Format follows [Keep a Changelog](https://keepa
 
 ### Added
 
+- Graph: "Group by" folder or tag colours notes and gathers each group into a soft island with a translucent outline (a note's most widespread tag, up to 12 tags). Notes that match the search turn yellow with a white ring. The choice is remembered.
 - Settings → System → Clipboard history: turn recording on or off, record a new open-history shortcut (a shortcut that another app owns is rejected and the old one stays), history size, retention, how passwords and keys are handled, and clear history.
 - Clipboard history (opt-in): global hotkey window with search, filters, pinning, plain-text paste, and saving to Inbox, the daily note or a new note. Snippets from the `_snippets` folder.
 
@@ -16,6 +17,9 @@ All notable changes to Meridian. Format follows [Keep a Changelog](https://keepa
 
 ### Fixed
 
+- macOS: the app crashed at startup ("empty preset") because ESM-only HTML sanitizer packages were not bundled into the main process.
+- macOS: copies made in Apple Passwords, Keychain Access or a password manager no longer land in clipboard history (Apple Passwords sets no "concealed" marker, so the app in front is checked).
+- Graph: the physics presets now change the layout (they only changed two numbers that the layout barely depended on); dragging a node no longer makes its neighbours shake; folding the sidebar no longer rebuilds the graph.
 - Windows and Linux: closing the main window left an invisible Meridian process running (the hidden capture and clipboard windows kept it alive). It now quits unless "Run in the background" is on.
 - Windows: wiki-links now resolve and the graph shows its connections; node labels use file names instead of full paths.
 - Markdown preview: embedded image and drawing syntax can no longer inject HTML attributes or scripts.

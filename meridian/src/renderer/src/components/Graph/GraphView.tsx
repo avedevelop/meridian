@@ -11,6 +11,9 @@ import { useGraphTimeline } from './useGraphTimeline'
 import { useGraphSimulation } from './useGraphSimulation'
 import { useGraphRecording } from './useGraphRecording'
 import { GraphControls } from './GraphControls'
+import { useGraphLook } from './useGraphLook'
+import { fitView } from './simulation/fitView'
+import { DEFAULT_SHAPE, type ForcePreset } from './graphForces'
 import {
   bannerStyle,
   bannerButtonStyle,
@@ -29,6 +32,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const files = useVaultStore((s) => s.files)
   const outlinks = useLinkStore((s) => s.outlinks)
   const indexVersion = useLinkStore((s) => s.indexVersion)
+  const tagsOf = useLinkStore((s) => s.tagsForFile)
+  const tagsVersion = useLinkStore((s) => s.tagsVersion)
 
   const [viewMode, setViewMode] = useState<'live' | 'history'>('live')
 
@@ -51,23 +56,14 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [linkDistance, setLinkDistance] = useState(100)
   const [repulsionStrength, setRepulsionStrength] = useState(-160)
+  const [shape, setShape] = useState(DEFAULT_SHAPE)
   const [showArrows, setShowArrows] = useState(false)
   const [textSize, setTextSize] = useState(11)
   const [linkThickness, setLinkThickness] = useState(0.8)
   const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
     return typeof window !== 'undefined' ? window.innerWidth >= 1200 : true
   })
-  const [labelMode, setLabelMode] = useState<'auto' | 'hover' | 'all'>(() => {
-    return (localStorage.getItem('meridian:graph-label-mode') as any) || 'auto'
-  })
-
-  useEffect(() => localStorage.setItem('meridian:graph-label-mode', labelMode), [labelMode])
-
-  const [showGlow, setShowGlow] = useState<boolean>(() => {
-    return localStorage.getItem('meridian:graph-show-glow') === 'true'
-  })
-
-  useEffect(() => localStorage.setItem('meridian:graph-show-glow', String(showGlow)), [showGlow])
+  const { labelMode, setLabelMode, showGlow, setShowGlow, groupMode, setGroupMode } = useGraphLook()
 
   const [showLodHint, setShowLodHint] = useState(false)
   useEffect(() => {
@@ -102,6 +98,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     debouncedSearchQuery,
     linkDistance,
     repulsionStrength,
+    shape,
     showArrows,
     textSize,
     linkThickness,
@@ -112,7 +109,10 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     maxTime,
     onFileOpen,
     labelMode,
-    showGlow
+    showGlow,
+    groupMode,
+    tagsOf,
+    tagsVersion
   })
 
   const { canvasRef, isRecording, recordingError, startRecording, stopRecording, cancelRecording } =
@@ -223,52 +223,27 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
 
   const handleRecenter = useCallback(() => {
     const state = d3Ref.current
-    if (!state || !zoomBehaviorRef.current || state.nodes.length === 0) return
-    const svg = d3.select(state.svgEl)
-
-    let minX = Infinity,
-      maxX = -Infinity,
-      minY = Infinity,
-      maxY = -Infinity
-    state.nodes.forEach((n) => {
-      if (n.x !== undefined && n.y !== undefined) {
-        if (n.x < minX) minX = n.x
-        if (n.x > maxX) maxX = n.x
-        if (n.y < minY) minY = n.y
-        if (n.y > maxY) maxY = n.y
-      }
-    })
-
-    if (minX === Infinity) return
-
-    const dx = maxX - minX
-    const dy = maxY - minY
-    const x = (minX + maxX) / 2
-    const y = (minY + maxY) / 2
-
-    const padding = 60
-    const scale = Math.max(
-      0.2,
-      Math.min(2, 0.95 / Math.max(dx / (state.width - padding), dy / (state.height - padding)))
-    )
-    const tx = state.width / 2 - x * scale
-    const ty = state.height / 2 - y * scale
-
-    svg
-      .transition()
-      .duration(600)
-      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(tx, ty).scale(scale))
+    if (state && zoomBehaviorRef.current) fitView(state, zoomBehaviorRef.current)
   }, [d3Ref, zoomBehaviorRef])
+
+  const applyPreset = useCallback((preset: ForcePreset) => {
+    setLinkDistance(preset.linkDistance)
+    setRepulsionStrength(preset.repulsion)
+    setShape(preset.shape)
+    if (preset.textSize) setTextSize(preset.textSize)
+  }, [])
 
   const handleResetView = useCallback(() => {
     setSearchQuery('')
     setLinkDistance(100)
     setRepulsionStrength(-160)
+    setShape(DEFAULT_SHAPE)
     setShowArrows(false)
     setTextSize(11)
     setLinkThickness(0.8)
     setLabelMode('auto')
     setShowGlow(false)
+    setGroupMode('type')
     setStrictFilter(false)
     setDisabledCategories(new Set())
 
@@ -339,6 +314,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         setLinkDistance={setLinkDistance}
         repulsionStrength={repulsionStrength}
         setRepulsionStrength={setRepulsionStrength}
+        applyPreset={applyPreset}
+        shape={shape}
         showArrows={showArrows}
         setShowArrows={setShowArrows}
         textSize={textSize}
@@ -352,6 +329,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         setLabelMode={setLabelMode}
         showGlow={showGlow}
         setShowGlow={setShowGlow}
+        groupMode={groupMode}
+        setGroupMode={setGroupMode}
         handleResetView={handleResetView}
       />
 

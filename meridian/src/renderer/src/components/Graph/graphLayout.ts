@@ -2,6 +2,7 @@ import type { VaultFile } from '@shared/types'
 import type { GNode, GLink, GraphBuildResult } from './graphTypes'
 import { GROUP_COLORS } from './GraphSidebar'
 import { basename } from '@shared/paths'
+import { folderColorIndex, folderGroup, primaryTags } from './graphGroups'
 
 /**
  * Maximum number of nodes to render in the graph for performance reasons.
@@ -23,7 +24,11 @@ export function getNodeGroup(
   return degree > 0 ? 'connected' : 'orphan'
 }
 
-export const nodeR = (d: GNode) => (d.degree > 0 ? 8 + Math.min(d.degree * 2, 12) : 6)
+/**
+ * Radius grows with the square root of the links, so a hub clearly stands out (it used to stop growing at
+ * six links, which made most connected notes look alike) while a note with one link stays small.
+ */
+export const nodeR = (d: GNode) => (d.degree > 0 ? 6 + Math.min(Math.sqrt(d.degree) * 3.2, 20) : 5)
 export const labelColor = (d: GNode) =>
   d.degree > 0 ? 'var(--text-primary)' : 'var(--text-secondary)'
 export const nodeColor = (d: GNode) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)]
@@ -35,6 +40,8 @@ export interface BuildGraphDataOptions {
   width: number
   height: number
   maxNodes: number
+  /** Tags of a note; needed to group by tag. */
+  tagsOf?: (path: string) => string[]
 }
 
 function applyNodeCap(
@@ -59,14 +66,17 @@ export function buildGraphData(
   outlinks: (file: string) => any,
   options: BuildGraphDataOptions
 ): GraphBuildResult {
-  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height, maxNodes } =
+  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height, maxNodes, tagsOf } =
     options
 
   const flat = flattenFiles(files)
   const mtimeMap: Record<string, number> = {}
+  const folderMap: Record<string, string> = {}
   for (const f of flat) {
     mtimeMap[f.path] = f.mtime ?? 0
+    folderMap[f.path] = folderGroup(f.relativePath ?? '')
   }
+  const folderIndex = folderColorIndex(Object.values(folderMap))
 
   // Phase 1: Filter base paths (daily, canvas, project, strict search)
   let filteredPaths = flat
@@ -145,10 +155,15 @@ export function buildGraphData(
     finalDegree[t] = (finalDegree[t] ?? 0) + 1
   })
 
+  const tags = tagsOf ? primaryTags(finalPaths, tagsOf) : null
   const nodes: GNode[] = finalPaths.map((f) => ({
     id: f,
     name: basename(f).replace(/\.(md|canvas)$/, '') ?? '',
     degree: finalDegree[f] ?? 0,
+    folder: folderMap[f] ?? '',
+    folderIndex: folderIndex.get(folderMap[f] ?? ''),
+    tag: tags?.tagByPath.get(f) ?? '',
+    tagIndex: tags?.indexByTag.get(tags.tagByPath.get(f) ?? ''),
     x: width / 2 + (Math.random() - 0.5) * 100,
     y: height / 2 + (Math.random() - 0.5) * 100
   }))

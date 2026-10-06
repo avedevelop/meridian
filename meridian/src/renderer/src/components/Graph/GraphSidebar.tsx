@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { SettingsIcon } from '../Icons'
 import { GraphSidebarFilters } from './GraphSidebarFilters'
 import { GraphSidebarAnalytics } from './GraphSidebarAnalytics'
+import type { ForcePreset, ForceShape } from './graphForces'
+import type { GroupMode } from './graphGroups'
 
 export const GROUP_COLORS = {
   canvas: '#b4befe', // Lavender
@@ -26,6 +28,8 @@ interface GraphSidebarProps {
   setLinkDistance: (v: number) => void
   repulsionStrength: number
   setRepulsionStrength: (v: number) => void
+  applyPreset: (preset: ForcePreset) => void
+  shape: ForceShape
   showArrows: boolean
   setShowArrows: (v: boolean) => void
   textSize: number
@@ -45,6 +49,8 @@ interface GraphSidebarProps {
   setLabelMode: (v: 'auto' | 'hover' | 'all') => void
   showGlow: boolean
   setShowGlow: (v: boolean) => void
+  groupMode: GroupMode
+  setGroupMode: (v: GroupMode) => void
   handleResetView: () => void
 }
 
@@ -65,6 +71,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
     setLinkDistance,
     repulsionStrength,
     setRepulsionStrength,
+    applyPreset,
+    shape,
     showArrows,
     setShowArrows,
     textSize,
@@ -77,6 +85,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
     setLabelMode,
     showGlow,
     setShowGlow,
+    groupMode,
+    setGroupMode,
     handleResetView
   } = props
 
@@ -252,6 +262,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
               setLinkDistance={setLinkDistance}
               repulsionStrength={repulsionStrength}
               setRepulsionStrength={setRepulsionStrength}
+              applyPreset={applyPreset}
+              shape={shape}
               showArrows={showArrows}
               setShowArrows={setShowArrows}
               textSize={textSize}
@@ -262,6 +274,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
               setLabelMode={setLabelMode}
               showGlow={showGlow}
               setShowGlow={setShowGlow}
+              groupMode={groupMode}
+              setGroupMode={setGroupMode}
               handleResetView={handleResetView}
             />
           ) : (

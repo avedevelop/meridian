@@ -1,8 +1,9 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
 import * as d3 from 'd3'
 import type { GNode, D3State } from '../graphTypes'
-import { nodeR, labelColor, getNodeGroup } from '../graphLayout'
-import { GROUP_COLORS } from '../GraphSidebar'
+import { nodeR, labelColor } from '../graphLayout'
+import { nodeFill, restingFill, restingStroke, restingStrokeWidth } from '../graphColors'
+import { highlightMatches } from './searchHighlight'
 import { shouldShowLabel } from '../graphLabelHelpers'
 
 export interface VisibilityOptions {
@@ -152,7 +153,8 @@ export function useGraphVisibility(
         circle.transition().duration(800).ease(d3.easeBackOut).attr('r', nodeR(d))
 
         const isHovered = d3.select(this).classed('is-hovered')
-        const show = shouldShowLabel(labelMode, zoomK, d.degree, isHovered)
+        const show =
+          shouldShowLabel(labelMode, zoomK, d.degree, isHovered) || (q !== '' && state.matches.has(d.id))
         text.transition().duration(150).attr('opacity', show ? 1 : 0)
 
         let baseOpacity = 1
@@ -199,6 +201,8 @@ export function useGraphVisibility(
     })
 
     visibleNodesRef.current = visibleNodes
+    state.groups.setVisible(visibleNodes)
+    highlightMatches(state, q, visibleNodes)
 
     if (reheated) {
       state.sim.alpha(0.3).restart()
@@ -242,8 +246,7 @@ export function useGraphVisibility(
         if (targetId === d.id) connectedNodes.add(sourceId)
       })
 
-      const hoverGroup = getNodeGroup(d.id, d.name, d.degree)
-      const hoverColor = GROUP_COLORS[hoverGroup]
+      const hoverColor = nodeFill(d, state.groups.getMode())
 
       d3.select(gEl)
         .classed('is-hovered', true)
@@ -360,7 +363,9 @@ export function useGraphVisibility(
 
   const handleMouseOut = useCallback(
     (gEl: SVGGElement, d: GNode) => {
-      const group = getNodeGroup(d.id, d.name, d.degree)
+      const cur = d3Ref.current
+      const mode = cur?.groups.getMode() ?? 'type'
+      const matches = cur?.matches ?? new Set<string>()
 
       d3.select(gEl)
         .classed('is-hovered', false)
@@ -377,9 +382,9 @@ export function useGraphVisibility(
         .transition()
         .duration(150)
         .attr('r', nodeR(d))
-        .attr('fill', GROUP_COLORS[group])
-        .attr('stroke', GROUP_COLORS[group])
-        .attr('stroke-width', 1.5)
+        .attr('fill', restingFill(d, mode, matches))
+        .attr('stroke', restingStroke(d, mode, matches))
+        .attr('stroke-width', restingStrokeWidth(d, matches))
         .style('filter', null)
 
       const state = d3Ref.current
