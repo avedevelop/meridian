@@ -11,9 +11,12 @@ const run: RunCommand = (cmd, args) =>
     execFile(cmd, args, { timeout: 1500 }, (err, stdout) => (err ? reject(err) : resolve(stdout)))
   })
 
-/** `lsappinfo info -only bundleid` prints `"CFBundleIdentifier"="com.apple.Passwords"`. */
+/**
+ * `lsappinfo info -only bundleid <asn>` prints a block whose line reads `bundleID="com.apple.Passwords"`
+ * (seen on a real Mac). Older releases printed `"CFBundleIdentifier"="..."`, so accept both.
+ */
 export function parseBundleId(output: string): string | null {
-  const m = /"CFBundleIdentifier"\s*=\s*"([^"]+)"/.exec(output)
+  const m = /(?:^|\s)(?:bundleID|"CFBundleIdentifier")\s*=\s*"([^"]+)"/m.exec(output)
   return m ? m[1] : null
 }
 

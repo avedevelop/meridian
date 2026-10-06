@@ -18,7 +18,7 @@ function monitorFor(bundle: string | null, clock: { t: number }): PrivateAppMoni
     () => clock.t,
     async (_cmd, args) => {
       if (args[0] === 'front') return 'ASN:0x0-0x1234:\n'
-      return bundle ? `"CFBundleIdentifier"="${bundle}"\n` : ''
+      return bundle ? `[ NULL ]  ASN:0x0-0x1234: (in front)\n    bundleID="${bundle}"\n` : ''
     }
   )
 }
