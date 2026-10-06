@@ -11,6 +11,27 @@ export const EXCLUDE_FORMATS = {
   linux: ['x-kde-passwordManagerHint']
 } as const
 
+/**
+ * macOS apps whose copies are never recorded. Apple Passwords sets no "concealed" marker, so this is the
+ * only protection for it; the third-party managers set the marker too, this is a second line.
+ */
+const PRIVATE_APP_BUNDLES = [
+  'com.apple.passwords',
+  'com.apple.keychainaccess',
+  'com.1password.1password',
+  'com.agilebits.onepassword7',
+  'com.agilebits.onepassword-osx',
+  'com.bitwarden.desktop',
+  'org.keepassxc.keepassxc',
+  'com.dashlane.dashlanephonefinal',
+  'com.lastpass.lastpass',
+  'com.markmcguill.strongbox.mac'
+]
+
+export function isPrivateAppBundle(bundleId: string): boolean {
+  return PRIVATE_APP_BUNDLES.includes(bundleId.toLowerCase())
+}
+
 /** Windows: a DWORD of 0 in CanIncludeInClipboardHistory means "do not record". */
 export const WIN_HISTORY_FORMAT = 'CanIncludeInClipboardHistory'
 
@@ -87,6 +108,16 @@ export function looksSensitive(text: string): boolean {
   if (!text || text.length > 20000) return false
   if (PATTERNS.some((re) => re.test(text))) return true
   const trimmed = text.trim()
+  // Best effort only: Apple's default generated password (three groups of six, jodzu1-vovwyv-gAgrah).
+  // Its other styles and user-chosen passwords look like ordinary text; the app blocklist is the real guard.
+  if (
+    /^[A-Za-z0-9]{6}-[A-Za-z0-9]{6}-[A-Za-z0-9]{6}$/.test(trimmed) &&
+    /\d/.test(trimmed) &&
+    /[a-z]/.test(trimmed) &&
+    /[A-Z]/.test(trimmed)
+  ) {
+    return true
+  }
   const digits = trimmed.replace(/[ -]/g, '')
   if (/^\d{13,19}$/.test(digits) && /^[\d -]+$/.test(trimmed) && luhn(digits)) return true
   // A single long token with no spaces and high entropy (API keys, passwords from generators)
