@@ -15,6 +15,10 @@ import { getBundledWelcomeVaultFiles } from '../shared/welcomeVault'
 import { VaultManager } from './vault'
 import { AppSettings } from './settings'
 import { ensureUserPluginsDir, listAppPluginManifests, resolveAppPluginFile } from './plugins'
+import { isSafeGitRemote, isWelcomeDestAllowed } from './security'
+import { fetchPublicText } from './safeFetch'
+import { VaultAccess } from './vaultAccess'
+import { openIfAllowed } from './openPathGuard'
 
 let vaultManager: VaultManager | null = null
 let vaultWatcher: FSWatcher | null = null
@@ -178,6 +182,9 @@ export function registerIpcHandlers(
   settings: AppSettings,
   onPreferencesChanged?: (preferences: Record<string, unknown>) => void
 ): void {
+  // Only folders the user chose may be opened by path (see vaultAccess.ts).
+  const vaultAccess = new VaultAccess(() => settings.get())
+
   ipcMain.handle(IPC.VAULT_OPEN_DIALOG, async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
@@ -187,6 +194,7 @@ export function registerIpcHandlers(
     if (result.canceled || result.filePaths.length === 0) return null
 
     const vaultPath = result.filePaths[0]
+    vaultAccess.approve(vaultPath)
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
     startVaultWatcher(vaultManager)
@@ -212,6 +220,7 @@ export function registerIpcHandlers(
       throw error
     }
 
+    vaultAccess.approve(filePath)
     const name = basename(filePath) || 'Vault'
     vaultManager = new VaultManager(filePath)
     startVaultWatcher(vaultManager)
@@ -222,6 +231,10 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle(IPC.VAULT_OPEN_BY_PATH, async (_event, vaultPath: string) => {
+    if (!vaultAccess.isKnown(vaultPath)) {
+      console.warn('[IPC] Refused to open a vault that was not chosen by the user:', vaultPath)
+      return null
+    }
     const { stat } = await import('fs/promises')
     try {
       const info = await stat(vaultPath)
@@ -359,7 +372,10 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle(IPC.SETTINGS_SET, async (_event, key: string, value: unknown) => {
-    if (key === 'lastVault') settings.setLastVault(value as string)
+    // Only a vault the user already chose may become the one reopened at startup.
+    if (key === 'lastVault' && (value === null || vaultAccess.isKnown(value))) {
+      settings.setLastVault(value as string | null)
+    }
   })
 
   ipcMain.handle(IPC.PREFERENCES_GET, async () => {
@@ -471,14 +487,13 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.VAULT_FETCH_URL_METADATA, async (_event, url: string) => {
     try {
-      const response = await fetch(url, {
+      // Fetched from the main process, so it bypasses the renderer's CSP: public http(s) hosts only.
+      const html = await fetchPublicText(url, {
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
       })
-      if (!response.ok) throw new Error(`HTTP error ${response.status}`)
-      const html = await response.text()
 
       const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
       const title = titleMatch ? titleMatch[1].trim() : ''
@@ -520,12 +535,29 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle(IPC.OPEN_PATH, async (_event, filePath: string) => {
-    await shell.openPath(filePath)
+    const { app } = await import('electron')
+    return openIfAllowed(filePath, {
+      vaultRoot: () => vaultManager?.vaultPath ?? null,
+      userDataDir: app.getPath('userData'),
+      open: (path) => shell.openPath(path)
+    })
   })
 
   ipcMain.handle(
     IPC.WELCOME_DOWNLOAD,
     async (_event, destPath: string, sourcePath = 'macos/en') => {
+      // The handler replaces the destination, so it must be the welcome-vault folder and nothing else.
+      const { app: electronApp } = await import('electron')
+      const { homedir } = await import('os')
+      if (
+        !isWelcomeDestAllowed(
+          destPath,
+          { home: homedir(), documents: electronApp.getPath('documents') },
+          process.platform
+        )
+      ) {
+        throw new Error('Invalid destination for the welcome vault')
+      }
       const https = await import('https')
       const {
         createWriteStream,
@@ -627,6 +659,7 @@ export function registerIpcHandlers(
         /* ignore */
       }
 
+      vaultAccess.approve(destPath)
       return destPath
     }
   )
@@ -946,6 +979,11 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.GIT_SET_REMOTE, async (_event, url: string) => {
     if (!vaultManager) throw new Error('No vault open')
+    // https, ssh or scp-style remotes only: no local paths, no exotic transports, nothing that git
+    // could read as an option.
+    if (!isSafeGitRemote(url)) {
+      return { success: false, error: 'Unsupported remote URL. Use an https:// or ssh:// address.' }
+    }
     const cwd = vaultManager.vaultPath
     const { execFile } = await import('child_process')
     const { promisify } = await import('util')

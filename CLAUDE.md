@@ -33,6 +33,8 @@ All four checks must pass before a commit.
 - Never interpolate note, file or plugin data into HTML. Use `textContent`/DOM APIs, or
   `escapeAttr` from `markdownUtils.ts`, and add a hostile-input test (`tests/renderer/markdownSecurity.test.ts`).
 - Note reads and writes go through `VaultManager.resolveAndAssert` (paths must stay inside the **current** vault).
-  That is not the whole story: `openByPath`, `openPath` and `welcomeDownload` accept arbitrary paths, and a
-  community plugin runs with the full window API. See `docs/plugin-security-audit.md` before adding or
-  exposing IPC handlers that take paths or URLs from the renderer.
+- The renderer is untrusted: a community plugin runs in the app window with the full preload API. Any IPC handler
+  that takes a path, URL or setting from the renderer must validate it in the main process with the helpers in
+  `main/security.ts` (and `main/safeFetch.ts` for network access), and have a hostile-input test like
+  `tests/main/ipcHardening.test.ts`. Never delete, open, launch or fetch something just because the renderer
+  asked. What is still open is listed in `docs/plugin-security-audit.md`.
