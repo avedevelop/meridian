@@ -8,6 +8,7 @@ import {
 } from '../../shared/clipboard'
 import { ClipboardStore, type NewEntry } from './store'
 import { ClipboardWatcher, type ClipboardLike } from './watcher'
+import { PrivateAppMonitor } from './frontmostApp'
 
 /** What the service needs to put content back on the clipboard (Electron `clipboard` + `nativeImage`). */
 export interface ClipboardWriter {
@@ -65,11 +66,14 @@ export class ClipboardService {
     this.settingsPath = join(deps.dir, 'settings.json')
     this.settings = this.loadSettings()
     this.store = new ClipboardStore(deps.dir)
+    const appMonitor = deps.platform === 'darwin' ? new PrivateAppMonitor(this.now) : null
     this.watcher = new ClipboardWatcher({
       clipboard: deps.clipboard,
       platform: deps.platform,
       getSettings: () => this.settings,
-      onEntry: (entry) => this.record(entry)
+      onEntry: (entry) => this.record(entry),
+      sampleFrontApp: appMonitor ? () => appMonitor.sample() : undefined,
+      isPrivateAppActive: appMonitor ? () => appMonitor.isPrivateAppActive() : undefined
     })
   }
 

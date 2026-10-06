@@ -23,6 +23,10 @@ export interface WatcherDeps {
   platform: NodeJS.Platform
   getSettings: () => ClipboardSettings
   onEntry: (entry: NewEntry) => void
+  /** Called every poll so the app in front can be tracked (macOS). */
+  sampleFrontApp?: () => void
+  /** True while a password manager is, or just was, in front: its copies are not recorded. */
+  isPrivateAppActive?: () => boolean
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (handle: unknown) => void
 }
@@ -100,6 +104,7 @@ export class ClipboardWatcher {
     try {
       const settings = this.deps.getSettings()
       if (settings.enabled && !settings.paused) {
+        this.deps.sampleFrontApp?.()
         const fp = this.fingerprint()
         if (fp !== this.lastFingerprint) {
           this.lastFingerprint = fp
@@ -136,6 +141,7 @@ export class ClipboardWatcher {
   private capture(settings: ClipboardSettings): void {
     const c = this.deps.clipboard
     if (shouldSkipByFormat(this.deps.platform, c)) return
+    if (this.deps.isPrivateAppActive?.()) return
 
     const text = c.readText()
     const rawHtml = c.readHTML()

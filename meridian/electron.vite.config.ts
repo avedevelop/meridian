@@ -3,7 +3,13 @@ import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  main: {},
+  main: {
+    build: {
+      // These are ESM-only. The main bundle is CJS, and a plain require() of them hands unified a module
+      // namespace instead of the plugin ("empty preset" crash at startup), so bundle them in.
+      externalizeDeps: { exclude: ['unified', 'rehype-parse', 'rehype-sanitize', 'rehype-stringify'] }
+    }
+  },
   preload: {},
   renderer: {
     resolve: {
