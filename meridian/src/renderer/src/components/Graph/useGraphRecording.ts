@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { D3State } from './graphTypes'
+import { pickRecorderMimeType } from './recorderMime'
+
+export type RecordingError = 'unsupported' | 'failed' | 'saveFailed'
 
 export interface UseGraphRecordingOptions {
   d3Ref: React.RefObject<D3State | null>
@@ -22,6 +25,7 @@ export function useGraphRecording({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const [isRecording, setIsRecording] = useState(false)
+  const [recordingError, setRecordingError] = useState<RecordingError | null>(null)
 
   const renderFrameToCanvas = useCallback(() => {
     const state = d3Ref.current
@@ -58,19 +62,48 @@ export function useGraphRecording({
     const el = containerRef.current
     const canvas = canvasRef.current
     if (!el || !canvas) return
+    setRecordingError(null)
+
+    const mimeType = pickRecorderMimeType(
+      typeof MediaRecorder === 'undefined' ? undefined : MediaRecorder
+    )
+    if (mimeType === null) {
+      setRecordingError('unsupported')
+      return
+    }
+
     canvas.width = el.clientWidth
     canvas.height = el.clientHeight
-    const stream = canvas.captureStream(15)
-    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' })
+    let stream: MediaStream
+    let recorder: MediaRecorder
+    try {
+      stream = canvas.captureStream(15)
+      recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+    } catch {
+      setRecordingError('unsupported')
+      return
+    }
+
     chunksRef.current = []
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data)
     }
-    recorder.onstop = async () => {
+    recorder.onerror = () => {
+      stream.getTracks().forEach((track) => track.stop())
       setIsRecording(false)
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' })
-      const buf = await blob.arrayBuffer()
-      await window.vault.saveVideo(new Uint8Array(buf))
+      setIsPlaying(false)
+      setRecordingError('failed')
+    }
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop())
+      setIsRecording(false)
+      try {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' })
+        const buf = await blob.arrayBuffer()
+        await window.vault.saveVideo(new Uint8Array(buf))
+      } catch {
+        setRecordingError('saveFailed')
+      }
     }
     recorder.start(200)
     mediaRecorderRef.current = recorder
@@ -94,6 +127,7 @@ export function useGraphRecording({
   return {
     canvasRef,
     isRecording,
+    recordingError,
     startRecording,
     stopRecording,
     cancelRecording

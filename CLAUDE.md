@@ -32,4 +32,7 @@ All four checks must pass before a commit.
   stay a single bundle that only requires `electron` (no Node modules).
 - Never interpolate note, file or plugin data into HTML. Use `textContent`/DOM APIs, or
   `escapeAttr` from `markdownUtils.ts`, and add a hostile-input test (`tests/renderer/markdownSecurity.test.ts`).
-- Main-process file access goes through `VaultManager.resolveAndAssert` (paths must stay inside the vault).
+- Note reads and writes go through `VaultManager.resolveAndAssert` (paths must stay inside the **current** vault).
+  That is not the whole story: `openByPath`, `openPath` and `welcomeDownload` accept arbitrary paths, and a
+  community plugin runs with the full window API. See `docs/plugin-security-audit.md` before adding or
+  exposing IPC handlers that take paths or URLs from the renderer.

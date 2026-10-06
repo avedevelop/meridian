@@ -9,6 +9,8 @@ interface LinkState {
   tagsVersion: number
 
   indexFile: (path: string, name: string, content: string, vaultPath: string) => void
+  /** Index many files with one resolution pass and one store update (opening a vault). */
+  indexFiles: (files: IndexableFile[], vaultPath: string) => void
   backlinks: (path: string) => string[]
   outlinks: (path: string) => string[]
   relationsForFile: (path: string) => IndexedRelation[]
@@ -20,6 +22,17 @@ interface LinkState {
   removeFile: (path: string, vaultPath: string) => void
   reset: () => void
 }
+
+export interface IndexableFile {
+  path: string
+  name: string
+  content: string
+}
+
+// Bumped by reset(). Background indexing compares it before every write, so work that was started
+// for a vault that has since been closed or replaced can never write into the new indexes.
+let epoch = 0
+export const getIndexEpoch = (): number => epoch
 
 let linkIndex = new LinkIndex()
 let searchIndex = new SearchIndex()
@@ -33,6 +46,17 @@ export const useLinkStore = create<LinkState>((set) => ({
   indexFile: (path, name, content, vaultPath) => {
     linkIndex.update(path, content, vaultPath)
     searchIndex.addOrUpdate(path, name, content)
+    set((s) => ({
+      indexVersion: s.indexVersion + 1,
+      tagsVersion: s.tagsVersion + 1,
+      searchResults: s.searchQuery.trim() ? searchIndex.search(s.searchQuery) : s.searchResults
+    }))
+  },
+
+  indexFiles: (files, vaultPath) => {
+    if (files.length === 0) return
+    linkIndex.updateMany(files, vaultPath)
+    for (const f of files) searchIndex.addOrUpdate(f.path, f.name, f.content)
     set((s) => ({
       indexVersion: s.indexVersion + 1,
       tagsVersion: s.tagsVersion + 1,
@@ -63,6 +87,7 @@ export const useLinkStore = create<LinkState>((set) => ({
   },
 
   reset: () => {
+    epoch++
     linkIndex = new LinkIndex()
     searchIndex = new SearchIndex()
     set({ searchResults: [], searchQuery: '', indexVersion: 0, tagsVersion: 0 })

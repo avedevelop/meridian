@@ -115,7 +115,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     showGlow
   })
 
-  const { canvasRef, isRecording, startRecording, stopRecording, cancelRecording } =
+  const { canvasRef, isRecording, recordingError, startRecording, stopRecording, cancelRecording } =
     useGraphRecording({
       d3Ref,
       containerRef,
@@ -432,6 +432,7 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
         playDuration={playDuration}
         setPlayDuration={setPlayDuration}
         isRecording={isRecording}
+        recordingError={recordingError}
         startRecording={startRecording}
         stopRecording={stopRecording}
         isSettingsOpen={isSettingsOpen}

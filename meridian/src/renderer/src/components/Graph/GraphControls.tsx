@@ -1,3 +1,4 @@
+import type { RecordingError } from './useGraphRecording'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { HistoryTimelineBar } from './HistoryTimelineBar'
@@ -17,6 +18,7 @@ export interface GraphControlsProps {
   playDuration: number
   setPlayDuration: (duration: number) => void
   isRecording: boolean
+  recordingError?: RecordingError | null
   startRecording: () => void
   stopRecording: () => void
   isSettingsOpen: boolean
@@ -39,6 +41,7 @@ export function GraphControls({
   playDuration,
   setPlayDuration,
   isRecording,
+  recordingError,
   startRecording,
   stopRecording,
   isSettingsOpen,
@@ -58,6 +61,7 @@ export function GraphControls({
           playDuration={playDuration}
           setPlayDuration={setPlayDuration}
           isRecording={isRecording}
+          recordingError={recordingError}
           startRecording={startRecording}
           stopRecording={stopRecording}
           isSettingsOpen={isSettingsOpen}

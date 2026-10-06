@@ -1,3 +1,4 @@
+import type { RecordingError } from './useGraphRecording'
 import React, { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,6 +10,7 @@ interface HistoryTimelineBarProps {
   playDuration: number
   setPlayDuration: (d: number) => void
   isRecording: boolean
+  recordingError?: RecordingError | null
   startRecording: () => void
   stopRecording: () => void
   isSettingsOpen: boolean
@@ -25,6 +27,7 @@ export function HistoryTimelineBar({
   playDuration,
   setPlayDuration,
   isRecording,
+  recordingError,
   startRecording,
   stopRecording,
   isSettingsOpen,
@@ -321,6 +324,11 @@ export function HistoryTimelineBar({
           >
             ⏺ Rec
           </button>
+        )}
+        {recordingError && (
+          <span role="alert" style={{ color: '#f59e0b', fontSize: 11, flexShrink: 1 }}>
+            {t(`timeline.recordError.${recordingError}`)}
+          </span>
         )}
       </div>
     </div>

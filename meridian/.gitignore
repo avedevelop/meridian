@@ -6,3 +6,4 @@ out
 *.log*
 coverage
 bench/graph/.out
+bench/vault/.out

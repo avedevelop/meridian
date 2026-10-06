@@ -173,6 +173,38 @@ npm run dev
 - Auto-commit every 5 minutes and on window minimize
 - Works when the vault is a git repository
 
+### Quick Capture
+
+- Press `⌘⇧N` (`Ctrl+Shift+N` on Windows) from any app to jot a line into `Inbox.md`
+
+### Clipboard history
+
+Off until you turn it on (Settings → System → Clipboard history, or the prompt in the history window).
+Everything stays on your computer.
+
+- Open it from any app with `⌘⇧H` (`Ctrl+Shift+H` on Windows); the shortcut can be changed in Settings
+- Search, filter (text, links, images, pinned, snippets), pin entries, delete entries
+- `Enter` copies an entry back, `Shift+Enter` copies it as plain text
+- **Save to a note**: `⌘Enter` appends to `Inbox.md`, `⌘D` to today's daily note, `⌘⇧Enter` creates a new note.
+  Links become `<url>`, tab-separated cells become a Markdown table, code becomes a fenced block, images are
+  saved to your attachment folder
+- **Snippets**: notes in `_snippets/` appear in the same window; `{{date}}`, `{{time}}` and `{{clipboard}}` are
+  filled in when you copy one
+- Keeps up to 5,000 entries for 30 days by default (both adjustable); pinned entries are kept until you remove them
+
+**Privacy.** Copies that password managers mark as private (the standard Windows and macOS clipboard flags) are
+skipped. Text that looks like a secret (private keys, API tokens, card numbers) is hidden in the list and left
+out of search, or not recorded at all if you choose. "Clear history" deletes every entry and all saved images.
+
+Limits: the history is stored unencrypted in the app's data folder; the private-copy flags only work when the
+other app sets them; secret detection is a heuristic, not a guarantee; Meridian does not know which app a copy
+came from, so it cannot ignore specific apps; it cannot paste into the previous window for you yet.
+
+### Running in the background
+
+Settings → System: keep Meridian in the system tray when you close the window (so the clipboard history and
+Quick Capture shortcuts keep working), start it when you sign in, and start minimized to the tray.
+
 ---
 
 ## Keyboard shortcuts
@@ -188,6 +220,8 @@ npm run dev
 | ⌘Z       | Undo (in Canvas / Sketchpad)      |
 | ⌘,       | Settings                          |
 | ⌘⇧G      | Graph View                        |
+| ⌘⇧N      | Quick Capture (global)            |
+| ⌘⇧H      | Clipboard history (global)        |
 | /        | Slash commands (start of line)    |
 | >        | Command mode in Command Palette   |
 
@@ -199,10 +233,31 @@ npm run dev
 your-vault/
 ├── _templates/        ← templates for insertion
 │   └── daily.md
+├── _snippets/         ← text snippets for the clipboard window
+├── Inbox.md           ← Quick Capture and clipboard "save to Inbox"
 ├── assets/            ← images (paste-friendly)
 ├── Daily/             ← Daily Notes (⌘D)
 └── your notes…
 ```
+
+---
+
+## Performance
+
+Numbers from our own benchmarks (synthetic vaults, a Linux container; they do not include Electron's file
+reads, so treat them as relative):
+
+- Opening a vault of 10,000 notes builds the link and search index in about 1.2 s; saving one note then costs
+  about 36 ms. See [meridian/bench/vault](meridian/bench/vault/README.md).
+- The first screen renders in about 0.5 s instead of 0.9 s on a throttled CPU after lazy-loading heavy screens.
+  See [meridian/bench/startup](meridian/bench/startup/README.md).
+
+You can generate a large vault to try yourself: `node bench/vault/run.mjs --write ./big-vault` in `meridian/`.
+
+## Plugins
+
+Community plugins are not sandboxed: they run with the same access as the app. Only enable plugins you trust.
+See [docs/plugin-security-audit.md](docs/plugin-security-audit.md).
 
 ---
 
@@ -243,6 +298,8 @@ Run all four before committing or opening a PR: `lint && typecheck && test && ch
 - [SCOPE.md](SCOPE.md) — what Meridian is and isn't
 - [platforms/README.md](platforms/README.md) — platform support, packaging, and release assets
 - [PLUGIN_DEVELOPMENT.md](PLUGIN_DEVELOPMENT.md) — community plugin authoring guide
+- [docs/clipboard-design.md](docs/clipboard-design.md) — how the clipboard history works and its limits
+- [docs/plugin-security-audit.md](docs/plugin-security-audit.md) — what a plugin can access
 - [CHANGELOG.md](CHANGELOG.md) — release notes
 
 ---

@@ -781,5 +781,9 @@
   "settings.clipboard.clearDesc": "Deletes every entry, including pinned ones, and all saved images.",
   "settings.clipboard.cleared": "History cleared.",
   "settings.clipboard.clearButton": "Clear all",
-  "settings.clipboard.clearConfirm": "Click again to confirm"
+  "settings.clipboard.clearConfirm": "Click again to confirm",
+
+  "timeline.recordError.unsupported": "Video recording is not available on this system.",
+  "timeline.recordError.failed": "Recording stopped because of an error.",
+  "timeline.recordError.saveFailed": "Could not save the video."
 }
