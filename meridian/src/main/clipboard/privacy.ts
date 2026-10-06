@@ -108,7 +108,7 @@ export function looksSensitive(text: string): boolean {
   if (!text || text.length > 20000) return false
   if (PATTERNS.some((re) => re.test(text))) return true
   const trimmed = text.trim()
-  // Best effort only: Apple's default generated password (three groups of six, jodzu1-vovwyv-gAgrah).
+  // Best effort only: Apple's default generated password (three groups of six, abcde1-fghijk-lMnopq).
   // Its other styles and user-chosen passwords look like ordinary text; the app blocklist is the real guard.
   if (
     /^[A-Za-z0-9]{6}-[A-Za-z0-9]{6}-[A-Za-z0-9]{6}$/.test(trimmed) &&

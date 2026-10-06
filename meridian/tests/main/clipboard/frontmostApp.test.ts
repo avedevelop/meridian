@@ -108,7 +108,7 @@ describe('watcher with a password manager in front', () => {
 
 describe("Apple's generated password format", () => {
   it('is treated as sensitive', () => {
-    expect(looksSensitive('jodzu1-vovwyv-gAgrah')).toBe(true)
+    expect(looksSensitive('abcde1-fghijk-lMnopq')).toBe(true)
   })
   it('does not catch ordinary dashed text', () => {
     expect(looksSensitive('first-second-third')).toBe(false)
