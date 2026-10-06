@@ -2,7 +2,7 @@ import type { VaultFile } from '@shared/types'
 import type { GNode, GLink, GraphBuildResult } from './graphTypes'
 import { GROUP_COLORS } from './GraphSidebar'
 import { basename } from '@shared/paths'
-import { folderColorIndex, folderGroup } from './graphGroups'
+import { folderColorIndex, folderGroup, primaryTags } from './graphGroups'
 
 /**
  * Maximum number of nodes to render in the graph for performance reasons.
@@ -36,6 +36,8 @@ export interface BuildGraphDataOptions {
   width: number
   height: number
   maxNodes: number
+  /** Tags of a note; needed to group by tag. */
+  tagsOf?: (path: string) => string[]
 }
 
 function applyNodeCap(
@@ -60,7 +62,7 @@ export function buildGraphData(
   outlinks: (file: string) => any,
   options: BuildGraphDataOptions
 ): GraphBuildResult {
-  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height, maxNodes } =
+  const { disabledCategories, strictFilter, debouncedSearchQuery, width, height, maxNodes, tagsOf } =
     options
 
   const flat = flattenFiles(files)
@@ -149,12 +151,15 @@ export function buildGraphData(
     finalDegree[t] = (finalDegree[t] ?? 0) + 1
   })
 
+  const tags = tagsOf ? primaryTags(finalPaths, tagsOf) : null
   const nodes: GNode[] = finalPaths.map((f) => ({
     id: f,
     name: basename(f).replace(/\.(md|canvas)$/, '') ?? '',
     degree: finalDegree[f] ?? 0,
     folder: folderMap[f] ?? '',
     folderIndex: folderIndex.get(folderMap[f] ?? ''),
+    tag: tags?.tagByPath.get(f) ?? '',
+    tagIndex: tags?.indexByTag.get(tags.tagByPath.get(f) ?? ''),
     x: width / 2 + (Math.random() - 0.5) * 100,
     y: height / 2 + (Math.random() - 0.5) * 100
   }))

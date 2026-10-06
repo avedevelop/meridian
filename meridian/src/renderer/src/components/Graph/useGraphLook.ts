@@ -31,7 +31,7 @@ export function useGraphLook() {
     return v === 'hover' || v === 'all' ? v : 'auto'
   })
   const [groupMode, setGroupMode] = useState<GroupMode>(() =>
-    read(GROUP_KEY) === 'folder' ? 'folder' : 'type'
+    read(GROUP_KEY) === 'folder' ? 'folder' : read(GROUP_KEY) === 'tag' ? 'tag' : 'type'
   )
 
   useEffect(() => write(GLOW_KEY, String(showGlow)), [showGlow])

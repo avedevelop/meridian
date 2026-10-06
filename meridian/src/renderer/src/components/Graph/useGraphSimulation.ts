@@ -37,6 +37,8 @@ export interface UseGraphSimulationOptions {
   labelMode: 'auto' | 'hover' | 'all'
   showGlow: boolean
   groupMode: GroupMode
+  tagsOf: (path: string) => string[]
+  tagsVersion: number
 }
 
 export function useGraphSimulation({
@@ -61,7 +63,9 @@ export function useGraphSimulation({
   onFileOpen,
   labelMode,
   showGlow,
-  groupMode
+  groupMode,
+  tagsOf,
+  tagsVersion
 }: UseGraphSimulationOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   const d3Ref = useRef<D3State | null>(null)
@@ -209,7 +213,8 @@ export function useGraphSimulation({
         maxNodes: graphMaxNodes,
         labelMode,
         showGlow,
-        groupMode
+        groupMode,
+        tagsOf
       })
 
       if (!res) return
@@ -252,7 +257,8 @@ export function useGraphSimulation({
     debouncedSearchQuery,
     onFileOpen,
     graphMaxNodes,
-    showGlow
+    showGlow,
+    tagsVersion
   ])
 
   const handleTogglePhysics = useCallback(() => {

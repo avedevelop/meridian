@@ -1,6 +1,6 @@
 import * as d3 from 'd3'
 import type { GNode, GLink } from '../graphTypes'
-import { folderColor, type GroupMode } from '../graphGroups'
+import { folderColor, groupIndexOf, groupKeyOf, type GroupMode } from '../graphGroups'
 import {
   glowGradientId,
   nodeFill,
@@ -30,15 +30,17 @@ export interface Puddle {
 export function computePuddles(
   nodes: GNode[],
   visible: Set<string> | null,
-  radius: (d: GNode) => number
+  radius: (d: GNode) => number,
+  mode: GroupMode = 'folder'
 ): Puddle[] {
   const groups = new Map<string, GNode[]>()
   for (const n of nodes) {
-    if (!n.folder || n.x == null || n.y == null) continue
+    const key = groupKeyOf(n, mode)
+    if (!key || n.x == null || n.y == null) continue
     if (visible && !visible.has(n.id)) continue
-    const list = groups.get(n.folder)
+    const list = groups.get(key)
     if (list) list.push(n)
-    else groups.set(n.folder, [n])
+    else groups.set(key, [n])
   }
 
   const outline = d3.line().curve(d3.curveCatmullRomClosed.alpha(0.6))
@@ -55,31 +57,41 @@ export function computePuddles(
     }
     const hull = d3.polygonHull(points)
     const path = hull ? outline(hull) : null
-    if (path) puddles.push({ key, color: folderColor(members[0].folderIndex), path })
+    if (path) puddles.push({ key, color: folderColor(groupIndexOf(members[0], mode)), path })
   }
   return puddles
 }
 
-type ClusterForce = d3.Force<GNode, GLink> & { strength(v: number): ClusterForce }
+type ClusterForce = d3.Force<GNode, GLink> & {
+  strength(v: number): ClusterForce
+  /** Which group a node is gathered with; '' for none. */
+  key(fn: (d: GNode) => string): ClusterForce
+}
 
 /** Pulls every node a little towards the centroid of its folder, so the folders form islands. */
-export function forceCluster(initial: number): ClusterForce {
+export function forceCluster(
+  initial: number,
+  initialKey: (d: GNode) => string = (d) => d.folder ?? ''
+): ClusterForce {
   let nodes: GNode[] = []
   let strength = initial
+  let keyOf = initialKey
   const force = ((alpha: number) => {
     if (!strength) return
     const sums = new Map<string, { x: number; y: number; n: number }>()
     for (const d of nodes) {
-      if (!d.folder) continue
-      const s = sums.get(d.folder) ?? { x: 0, y: 0, n: 0 }
+      const key = keyOf(d)
+      if (!key) continue
+      const s = sums.get(key) ?? { x: 0, y: 0, n: 0 }
       s.x += d.x ?? 0
       s.y += d.y ?? 0
       s.n++
-      sums.set(d.folder, s)
+      sums.set(key, s)
     }
     const k = strength * alpha
     for (const d of nodes) {
-      const s = d.folder ? sums.get(d.folder) : undefined
+      const key = keyOf(d)
+      const s = key ? sums.get(key) : undefined
       if (!s || s.n < 2) continue
       d.vx = (d.vx ?? 0) + (s.x / s.n - (d.x ?? 0)) * k
       d.vy = (d.vy ?? 0) + (s.y / s.n - (d.y ?? 0)) * k
@@ -90,6 +102,10 @@ export function forceCluster(initial: number): ClusterForce {
   }
   force.strength = (v: number) => {
     strength = v
+    return force
+  }
+  force.key = (fn) => {
+    keyOf = fn
     return force
   }
   return force
@@ -131,7 +147,7 @@ export function createGroupLayer({
     .insert('g', ':first-child')
     .attr('class', 'puddles')
     .style('pointer-events', 'none')
-  const cluster = forceCluster(mode === 'folder' ? CLUSTER_STRENGTH : 0)
+  const cluster = forceCluster(mode === 'type' ? 0 : CLUSTER_STRENGTH, (d) => groupKeyOf(d, mode))
   sim.force('cluster', cluster)
 
   let current = mode
@@ -141,7 +157,7 @@ export function createGroupLayer({
   const every = Math.max(1, Math.ceil(nodes.length / 600))
 
   const render = (): void => {
-    const puddles = current === 'folder' ? computePuddles(nodes, visible, radius) : []
+    const puddles = current === 'type' ? [] : computePuddles(nodes, visible, radius, current)
     layer
       .selectAll<SVGPathElement, Puddle>('path')
       .data(puddles, (p) => p.key)
@@ -158,7 +174,7 @@ export function createGroupLayer({
     getMode: () => current,
     setMode(next) {
       current = next
-      cluster.strength(next === 'folder' ? CLUSTER_STRENGTH : 0)
+      cluster.strength(next === 'type' ? 0 : CLUSTER_STRENGTH).key((d) => groupKeyOf(d, next))
       nodeG
         .select<SVGCircleElement>('circle.vis')
         .attr('fill', (d) => restingFill(d, next, matches))
@@ -177,13 +193,13 @@ export function createGroupLayer({
       render()
     },
     linkDamp(l) {
-      if (current !== 'folder') return 1
-      const a = l.source as GNode
-      const b = l.target as GNode
-      return a.folder === b.folder ? 1 : CROSS_FOLDER_LINK_FACTOR
+      if (current === 'type') return 1
+      const a = groupKeyOf(l.source as GNode, current)
+      const b = groupKeyOf(l.target as GNode, current)
+      return a === b ? 1 : CROSS_FOLDER_LINK_FACTOR
     },
     update() {
-      if (current !== 'folder') return
+      if (current === 'type') return
       if (++ticks % every === 0) render()
     }
   }

@@ -32,6 +32,8 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
   const files = useVaultStore((s) => s.files)
   const outlinks = useLinkStore((s) => s.outlinks)
   const indexVersion = useLinkStore((s) => s.indexVersion)
+  const tagsOf = useLinkStore((s) => s.tagsForFile)
+  const tagsVersion = useLinkStore((s) => s.tagsVersion)
 
   const [viewMode, setViewMode] = useState<'live' | 'history'>('live')
 
@@ -108,7 +110,9 @@ export function GraphView({ onFileOpen }: GraphViewProps) {
     onFileOpen,
     labelMode,
     showGlow,
-    groupMode
+    groupMode,
+    tagsOf,
+    tagsVersion
   })
 
   const { canvasRef, isRecording, recordingError, startRecording, stopRecording, cancelRecording } =

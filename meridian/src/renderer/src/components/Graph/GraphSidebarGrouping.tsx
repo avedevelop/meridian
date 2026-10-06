@@ -8,7 +8,8 @@ interface Props {
 
 const OPTIONS: Array<{ mode: GroupMode; labelKey: string }> = [
   { mode: 'type', labelKey: 'graph.groupByType' },
-  { mode: 'folder', labelKey: 'graph.groupByFolder' }
+  { mode: 'folder', labelKey: 'graph.groupByFolder' },
+  { mode: 'tag', labelKey: 'graph.groupByTag' }
 ]
 
 export function GraphSidebarGrouping({ groupMode, setGroupMode }: Props) {

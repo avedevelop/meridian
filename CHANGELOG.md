@@ -6,7 +6,7 @@ All notable changes to Meridian. Format follows [Keep a Changelog](https://keepa
 
 ### Added
 
-- Graph: "Group by folder" colours notes by their top-level folder and gathers each folder into a soft island with a translucent outline. The choice is remembered.
+- Graph: "Group by" folder or tag colours notes and gathers each group into a soft island with a translucent outline (a note's most widespread tag, up to 12 tags). Notes that match the search turn yellow with a white ring. The choice is remembered.
 - Settings → System → Clipboard history: turn recording on or off, record a new open-history shortcut (a shortcut that another app owns is rejected and the old one stays), history size, retention, how passwords and keys are handled, and clear history.
 - Clipboard history (opt-in): global hotkey window with search, filters, pinning, plain-text paste, and saving to Inbox, the daily note or a new note. Snippets from the `_snippets` folder.
 

@@ -1,10 +1,16 @@
 import type { GNode } from './graphTypes'
 import { getNodeGroup } from './graphLayout'
 import { GROUP_COLORS } from './GraphSidebar'
-import { FOLDER_PALETTE, NO_FOLDER_COLOR, folderColor, type GroupMode } from './graphGroups'
+import {
+  FOLDER_PALETTE,
+  NO_FOLDER_COLOR,
+  folderColor,
+  groupIndexOf,
+  type GroupMode
+} from './graphGroups'
 
 export function nodeFill(d: GNode, mode: GroupMode): string {
-  if (mode === 'folder') return folderColor(d.folderIndex)
+  if (mode !== 'type') return folderColor(groupIndexOf(d, mode))
   return GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)]
 }
 

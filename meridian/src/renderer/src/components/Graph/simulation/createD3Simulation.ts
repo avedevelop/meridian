@@ -34,6 +34,7 @@ export interface CreateSimulationOptions {
   labelMode: 'auto' | 'hover' | 'all'
   showGlow: boolean
   groupMode: GroupMode
+  tagsOf?: (path: string) => string[]
 }
 
 export interface SimulationResult {
@@ -61,7 +62,8 @@ export function createD3Simulation({
   maxNodes,
   labelMode,
   showGlow,
-  groupMode
+  groupMode,
+  tagsOf
 }: CreateSimulationOptions): SimulationResult | null {
   el.innerHTML = ''
   const width = el.clientWidth
@@ -74,7 +76,8 @@ export function createD3Simulation({
     debouncedSearchQuery,
     width,
     height,
-    maxNodes
+    maxNodes,
+    tagsOf
   })
   const { nodes, links: finalLinks } = buildResult
 

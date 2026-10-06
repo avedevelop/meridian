@@ -9,6 +9,9 @@ export interface GNode extends d3.SimulationNodeDatum {
   folder?: string
   /** Position of the folder among the vault's folders; picks its colour. */
   folderIndex?: number
+  /** The note's main tag (see primaryTags) and its colour index; '' / undefined when it has none. */
+  tag?: string
+  tagIndex?: number
 }
 
 export interface GLink extends d3.SimulationLinkDatum<GNode> {

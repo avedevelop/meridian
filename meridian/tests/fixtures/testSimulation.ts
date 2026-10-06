@@ -3,7 +3,12 @@ import type { GroupMode } from '../../src/renderer/src/components/Graph/graphGro
 import { linkedVault } from './linkedVault'
 
 /** A real graph simulation rendered into a detached element (happy-dom). */
-export function testSimulation(count: number, folders: string[], groupMode: GroupMode = 'type') {
+export function testSimulation(
+  count: number,
+  folders: string[],
+  groupMode: GroupMode = 'type',
+  tagsOf?: (path: string) => string[]
+) {
   const { files, outlinks } = linkedVault(count, folders)
   const el = document.createElement('div')
   Object.defineProperty(el, 'clientWidth', { value: 1200 })
@@ -26,7 +31,8 @@ export function testSimulation(count: number, folders: string[], groupMode: Grou
     maxNodes: 0,
     labelMode: 'auto',
     showGlow: false,
-    groupMode
+    groupMode,
+    tagsOf
   })
   if (!res) throw new Error('no simulation')
   return { el, state: res.state }
