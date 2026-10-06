@@ -41,6 +41,25 @@ Combined: findings 1, 2 and 4 together are enough for a malicious plugin to read
 run a program, and send data out. They are one decision (enable the plugin) away from a normal user, and
 findings 1 to 3 are also reachable by any script that manages to run in the app window.
 
+## Status after the hardening change
+
+Done in the main process, without changing the plugin API (`main/security.ts`, `main/safeFetch.ts`,
+`main/clipboard/consent.ts`; covered by `tests/main/ipcHardening.test.ts` and the unit tests next to it):
+
+| # | Result |
+|---|--------|
+| 1 | **Fixed.** `openByPath` only opens a folder the user chose: this session's open/create dialog, the welcome vault, or an entry of the recent list. `settings.set('lastVault')` is restricted the same way, so it cannot be used to widen the list. |
+| 2 | **Fixed.** `openPath` opens only the app's own config folder and non-executable files or folders inside the current vault. Symlinks are resolved first. Executable extensions and extension-less files are refused. |
+| 3 | **Fixed.** `welcomeDownload` only accepts the two known welcome-vault folders directly inside Documents (the home `Documents` or the OS "documents" folder, which can be redirected on Windows). Anything else is refused before anything is deleted. |
+| 4 | **Partly fixed.** `fetchUrlMetadata` now goes through `fetchPublicText`: http(s) only, no credentials, no local or private addresses (checked for the URL, for every address its name resolves to, and for every redirect), 3 redirects, 8 s, 1 MB. Left open: the name is resolved again by `fetch`, so a DNS answer that changes between the check and the request (DNS rebinding) is not covered; and `openExternal`/`window.open` still open any http(s) URL in the browser. |
+| 5 | **Partly fixed.** `gitSetRemote` accepts only `https://`, `ssh://` and scp-style (`git@host:path`) remotes and refuses options, local paths and exotic transports (`ext::`, `fd::`, `file:`). A plugin can still point the remote at a host of its choice and push the vault there; that needs a confirmation dialog (not done). |
+| 6 | **Fixed for turning recording on.** `clipboardHistory.setSettings({ enabled: true })` shows a native confirmation dialog that page code cannot click (default button is Cancel). Reading the history from a plugin is still possible once the user has turned it on. |
+| 7 | **Open.** `setPreferences` can still enable `runInBackground` and `launchAtLogin`. |
+| 8 | **Open.** Enabling a plugin is still by id, with no permissions and no integrity pin. |
+
+The remaining items (and the reads in 6) are only solved by running plugins behind a real boundary
+(recommendation 2).
+
 ## Recommendations, in order
 
 1. **Harden the main process (small, testable, no plugin API change).**

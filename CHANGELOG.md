@@ -22,6 +22,7 @@ All notable changes to Meridian. Format follows [Keep a Changelog](https://keepa
 
 ### Security
 
+- Hardened what the app window can ask the main process to do (relevant to community plugins): vaults can only be opened if you chose them, `openPath` refuses programs and anything outside the vault, the welcome-vault download can no longer delete an arbitrary folder, link previews cannot reach local or private addresses, git remotes must be https or ssh, and turning on clipboard recording asks for a native confirmation.
 - Renderer windows run with the Electron sandbox enabled; Mermaid diagrams use the strict security level.
 
 ## [1.0.14] — 2026-06-10

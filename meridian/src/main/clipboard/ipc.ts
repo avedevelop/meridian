@@ -37,6 +37,8 @@ export interface ClipboardIpcDeps {
   getPreferences: () => Record<string, unknown>
   getWindowInfo: () => { hotkey: string; hotkeyRegistered: boolean }
   readClipboardText: () => string
+  /** Ask the user, with a native dialog, to allow recording. Resolves true only on an explicit yes. */
+  confirmEnableRecording: (parent: BrowserWindow | null) => Promise<boolean>
   hideWindow: () => void
   platform: string
 }
@@ -124,9 +126,20 @@ export function registerClipboardIpc(
   })
   ipcMain.handle(CLIPBOARD_IPC.HIDE, () => deps.hideWindow())
   ipcMain.handle(CLIPBOARD_IPC.GET_SETTINGS, () => service.getSettings())
-  ipcMain.handle(CLIPBOARD_IPC.SET_SETTINGS, (_e, patch) =>
-    service.setSettings((patch ?? {}) as Partial<ClipboardSettings>)
-  )
+  // One dialog at a time, however many calls arrive while it is open.
+  let pendingConsent: Promise<boolean> | null = null
+  ipcMain.handle(CLIPBOARD_IPC.SET_SETTINGS, async (e, patch) => {
+    const next = { ...((patch ?? {}) as Partial<ClipboardSettings>) }
+    if (next.enabled === true && !service.getSettings().enabled) {
+      pendingConsent ??= deps
+        .confirmEnableRecording(BrowserWindow.fromWebContents(e.sender))
+        .finally(() => {
+          pendingConsent = null
+        })
+      if (!(await pendingConsent)) delete next.enabled
+    }
+    return service.setSettings(next)
+  })
 
   return () => {
     for (const channel of Object.values(CLIPBOARD_IPC)) ipcMain.removeHandler(channel)

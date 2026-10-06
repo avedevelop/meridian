@@ -31,6 +31,8 @@ Snippets are notes in `<vault>/_snippets/`. `{{date}}`, `{{time}}` and `{{clipbo
 snippet is copied; frontmatter is stripped; names cannot contain path separators.
 
 Until the user turns recording on, the window shows a short consent card instead of the history.
+Turning recording on (from the card or from Settings) also shows a native confirmation dialog from the main
+process, so page code, including a plugin, cannot enable it silently.
 
 ## Settings
 
