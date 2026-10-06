@@ -15,20 +15,12 @@ import { getBundledWelcomeVaultFiles } from '../shared/welcomeVault'
 import { VaultManager } from './vault'
 import { AppSettings } from './settings'
 import { ensureUserPluginsDir, listAppPluginManifests, resolveAppPluginFile } from './plugins'
-import {
-  canOpenPath,
-  isSafeGitRemote,
-  isVaultPathAllowed,
-  isWelcomeDestAllowed
-} from './security'
+import { isSafeGitRemote, isWelcomeDestAllowed } from './security'
 import { fetchPublicText } from './safeFetch'
+import { VaultAccess } from './vaultAccess'
+import { openIfAllowed } from './openPathGuard'
 
 let vaultManager: VaultManager | null = null
-
-// Vaults the user chose in this session (open/create dialog, welcome vault). Together with the
-// persisted recent list they are the only folders `openByPath` will switch to: the renderer,
-// including community plugins, must not be able to re-root the vault to an arbitrary folder.
-const approvedVaultPaths = new Set<string>()
 let vaultWatcher: FSWatcher | null = null
 let watcherSession = 0
 let pluginWatcher: FSWatcher | null = null
@@ -190,6 +182,9 @@ export function registerIpcHandlers(
   settings: AppSettings,
   onPreferencesChanged?: (preferences: Record<string, unknown>) => void
 ): void {
+  // Only folders the user chose may be opened by path (see vaultAccess.ts).
+  const vaultAccess = new VaultAccess(() => settings.get())
+
   ipcMain.handle(IPC.VAULT_OPEN_DIALOG, async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
@@ -199,7 +194,7 @@ export function registerIpcHandlers(
     if (result.canceled || result.filePaths.length === 0) return null
 
     const vaultPath = result.filePaths[0]
-    approvedVaultPaths.add(vaultPath)
+    vaultAccess.approve(vaultPath)
     const name = basename(vaultPath) || 'Vault'
     vaultManager = new VaultManager(vaultPath)
     startVaultWatcher(vaultManager)
@@ -225,7 +220,7 @@ export function registerIpcHandlers(
       throw error
     }
 
-    approvedVaultPaths.add(filePath)
+    vaultAccess.approve(filePath)
     const name = basename(filePath) || 'Vault'
     vaultManager = new VaultManager(filePath)
     startVaultWatcher(vaultManager)
@@ -235,17 +230,8 @@ export function registerIpcHandlers(
     return { path: filePath, name }
   })
 
-  const isKnownVault = (candidate: string): boolean => {
-    const config = settings.get()
-    return isVaultPathAllowed(
-      candidate,
-      [...approvedVaultPaths, ...config.recentVaults.map((v) => v.path), config.lastVault],
-      process.platform
-    )
-  }
-
   ipcMain.handle(IPC.VAULT_OPEN_BY_PATH, async (_event, vaultPath: string) => {
-    if (typeof vaultPath !== 'string' || !isKnownVault(vaultPath)) {
+    if (!vaultAccess.isKnown(vaultPath)) {
       console.warn('[IPC] Refused to open a vault that was not chosen by the user:', vaultPath)
       return null
     }
@@ -387,7 +373,7 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.SETTINGS_SET, async (_event, key: string, value: unknown) => {
     // Only a vault the user already chose may become the one reopened at startup.
-    if (key === 'lastVault' && (value === null || (typeof value === 'string' && isKnownVault(value)))) {
+    if (key === 'lastVault' && (value === null || vaultAccess.isKnown(value))) {
       settings.setLastVault(value as string | null)
     }
   })
@@ -549,32 +535,12 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle(IPC.OPEN_PATH, async (_event, filePath: string) => {
-    // Opening a file can run it, so only the app's own folder and non-executable files inside the
-    // current vault are allowed. Symlinks are resolved first, so a link inside the vault cannot
-    // point somewhere else.
-    const { realpath, stat } = await import('fs/promises')
     const { app } = await import('electron')
-    try {
-      const real = await realpath(filePath)
-      const vaultRoot = vaultManager ? await realpath(vaultManager.vaultPath) : null
-      const info = await stat(real)
-      const allowed = canOpenPath(
-        real,
-        {
-          vaultRoot,
-          exactAllowed: [await realpath(app.getPath('userData'))],
-          isDirectory: info.isDirectory()
-        },
-        process.platform
-      )
-      if (!allowed) {
-        console.warn('[IPC] Refused to open a path outside the vault or app folder:', filePath)
-        return
-      }
-      await shell.openPath(real)
-    } catch (e) {
-      console.warn('[IPC] openPath failed:', e)
-    }
+    return openIfAllowed(filePath, {
+      vaultRoot: () => vaultManager?.vaultPath ?? null,
+      userDataDir: app.getPath('userData'),
+      open: (path) => shell.openPath(path)
+    })
   })
 
   ipcMain.handle(
@@ -693,7 +659,7 @@ export function registerIpcHandlers(
         /* ignore */
       }
 
-      approvedVaultPaths.add(destPath)
+      vaultAccess.approve(destPath)
       return destPath
     }
   )

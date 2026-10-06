@@ -146,6 +146,39 @@ describe('openPath', () => {
     expect(mocks.shell.openPath).toHaveBeenCalledTimes(2)
   })
 
+  it('refuses documents with active content, not only programs', async () => {
+    for (const f of [
+      'x.html',
+      'x.svg',
+      'x.docm',
+      'x.chm',
+      'x.jnlp',
+      'x.webloc',
+      'x.iso',
+      'x.unknown'
+    ]) {
+      writeFileSync(join(vault, f), 'payload')
+      expect(await call(IPC.OPEN_PATH, join(vault, f))).toBe(false)
+    }
+    expect(mocks.shell.openPath).not.toHaveBeenCalled()
+  })
+
+  it('reports whether the path was opened', async () => {
+    writeFileSync(join(vault, 'ok.md'), '# ok')
+    expect(await call(IPC.OPEN_PATH, join(vault, 'ok.md'))).toBe(true)
+    expect(await call(IPC.OPEN_PATH, join(vault, 'missing.md'))).toBe(false)
+    expect(await call(IPC.OPEN_PATH, 42)).toBe(false)
+  })
+
+  it('still opens the app config folder when the open vault has become unreachable', async () => {
+    const gone = makeDir('vanishing-vault')
+    recent = [{ path: gone, name: 'vanishing-vault' }]
+    await call(IPC.VAULT_OPEN_BY_PATH, gone)
+    rmSync(gone, { recursive: true, force: true }) // folder moved or drive unplugged
+    expect(await call(IPC.OPEN_PATH, mocks.paths.userData)).toBe(true)
+    expect(mocks.shell.openPath).toHaveBeenCalledTimes(1)
+  })
+
   it('refuses a program written into the vault', async () => {
     writeFileSync(join(vault, 'run.bat'), 'calc')
     writeFileSync(join(vault, 'run.command'), 'calc')

@@ -1,10 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import { isLocalHostname, isPrivateAddress } from '../../src/main/ipRanges'
 import {
   canOpenPath,
   extensionOf,
-  isLocalHostname,
-  isPrivateAddress,
   isRiskyToOpen,
   isSafeGitRemote,
   isSameOrInside,
@@ -83,13 +82,40 @@ describe('executable detection', () => {
     'x.jar',
     'noext',
     'x.bat.',
-    'x.cmd '
+    'x.cmd ',
+    // active content that a denylist of "programs" would miss
+    'x.docm',
+    'x.xlsm',
+    'x.html',
+    'x.htm',
+    'x.svg',
+    'x.chm',
+    'x.jnlp',
+    'x.webloc',
+    'x.inetloc',
+    'x.mjs',
+    'x.iso',
+    'x.hta',
+    'x.xml',
+    'x.swf',
+    'x.pptm',
+    'x.vhd',
+    'x.unknownext'
   ])('treats %s as risky', (name) => expect(isRiskyToOpen(name)).toBe(true))
 
-  it.each(['note.md', 'photo.png', 'doc.pdf', 'data.json', 'board.canvas', 'sketch.excalidraw'])(
-    'treats %s as safe',
-    (name) => expect(isRiskyToOpen(name)).toBe(false)
-  )
+  it.each([
+    'note.md',
+    'note.MD',
+    'photo.png',
+    'doc.pdf',
+    'data.json',
+    'data.csv',
+    'board.canvas',
+    'sketch.excalidraw',
+    'clip.mp4',
+    'sound.wav',
+    'a.txt'
+  ])('treats %s as safe', (name) => expect(isRiskyToOpen(name)).toBe(false))
 })
 
 describe('canOpenPath', () => {
@@ -167,7 +193,9 @@ describe('isSafeGitRemote', () => {
     'https://git.example.com:8443/me/repo',
     'ssh://git@github.com/me/notes.git',
     'ssh://git@host.example.com:2222/me/notes.git',
-    'git@github.com:me/notes.git'
+    'git@github.com:me/notes.git',
+    'git@myserver.com:/srv/git/notes.git',
+    'deploy@git.example.com:team/notes.git'
   ])('accepts %s', (url) => expect(isSafeGitRemote(url)).toBe(true))
 
   it.each([
@@ -222,7 +250,17 @@ describe('isPrivateAddress', () => {
     '64:ff9b::7f00:1',
     '2001:db8::1',
     'not-an-ip',
-    '999.1.1.1'
+    '999.1.1.1',
+    '192.0.2.1',
+    '198.51.100.7',
+    '203.0.113.9',
+    '192.88.99.1',
+    '192.0.0.8',
+    'fec0::1',
+    '2002:7f00:0001::1',
+    '2002:0a00:0001::',
+    '2002:c0a8:0101::1',
+    '2001:0:4136:e378:8000:63bf:3fff:fdd2'
   ])('treats %s as private', (ip) => expect(isPrivateAddress(ip)).toBe(true))
 
   it.each([
@@ -234,7 +272,10 @@ describe('isPrivateAddress', () => {
     '192.169.0.1',
     '2606:4700:4700::1111',
     '::ffff:8.8.8.8',
-    '64:ff9b::808:808'
+    '64:ff9b::808:808',
+    '2002:0808:0808::1',
+    '203.0.114.1',
+    '198.51.101.1'
   ])('treats %s as public', (ip) => expect(isPrivateAddress(ip)).toBe(false))
 })
 
