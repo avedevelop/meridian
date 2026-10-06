@@ -28,6 +28,8 @@ export interface D3State {
   svgEl: SVGSVGElement
   /** Group puddles and the force that gathers each group; changed live when the group mode changes. */
   groups: GroupLayer
+  /** Ids of the notes matching the search box; they are highlighted and always labelled. */
+  matches: Set<string>
   nodes: GNode[]
   links: GLink[]
   width: number

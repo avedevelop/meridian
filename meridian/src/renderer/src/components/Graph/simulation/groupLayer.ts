@@ -1,7 +1,13 @@
 import * as d3 from 'd3'
 import type { GNode, GLink } from '../graphTypes'
 import { folderColor, type GroupMode } from '../graphGroups'
-import { glowGradientId, nodeFill } from '../graphColors'
+import {
+  glowGradientId,
+  nodeFill,
+  restingFill,
+  restingStroke,
+  restingStrokeWidth
+} from '../graphColors'
 
 /** Space between a node's edge and the edge of its puddle. */
 export const PUDDLE_PAD = 14
@@ -108,9 +114,18 @@ interface Options {
   nodeG: d3.Selection<SVGGElement, GNode, SVGGElement, unknown>
   mode: GroupMode
   radius: (d: GNode) => number
+  matches: Set<string>
 }
 
-export function createGroupLayer({ root, sim, nodes, nodeG, mode, radius }: Options): GroupLayer {
+export function createGroupLayer({
+  root,
+  sim,
+  nodes,
+  nodeG,
+  mode,
+  radius,
+  matches
+}: Options): GroupLayer {
   // First child, so puddles sit under the links and the nodes.
   const layer = root
     .insert('g', ':first-child')
@@ -146,8 +161,9 @@ export function createGroupLayer({ root, sim, nodes, nodeG, mode, radius }: Opti
       cluster.strength(next === 'folder' ? CLUSTER_STRENGTH : 0)
       nodeG
         .select<SVGCircleElement>('circle.vis')
-        .attr('fill', (d) => nodeFill(d, next))
-        .attr('stroke', (d) => nodeFill(d, next))
+        .attr('fill', (d) => restingFill(d, next, matches))
+        .attr('stroke', (d) => restingStroke(d, next, matches))
+        .attr('stroke-width', (d) => restingStrokeWidth(d, matches))
       nodeG
         .select<SVGCircleElement>('circle.glow-halo')
         .attr('fill', (d) => `url(#${glowGradientId(nodeFill(d, next))})`)

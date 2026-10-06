@@ -14,3 +14,18 @@ export const ALL_NODE_COLORS: string[] = [
 ]
 
 export const glowGradientId = (color: string): string => `glow-${color.replace('#', '')}`
+
+/** Notes that match the search: warm yellow with a white ring, which no folder or type colour uses. */
+export const MATCH_FILL = '#ffe66d'
+export const MATCH_RING = '#ffffff'
+
+/** The colour a node has when nothing is hovered. */
+export function restingFill(d: GNode, mode: GroupMode, matches: Set<string>): string {
+  return matches.has(d.id) ? MATCH_FILL : nodeFill(d, mode)
+}
+
+export const restingStroke = (d: GNode, mode: GroupMode, matches: Set<string>): string =>
+  matches.has(d.id) ? MATCH_RING : nodeFill(d, mode)
+
+export const restingStrokeWidth = (d: GNode, matches: Set<string>): number =>
+  matches.has(d.id) ? 3 : 1.5

@@ -281,7 +281,16 @@ export function createD3Simulation({
     handleMouseOut(this, d)
   })
 
-  const groups = createGroupLayer({ root, sim, nodes, nodeG, mode: groupMode, radius: nodeR })
+  const matches = new Set<string>()
+  const groups = createGroupLayer({
+    root,
+    sim,
+    nodes,
+    nodeG,
+    mode: groupMode,
+    radius: nodeR,
+    matches
+  })
   applyForces(sim, { linkDistance, repulsionStrength, shape, textSize, linkDamp: groups.linkDamp })
 
   sim.on('tick', () => {
@@ -344,6 +353,7 @@ export function createD3Simulation({
     dateLabel,
     svgEl: svg.node()!,
     groups,
+    matches,
     nodes,
     links: finalLinks,
     width,
