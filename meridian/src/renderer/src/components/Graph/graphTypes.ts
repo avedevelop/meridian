@@ -1,9 +1,14 @@
 import * as d3 from 'd3'
+import type { GroupLayer } from './simulation/groupLayer'
 
 export interface GNode extends d3.SimulationNodeDatum {
   id: string
   name: string
   degree: number
+  /** Top-level folder in the vault ('' for the root); used to group and colour by folder. */
+  folder?: string
+  /** Position of the folder among the vault's folders; picks its colour. */
+  folderIndex?: number
 }
 
 export interface GLink extends d3.SimulationLinkDatum<GNode> {
@@ -21,6 +26,8 @@ export interface D3State {
   linkSel: d3.Selection<SVGLineElement, GLink, SVGGElement, unknown>
   dateLabel: d3.Selection<SVGTextElement, unknown, null, undefined>
   svgEl: SVGSVGElement
+  /** Group puddles and the force that gathers each group; changed live when the group mode changes. */
+  groups: GroupLayer
   nodes: GNode[]
   links: GLink[]
   width: number

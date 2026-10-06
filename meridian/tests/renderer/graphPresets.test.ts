@@ -8,33 +8,11 @@ import {
   FORCE_PRESETS,
   type ForcePreset
 } from '../../src/renderer/src/components/Graph/graphForces'
-import type { VaultFile } from '../../src/shared/types'
+import { linkedVault } from '../fixtures/linkedVault'
 
 // slider ranges in GraphSidebarFilters.tsx
 const DISTANCE = [30, 200]
 const REPULSION = [-300, -20]
-
-/** A connected note graph: every note links to one or two earlier ones, so there are hubs and chains. */
-function linkedVault(count: number): { files: VaultFile[]; outlinks: (p: string) => string[] } {
-  const path = (i: number): string => `/vault/n${i}.md`
-  let seed = 7
-  const rand = (): number => (seed = (seed * 16807) % 2147483647) / 2147483647
-  const edges = new Map<string, string[]>()
-  for (let i = 1; i < count; i++) {
-    const targets = new Set([Math.floor(rand() * i)])
-    if (rand() < 0.6) targets.add(Math.floor(rand() * i))
-    edges.set(path(i), [...targets].map(path))
-  }
-  const files: VaultFile[] = Array.from({ length: count }, (_, i) => ({
-    name: `n${i}.md`,
-    path: path(i),
-    relativePath: `n${i}.md`,
-    isDirectory: false,
-    mtime: i,
-    birthtime: i
-  }))
-  return { files, outlinks: (p) => edges.get(p) ?? [] }
-}
 
 function meanLinkLength(preset: ForcePreset): number {
   const { files, outlinks } = linkedVault(150)
@@ -58,7 +36,8 @@ function meanLinkLength(preset: ForcePreset): number {
     handleMouseOut: () => undefined,
     maxNodes: 0,
     labelMode: 'auto',
-    showGlow: false
+    showGlow: false,
+    groupMode: 'type'
   })
   if (!res) throw new Error('no simulation')
   const { sim, links } = res.state

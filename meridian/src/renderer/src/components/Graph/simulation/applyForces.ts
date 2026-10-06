@@ -8,13 +8,15 @@ export interface ForceValues {
   repulsionStrength: number
   shape: ForceShape
   textSize: number
+  /** Extra factor per link, see GroupLayer.linkDamp. */
+  linkDamp?: (l: GLink) => number
 }
 
 /** Push slider and preset values into a running simulation. The caller decides whether to reheat it. */
 export function applyForces(sim: d3.Simulation<GNode, GLink>, v: ForceValues): void {
   ;(sim.force('link') as d3.ForceLink<GNode, GLink>)
     ?.distance(v.linkDistance)
-    .strength(v.shape.linkStrength)
+    .strength((l) => v.shape.linkStrength * (v.linkDamp?.(l) ?? 1))
   ;(sim.force('charge') as d3.ForceManyBody<GNode>)?.strength(v.repulsionStrength)
   ;(sim.force('x') as d3.ForceX<GNode>)?.strength(v.shape.gravity)
   ;(sim.force('y') as d3.ForceY<GNode>)?.strength(v.shape.gravity)

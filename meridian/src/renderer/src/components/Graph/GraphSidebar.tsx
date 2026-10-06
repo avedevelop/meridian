@@ -3,6 +3,7 @@ import { SettingsIcon } from '../Icons'
 import { GraphSidebarFilters } from './GraphSidebarFilters'
 import { GraphSidebarAnalytics } from './GraphSidebarAnalytics'
 import type { ForcePreset, ForceShape } from './graphForces'
+import type { GroupMode } from './graphGroups'
 
 export const GROUP_COLORS = {
   canvas: '#b4befe', // Lavender
@@ -48,6 +49,8 @@ interface GraphSidebarProps {
   setLabelMode: (v: 'auto' | 'hover' | 'all') => void
   showGlow: boolean
   setShowGlow: (v: boolean) => void
+  groupMode: GroupMode
+  setGroupMode: (v: GroupMode) => void
   handleResetView: () => void
 }
 
@@ -82,6 +85,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
     setLabelMode,
     showGlow,
     setShowGlow,
+    groupMode,
+    setGroupMode,
     handleResetView
   } = props
 
@@ -269,6 +274,8 @@ export function GraphSidebar(props: GraphSidebarProps) {
               setLabelMode={setLabelMode}
               showGlow={showGlow}
               setShowGlow={setShowGlow}
+              groupMode={groupMode}
+              setGroupMode={setGroupMode}
               handleResetView={handleResetView}
             />
           ) : (

@@ -1,8 +1,11 @@
 import * as d3 from 'd3'
 import type { VaultFile } from '@shared/types'
 import type { GNode, GLink, D3State, GraphBuildResult } from '../graphTypes'
-import { nodeR, labelColor, buildGraphData, getNodeGroup } from '../graphLayout'
-import { GROUP_COLORS } from '../GraphSidebar'
+import { nodeR, labelColor, buildGraphData } from '../graphLayout'
+import { ALL_NODE_COLORS, glowGradientId, nodeFill } from '../graphColors'
+import type { GroupMode } from '../graphGroups'
+import { createGroupLayer } from './groupLayer'
+import { applyForces } from './applyForces'
 import { shouldShowLabel, truncateLabel } from '../graphLabelHelpers'
 import {
   COLLIDE_STRENGTH,
@@ -30,6 +33,7 @@ export interface CreateSimulationOptions {
   maxNodes: number
   labelMode: 'auto' | 'hover' | 'all'
   showGlow: boolean
+  groupMode: GroupMode
 }
 
 export interface SimulationResult {
@@ -56,7 +60,8 @@ export function createD3Simulation({
   handleMouseOut,
   maxNodes,
   labelMode,
-  showGlow
+  showGlow,
+  groupMode
 }: CreateSimulationOptions): SimulationResult | null {
   el.innerHTML = ''
   const width = el.clientWidth
@@ -90,8 +95,9 @@ export function createD3Simulation({
     .force('y', d3.forceY<GNode>(height / 2).strength(shape.gravity))
     .force(
       'orphanRadial',
-      d3.forceRadial<GNode>(Math.min(width, height) * 0.4, width / 2, height / 2)
-        .strength((d) => d.degree === 0 ? 0.12 : 0)
+      d3
+        .forceRadial<GNode>(Math.min(width, height) * 0.4, width / 2, height / 2)
+        .strength((d) => (d.degree === 0 ? 0.12 : 0))
     )
     .force(
       'collide',
@@ -126,10 +132,10 @@ export function createD3Simulation({
     .attr('fill', 'rgba(255, 255, 255, 0.4)')
 
   // Soft glow radial gradients (highly optimized, GPU accelerated)
-  Object.entries(GROUP_COLORS).forEach(([name, color]) => {
+  ALL_NODE_COLORS.forEach((color) => {
     const grad = defs
       .append('radialGradient')
-      .attr('id', `glow-grad-${name}`)
+      .attr('id', glowGradientId(color))
       .attr('cx', '50%')
       .attr('cy', '50%')
       .attr('r', '50%')
@@ -231,7 +237,7 @@ export function createD3Simulation({
       .append('circle')
       .attr('class', 'glow-halo')
       .attr('r', (d) => nodeR(d) + 8)
-      .attr('fill', (d) => `url(#glow-grad-${getNodeGroup(d.id, d.name, d.degree)})`)
+      .attr('fill', (d) => `url(#${glowGradientId(nodeFill(d, groupMode))})`)
       .attr('opacity', 0)
       .style('pointer-events', 'none')
       .style('transform-origin', 'center')
@@ -242,8 +248,8 @@ export function createD3Simulation({
     .append('circle')
     .attr('class', 'vis')
     .attr('r', 0)
-    .attr('fill', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
-    .attr('stroke', (d) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)])
+    .attr('fill', (d) => nodeFill(d, groupMode))
+    .attr('stroke', (d) => nodeFill(d, groupMode))
     .attr('stroke-width', 1.5)
 
   nodeG
@@ -254,7 +260,7 @@ export function createD3Simulation({
     .attr('fill', (d) => labelColor(d))
     .attr('text-anchor', 'middle')
     .attr('dy', (d) => nodeR(d) + textSize + 2)
-    .attr('opacity', (d) => shouldShowLabel(labelMode, 1.0, d.degree, false) ? 1 : 0)
+    .attr('opacity', (d) => (shouldShowLabel(labelMode, 1.0, d.degree, false) ? 1 : 0))
     .style('pointer-events', 'none')
     .style('user-select', 'none')
 
@@ -275,7 +281,11 @@ export function createD3Simulation({
     handleMouseOut(this, d)
   })
 
+  const groups = createGroupLayer({ root, sim, nodes, nodeG, mode: groupMode, radius: nodeR })
+  applyForces(sim, { linkDistance, repulsionStrength, shape, textSize, linkDamp: groups.linkDamp })
+
   sim.on('tick', () => {
+    groups.update()
     linkSel
       .attr('x1', (d) => (d.source as GNode).x!)
       .attr('y1', (d) => (d.source as GNode).y!)
@@ -287,10 +297,14 @@ export function createD3Simulation({
   // Warm up simulation to avoid layout explosion on first render
   sim.tick(120)
   sim.alphaTarget(0)
+  groups.setMode(groupMode)
 
   // Auto-fit viewport to graph bounding box after warmup
   if (nodes.length > 0) {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity
     nodes.forEach((n) => {
       const r = nodeR(n)
       if (n.x! - r < minX) minX = n.x! - r
@@ -306,10 +320,10 @@ export function createD3Simulation({
 
     if (dx > 0 && dy > 0) {
       const padding = 40
-      const scale = Math.max(0.2, Math.min(2, Math.min(
-        (width - padding * 2) / dx,
-        (height - padding * 2) / dy
-      )))
+      const scale = Math.max(
+        0.2,
+        Math.min(2, Math.min((width - padding * 2) / dx, (height - padding * 2) / dy))
+      )
       const transform = d3.zoomIdentity
         .translate(width / 2, height / 2)
         .scale(scale)
@@ -329,6 +343,7 @@ export function createD3Simulation({
     linkSel,
     dateLabel,
     svgEl: svg.node()!,
+    groups,
     nodes,
     links: finalLinks,
     width,

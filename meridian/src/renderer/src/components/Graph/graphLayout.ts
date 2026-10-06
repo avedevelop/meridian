@@ -2,6 +2,7 @@ import type { VaultFile } from '@shared/types'
 import type { GNode, GLink, GraphBuildResult } from './graphTypes'
 import { GROUP_COLORS } from './GraphSidebar'
 import { basename } from '@shared/paths'
+import { folderColorIndex, folderGroup } from './graphGroups'
 
 /**
  * Maximum number of nodes to render in the graph for performance reasons.
@@ -64,9 +65,12 @@ export function buildGraphData(
 
   const flat = flattenFiles(files)
   const mtimeMap: Record<string, number> = {}
+  const folderMap: Record<string, string> = {}
   for (const f of flat) {
     mtimeMap[f.path] = f.mtime ?? 0
+    folderMap[f.path] = folderGroup(f.relativePath ?? '')
   }
+  const folderIndex = folderColorIndex(Object.values(folderMap))
 
   // Phase 1: Filter base paths (daily, canvas, project, strict search)
   let filteredPaths = flat
@@ -149,6 +153,8 @@ export function buildGraphData(
     id: f,
     name: basename(f).replace(/\.(md|canvas)$/, '') ?? '',
     degree: finalDegree[f] ?? 0,
+    folder: folderMap[f] ?? '',
+    folderIndex: folderIndex.get(folderMap[f] ?? ''),
     x: width / 2 + (Math.random() - 0.5) * 100,
     y: height / 2 + (Math.random() - 0.5) * 100
   }))
