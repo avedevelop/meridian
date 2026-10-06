@@ -24,7 +24,11 @@ export function getNodeGroup(
   return degree > 0 ? 'connected' : 'orphan'
 }
 
-export const nodeR = (d: GNode) => (d.degree > 0 ? 8 + Math.min(d.degree * 2, 12) : 6)
+/**
+ * Radius grows with the square root of the links, so a hub clearly stands out (it used to stop growing at
+ * six links, which made most connected notes look alike) while a note with one link stays small.
+ */
+export const nodeR = (d: GNode) => (d.degree > 0 ? 6 + Math.min(Math.sqrt(d.degree) * 3.2, 20) : 5)
 export const labelColor = (d: GNode) =>
   d.degree > 0 ? 'var(--text-primary)' : 'var(--text-secondary)'
 export const nodeColor = (d: GNode) => GROUP_COLORS[getNodeGroup(d.id, d.name, d.degree)]
